@@ -1,4 +1,5 @@
 use super::super::bt::*;
+use super::move_to;
 use screeps::{
     constants::ResourceType,
     find,
@@ -41,14 +42,14 @@ fn unload<'a>(creep: &'a Creep) -> ExecutionResult {
             warn!("couldn't unload: {:?}", r);
         }
     } else {
-        creep.move_to(&target);
+        move_to(creep, &target)?;
     }
 
     trace!("Unloading finished");
     Ok(())
 }
 
-fn harvest<'a>(creep: &'a Creep) -> ExecutionResult {
+pub fn harvest<'a>(creep: &'a Creep) -> ExecutionResult {
     trace!("Harvesting");
 
     let carry_total = creep.carry_total();
@@ -64,10 +65,10 @@ fn harvest<'a>(creep: &'a Creep) -> ExecutionResult {
     if creep.pos().is_near_to(&source) {
         let r = creep.harvest(&source);
         if r != ReturnCode::Ok {
-            warn!("couldn't harvest: {:?}", r);
+            warn!("Couldn't harvest: {:?}", r);
         }
     } else {
-        creep.move_to(&source);
+        move_to(creep, &source)?;
     }
 
     trace!("Harvest finished");
@@ -134,7 +135,7 @@ fn set_unload_target<'a>(creep: &'a Creep) -> Result<Spawn, ()> {
             Ok(target)
         }
     } else {
-        trace!("Finding new harvest target");
+        trace!("Finding new unload target");
         let target = creep
             .pos()
             .find_closest_by_range(find::MY_SPAWNS)
@@ -145,4 +146,3 @@ fn set_unload_target<'a>(creep: &'a Creep) -> Result<Spawn, ()> {
         Ok(target)
     }
 }
-

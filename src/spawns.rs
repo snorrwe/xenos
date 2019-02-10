@@ -22,8 +22,13 @@ fn run_spawns<'a>() -> Node<'a> {
 
 fn run_spawn(spawn: &StructureSpawn) -> ExecutionResult {
     debug!("Running spawn {}", spawn.name());
-    let body = [Part::Move, Part::Move, Part::Carry, Part::Work];
 
+    if screeps::game::creeps::keys().len() >= 5 {
+        trace!("Skipping spawn due to overpopulation");
+        return Ok(());
+    }
+
+    let body = [Part::Move, Part::Move, Part::Carry, Part::Work];
     if spawn.energy() >= body.iter().map(|p| p.cost()).sum() {
         let name = screeps::game::time();
         let mut additional = 0;
@@ -43,6 +48,6 @@ fn run_spawn(spawn: &StructureSpawn) -> ExecutionResult {
             warn!("couldn't spawn: {:?}", res);
         }
     }
+
     Ok(())
 }
-

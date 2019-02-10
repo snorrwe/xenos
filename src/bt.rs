@@ -122,4 +122,3 @@ impl<'a> BtNode for Task<'a> {
         task()
     }
 }
-

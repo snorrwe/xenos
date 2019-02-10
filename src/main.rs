@@ -6,11 +6,11 @@ extern crate screeps;
 #[macro_use]
 extern crate stdweb;
 
-mod logging;
-mod game_loop;
 mod bt;
-mod spawns;
 mod creeps;
+mod game_loop;
+mod logging;
+mod spawns;
 
 use game_loop::game_loop;
 
@@ -42,4 +42,3 @@ fn main() {
         }
     }
 }
-

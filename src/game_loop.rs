@@ -2,6 +2,7 @@ use super::bt::*;
 use super::creeps;
 use super::spawns;
 use std::collections::HashSet;
+use stdweb::unstable::TryFrom;
 
 pub fn game_loop() {
     info!("Loop starting! CPU: {}", screeps::game::cpu::get_used());
@@ -12,7 +13,19 @@ pub fn game_loop() {
         error!("Failed to clean up memory {:?}", e);
     });
 
-    info!("Done! CPU: {} Bucket: {}", screeps::game::cpu::get_used(), screeps::game::cpu::bucket());
+    // screeps api `bucket` method panics in simulation
+    let bucket = js!{
+        let bucket = Game.cpu.bucket;
+        return bucket != null ? bucket : -1;
+    };
+
+    let bucket: i32 = i32::try_from(bucket).expect("Expected bucket to be a number");
+
+    info!(
+        "Done! CPU: {} Bucket: {:?}",
+        screeps::game::cpu::get_used(),
+        bucket
+    );
 }
 
 /// Run the game logic
@@ -52,4 +65,3 @@ fn cleanup_memory() -> Result<(), Box<::std::error::Error>> {
 
     Ok(())
 }
-

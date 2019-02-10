@@ -1,7 +1,9 @@
+mod builder;
 mod harvester;
+mod upgrader;
 
 use super::bt::*;
-use screeps::{self, objects::Creep};
+use screeps::{self, objects::Creep, ReturnCode};
 
 pub fn task<'a>() -> Node<'a> {
     let tasks = vec![run_creeps()];
@@ -20,6 +22,9 @@ fn run_creeps<'a>() -> Node<'a> {
 fn run_creep<'a>(creep: Creep) -> Node<'a> {
     let task = move || {
         debug!("Running creep {}", creep.name());
+        if creep.spawning() {
+            return Ok(());
+        }
         let tasks = vec![
             Task::new("run_role", || run_role(&creep)),
             Task::new("assing_role", || assign_role(&creep)),
@@ -37,7 +42,16 @@ fn run_creep<'a>(creep: Creep) -> Node<'a> {
 fn assign_role<'a>(creep: &'a Creep) -> ExecutionResult {
     trace!("Assigning role to {}", creep.name());
 
-    let result = "harvester";
+    let time = screeps::game::time();
+    // TODO: more intelligent role assignment
+    let time = time % 3;
+    let result = match time {
+        0 => "harvester",
+        1 => "upgrader",
+        2 => "builder",
+        _ => unimplemented!(),
+    };
+
     creep.memory().set("role", result); // TODO
 
     trace!("Assigned role {} to {}", result, creep.name());
@@ -59,7 +73,22 @@ fn run_role<'a>(creep: &'a Creep) -> ExecutionResult {
 
     match role.as_str() {
         "harvester" => harvester::run(creep),
+        "upgrader" => upgrader::run(creep),
+        "builder" => builder::run(creep),
         _ => unimplemented!(),
     }
 }
 
+pub fn move_to<'a>(
+    creep: &'a Creep,
+    target: &'a impl screeps::RoomObjectProperties,
+) -> ExecutionResult {
+    let res = creep.move_to(target);
+    match res {
+        ReturnCode::Ok => Ok(()),
+        _ => {
+            warn!("Move failed {:?}", res);
+            Err(())
+        }
+    }
+}
