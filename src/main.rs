@@ -10,12 +10,13 @@ mod logging;
 mod game_loop;
 mod bt;
 mod spawns;
+mod creeps;
 
 use game_loop::game_loop;
 
 fn main() {
     stdweb::initialize();
-    logging::setup_logging(logging::Debug);
+    logging::setup_logging(logging::Trace);
 
     js! {
         var game_loop = @{game_loop};

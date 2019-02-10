@@ -1,4 +1,5 @@
 use super::bt::*;
+use super::creeps;
 use super::spawns;
 use std::collections::HashSet;
 
@@ -20,9 +21,9 @@ pub fn game_loop() {
 fn run() {
     trace!("Running");
 
-    let tasks = vec![spawns::task()];
+    let tasks = vec![spawns::task(), creeps::task()];
 
-    let tree = BehaviourTree::new(Control::Selector(tasks));
+    let tree = BehaviourTree::new(Control::All(tasks));
 
     let result = tree.tick();
 

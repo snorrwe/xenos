@@ -4,8 +4,8 @@
 //!     - Because of the way Screeps works we will not use the 'Running' state normally found in BT's
 //!     - For the above reason we have no Task cancellation
 //!
-use std::fmt;
-use std::fmt::Debug;
+use std::fmt::{self, Debug};
+use std::rc::Rc;
 
 pub struct BehaviourTree<'a> {
     root: Control<'a>,
@@ -49,12 +49,14 @@ impl<'a> BtNode for Node<'a> {
 }
 
 /// Control node in the Behaviour Tree
-/// Selector runs its child tasks until the first failure
-/// Sequence runs its child tasks until the first success
+/// - Selector runs its child tasks until the first failure
+/// - Sequence runs its child tasks until the first success
+/// - All runs all its child tasks regardless of their result
 #[derive(Debug, Clone)]
 pub enum Control<'a> {
     Selector(Vec<Node<'a>>),
     Sequence(Vec<Node<'a>>),
+    All(Vec<Node<'a>>),
 }
 
 impl<'a> BtNode for Control<'a> {
@@ -76,11 +78,17 @@ impl<'a> BtNode for Control<'a> {
                     Err(())
                 }
             }
+            Control::All(nodes) => {
+                nodes.iter().for_each(|node| {
+                    node.tick().unwrap_or_else(|e| {
+                        error!("node failure in an All control {:?}", e);
+                    });
+                });
+                Ok(())
+            }
         }
     }
 }
-
-use std::rc::Rc;
 
 /// Represents a single task in the behaviour tree
 #[derive(Clone)]

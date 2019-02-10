@@ -1,6 +1,5 @@
 use super::bt::*;
-use screeps;
-use screeps::{objects::StructureSpawn, prelude::*, Part, ReturnCode};
+use screeps::{self, objects::StructureSpawn, prelude::*, Part, ReturnCode};
 
 /// Return the BehaviourTree that runs the spawns
 pub fn task<'a>() -> Node<'a> {
