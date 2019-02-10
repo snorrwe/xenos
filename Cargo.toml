@@ -1,0 +1,15 @@
+[package]
+name = "xenos"
+version = "0.1.0"
+authors = []
+
+[dependencies]
+stdweb = "0.4"
+log = "0.4"
+fern = "0.5"
+screeps-game-api = "0.3"
+
+[profile.release]
+panic = "abort"
+opt-level = "s"
+lto = true
