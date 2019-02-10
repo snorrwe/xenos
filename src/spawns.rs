@@ -2,6 +2,7 @@ use super::bt::*;
 use screeps;
 use screeps::{objects::StructureSpawn, prelude::*, Part, ReturnCode};
 
+/// Return the BehaviourTree that runs the spawns
 pub fn task<'a>() -> Node<'a> {
     let tasks = vec![run_spawns()];
     Node::Control(Control::Sequence(tasks))
@@ -28,12 +29,13 @@ fn run_spawn(spawn: &StructureSpawn) -> ExecutionResult {
         let name = screeps::game::time();
         let mut additional = 0;
         let res = loop {
-            let name = format!("{}_{}", name, additional);
+            let name = format!("{:x}_{}", name, additional);
             let res = spawn.spawn_creep(&body, &name);
 
             if res == ReturnCode::NameExists {
                 additional += 1;
             } else {
+                debug!("Spawning creep: {}, result: {}", name, res as i32);
                 break res;
             }
         };
