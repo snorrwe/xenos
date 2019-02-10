@@ -9,12 +9,13 @@ extern crate stdweb;
 mod logging;
 mod game_loop;
 mod bt;
+mod spawns;
 
 use game_loop::game_loop;
 
 fn main() {
     stdweb::initialize();
-    logging::setup_logging(logging::Info);
+    logging::setup_logging(logging::Debug);
 
     js! {
         var game_loop = @{game_loop};

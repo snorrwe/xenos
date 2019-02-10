@@ -1,30 +1,32 @@
-//! Behaviour Tree implementation
+//! Simple Behaviour Tree implementation
 //! See [Wiki](https://en.wikipedia.org/wiki/Behavior_tree_(artificial_intelligence,_robotics_and_control))
+//! Notes:
+//!     - Because of the way Screeps works we will not use the 'Running' state normally found in BT's
+//!     - For the above reason we have no Task cancellation
 //!
 use std::fmt;
 use std::fmt::Debug;
-use std::rc::Rc;
 
-pub struct BehaviourTree {
-    root: Control,
+pub struct BehaviourTree<'a> {
+    root: Control<'a>,
 }
 
-impl BehaviourTree {
-    pub fn new(root: Control) -> Self {
+impl<'a> BehaviourTree<'a> {
+    pub fn new(root: Control<'a>) -> Self {
         Self { root: root }
     }
 }
 
-impl BtNode for BehaviourTree {
+impl<'a> BtNode for BehaviourTree<'a> {
     fn tick(&self) -> ExecutionResult {
         self.root.tick()
     }
 }
 
 #[derive(Debug, Clone)]
-pub enum Node {
-    Task(Task),
-    Control(Control),
+pub enum Node<'a> {
+    Task(Task<'a>),
+    Control(Control<'a>),
 }
 
 pub type ExecutionResult = Result<(), ()>;
@@ -37,7 +39,7 @@ pub trait ControlNode {
     fn new(children: Vec<Node>) -> Self;
 }
 
-impl BtNode for Node {
+impl<'a> BtNode for Node<'a> {
     fn tick(&self) -> ExecutionResult {
         match self {
             Node::Control(node) => node.tick(),
@@ -50,12 +52,12 @@ impl BtNode for Node {
 /// Selector runs its child tasks until the first failure
 /// Sequence runs its child tasks until the first success
 #[derive(Debug, Clone)]
-pub enum Control {
-    Selector(Vec<Node>),
-    Sequence(Vec<Node>),
+pub enum Control<'a> {
+    Selector(Vec<Node<'a>>),
+    Sequence(Vec<Node<'a>>),
 }
 
-impl BtNode for Control {
+impl<'a> BtNode for Control<'a> {
     fn tick(&self) -> ExecutionResult {
         match self {
             Control::Selector(nodes) => {
@@ -78,21 +80,26 @@ impl BtNode for Control {
     }
 }
 
+use std::rc::Rc;
+
 /// Represents a single task in the behaviour tree
 #[derive(Clone)]
-pub struct Task {
-    name: &'static str,
-    task: Rc<Fn() -> ExecutionResult>,
+pub struct Task<'a> {
+    name: &'a str,
+    task: Rc<Fn() -> ExecutionResult + 'a>,
 }
 
-impl Debug for Task {
+impl<'a> Debug for Task<'a> {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         write!(formatter, "Task {}", self.name)
     }
 }
 
-impl Task {
-    pub fn new(name: &'static str, task: &'static Fn() -> ExecutionResult) -> Self {
+impl<'a> Task<'a> {
+    pub fn new<F>(name: &'a str, task: F) -> Self
+    where
+        F: Fn() -> ExecutionResult + 'a,
+    {
         Self {
             name: name,
             task: Rc::new(task),
@@ -100,7 +107,7 @@ impl Task {
     }
 }
 
-impl BtNode for Task {
+impl<'a> BtNode for Task<'a> {
     fn tick(&self) -> ExecutionResult {
         trace!("Executing task {:?}", self);
         let task = &*self.task;
