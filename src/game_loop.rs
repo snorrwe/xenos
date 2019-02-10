@@ -4,7 +4,7 @@ use super::spawns;
 use std::collections::HashSet;
 
 pub fn game_loop() {
-    info!("loop starting! CPU: {}", screeps::game::cpu::get_used());
+    info!("Loop starting! CPU: {}", screeps::game::cpu::get_used());
 
     run();
 
@@ -12,7 +12,7 @@ pub fn game_loop() {
         error!("Failed to clean up memory {:?}", e);
     });
 
-    info!("done! cpu: {}", screeps::game::cpu::get_used());
+    info!("Done! CPU: {} Bucket: {}", screeps::game::cpu::get_used(), screeps::game::cpu::bucket());
 }
 
 /// Run the game logic

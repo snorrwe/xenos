@@ -16,7 +16,7 @@ use game_loop::game_loop;
 
 fn main() {
     stdweb::initialize();
-    logging::setup_logging(logging::Trace);
+    logging::setup_logging(logging::Info);
 
     js! {
         var game_loop = @{game_loop};
