@@ -1,22 +1,31 @@
 use super::super::bt::*;
-use super::{harvester, move_to};
+use super::{get_energy, harvester, move_to};
 use screeps::{objects::Creep, prelude::*, ReturnCode};
 
 pub fn run<'a>(creep: &'a Creep) -> ExecutionResult {
     trace!("Running upgrader {}", creep.name());
 
-    let loading: bool = creep.memory().bool("loading");
+    let tasks = vec![
+        Task::new("upgrade_0", || upgrade(creep)),
+        Task::new("get energy", || get_energy(creep)),
+        Task::new("harvest", || harvest(creep)),
+        Task::new("upgrade_1", || upgrade(creep)),
+    ]
+    .into_iter()
+    .map(|t| Node::Task(t))
+    .collect();
 
-    if loading {
-        harvest(creep)
-    } else {
-        upgrade(creep)
-    }
+    let tree = BehaviourTree::new(Control::Sequence(tasks));
+    tree.tick()
 }
 
 fn harvest<'a>(creep: &'a Creep) -> ExecutionResult {
     trace!("Harvesting");
 
+    let loading: bool = creep.memory().bool("loading");
+    if !loading {
+        return Err(());
+    }
     if creep.carry_total() == creep.carry_capacity() {
         creep.memory().set("loading", false);
         Err(())
@@ -27,7 +36,10 @@ fn harvest<'a>(creep: &'a Creep) -> ExecutionResult {
 
 fn upgrade<'a>(creep: &'a Creep) -> ExecutionResult {
     trace!("Upgrading");
-
+    let loading: bool = creep.memory().bool("loading");
+    if loading {
+        return Err(());
+    }
     if creep.carry_total() == 0 {
         creep.memory().set("loading", true);
         Err(())

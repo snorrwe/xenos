@@ -1,5 +1,5 @@
 use super::super::bt::*;
-use super::{harvester, move_to};
+use super::{get_energy, harvester, move_to};
 use screeps::{
     constants::find,
     objects::{ConstructionSite, Creep},
@@ -9,14 +9,18 @@ use screeps::{
 
 pub fn run<'a>(creep: &'a Creep) -> ExecutionResult {
     trace!("Running builder {}", creep.name());
+    let tasks = vec![
+        Task::new("build_0", || build(creep)),
+        Task::new("get energy", || get_energy(creep)),
+        Task::new("harvest", || harvest(creep)),
+        Task::new("build_1", || build(creep)),
+    ]
+    .into_iter()
+    .map(|t| Node::Task(t))
+    .collect();
 
-    let loading = creep.memory().bool("loading");
-
-    if loading {
-        harvest(creep)
-    } else {
-        build(creep)
-    }
+    let tree = BehaviourTree::new(Control::Sequence(tasks));
+    tree.tick()
 }
 
 fn harvest<'a>(creep: &'a Creep) -> ExecutionResult {
