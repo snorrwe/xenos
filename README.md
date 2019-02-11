@@ -2,7 +2,7 @@
 
 [Screeps](https://screeps.com/) scripts in Rust
 
-# Setup
+## Setup
 
 - Clone the repository
 - Install cargo-screeps `cargo install cargo-screeps`
@@ -10,11 +10,11 @@
 - Copy the example settings `cp example-screeps.toml screeps.toml`
 - Customize the screeps settings `nano screeps.toml`
 
-# Build
+## Build
 
 - `cargo screeps build`
 
-# Deploy
+## Deploy
 
 - `cargo screeps deploy`
 
