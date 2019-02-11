@@ -58,7 +58,7 @@ fn assign_role<'a>(creep: &'a Creep) -> ExecutionResult {
         _ => unimplemented!(),
     };
 
-    creep.memory().set("role", result); // TODO
+    creep.memory().set("role", result);
 
     trace!("Assigned role {} to {}", result, creep.name());
     Ok(())
@@ -173,3 +173,4 @@ fn find_container<'a>(creep: &'a Creep) -> Option<Reference> {
     let result = result.try_into().unwrap_or_else(|_| None);
     result
 }
+

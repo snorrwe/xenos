@@ -1,3 +1,5 @@
+//! Harvest energy and unload it to the appropriate target
+//!
 use super::super::bt::*;
 use super::move_to;
 use screeps::{
