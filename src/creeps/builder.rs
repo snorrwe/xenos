@@ -24,7 +24,8 @@ fn harvest<'a>(creep: &'a Creep) -> ExecutionResult {
 
     if creep.carry_total() == creep.carry_capacity() {
         creep.memory().set("loading", false);
-        Err(())
+        creep.memory().del("target");
+        Ok(())
     } else {
         harvester::harvest(creep)
     }

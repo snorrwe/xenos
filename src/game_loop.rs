@@ -5,13 +5,15 @@ use std::collections::HashSet;
 use stdweb::unstable::TryFrom;
 
 pub fn game_loop() {
-    info!("Loop starting! CPU: {}", screeps::game::cpu::get_used());
+    debug!("Loop starting! CPU: {}", screeps::game::cpu::get_used());
 
     run();
 
-    cleanup_memory().unwrap_or_else(|e| {
-        error!("Failed to clean up memory {:?}", e);
-    });
+    if screeps::game::time() % 32 == 0 {
+        cleanup_memory().unwrap_or_else(|e| {
+            error!("Failed to clean up memory {:?}", e);
+        });
+    }
 
     // screeps api `bucket` method panics in simulation
     let bucket = js!{
@@ -46,6 +48,8 @@ fn run() {
 }
 
 fn cleanup_memory() -> Result<(), Box<::std::error::Error>> {
+    trace!("Cleaning memory");
+
     let alive_creeps: HashSet<String> = screeps::game::creeps::keys().into_iter().collect();
 
     let screeps_memory = match screeps::memory::root().dict("creeps")? {
@@ -62,6 +66,8 @@ fn cleanup_memory() -> Result<(), Box<::std::error::Error>> {
             screeps_memory.del(&mem_name);
         }
     }
+
+    info!("Cleaned up memory");
 
     Ok(())
 }

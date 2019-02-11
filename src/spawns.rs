@@ -23,7 +23,7 @@ fn run_spawns<'a>() -> Node<'a> {
 fn run_spawn(spawn: &StructureSpawn) -> ExecutionResult {
     debug!("Running spawn {}", spawn.name());
 
-    if screeps::game::creeps::keys().len() >= 5 {
+    if screeps::game::creeps::keys().len() >= 12 {
         trace!("Skipping spawn due to overpopulation");
         return Ok(());
     }
@@ -33,7 +33,7 @@ fn run_spawn(spawn: &StructureSpawn) -> ExecutionResult {
         let name = screeps::game::time();
         let mut additional = 0;
         let res = loop {
-            let name = format!("{:x}_{}", name, additional);
+            let name = format!("{:x}", name + additional);
             let res = spawn.spawn_creep(&body, &name);
 
             if res == ReturnCode::NameExists {

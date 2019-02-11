@@ -42,12 +42,12 @@ fn run_creep<'a>(creep: Creep) -> Node<'a> {
 fn assign_role<'a>(creep: &'a Creep) -> ExecutionResult {
     trace!("Assigning role to {}", creep.name());
 
-    let time = screeps::game::time();
     // TODO: more intelligent role assignment
+    let time = screeps::game::creeps::keys().len();
     let time = time % 3;
     let result = match time {
-        0 => "harvester",
-        1 => "upgrader",
+        0 => "upgrader",
+        1 => "harvester",
         2 => "builder",
         _ => unimplemented!(),
     };
@@ -66,17 +66,23 @@ fn run_role<'a>(creep: &'a Creep) -> ExecutionResult {
             error!("failed to read creep role {:?}", e);
         })?
         .ok_or_else(|| {
-            error!("creep role is null");
+            trace!("creep role is null");
         })?;
 
     trace!("Running creep {} by role {}", creep.name(), role);
 
-    match role.as_str() {
+    let result = match role.as_str() {
         "harvester" => harvester::run(creep),
         "upgrader" => upgrader::run(creep),
         "builder" => builder::run(creep),
         _ => unimplemented!(),
+    };
+
+    if result.is_err() {
+        warn!("Running creep {} failed", creep.name());
     }
+
+    Ok(())
 }
 
 pub fn move_to<'a>(
