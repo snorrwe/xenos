@@ -1,5 +1,7 @@
 use super::bt::*;
+use creeps::roles::next_role;
 use screeps::{self, objects::StructureSpawn, prelude::*, Part, ReturnCode};
+// use super::creeps::next_role;
 
 /// Return the BehaviourTree that runs the spawns
 pub fn task<'a>() -> Node<'a> {
@@ -21,33 +23,39 @@ fn run_spawns<'a>() -> Node<'a> {
 }
 
 fn run_spawn(spawn: &StructureSpawn) -> ExecutionResult {
-    debug!("Running spawn {}", spawn.name());
+    trace!("Running spawn {}", spawn.name());
 
-    if screeps::game::creeps::keys().len() >= 12 {
+    if next_role(&spawn.room()).is_none() {
         trace!("Skipping spawn due to overpopulation");
         return Ok(());
     }
 
     let body = [Part::Move, Part::Move, Part::Carry, Part::Work];
     if spawn.energy() >= body.iter().map(|p| p.cost()).sum() {
-        let name = screeps::game::time();
-        let mut additional = 0;
-        let res = loop {
-            let name = format!("{:x}", name + additional);
-            let res = spawn.spawn_creep(&body, &name);
-
-            if res == ReturnCode::NameExists {
-                additional += 1;
-            } else {
-                debug!("Spawning creep: {}, result: {}", name, res as i32);
-                break res;
-            }
-        };
-
-        if res != ReturnCode::Ok {
-            warn!("couldn't spawn: {:?}", res);
-        }
+        spawn_creep(spawn, &body)?;
     }
 
     Ok(())
 }
+
+fn spawn_creep(spawn: &StructureSpawn, body: &[Part]) -> ExecutionResult {
+    let name = screeps::game::time();
+    let mut prefix = 0;
+    let res = loop {
+        let name = format!("{}{:x}", prefix, name);
+        let res = spawn.spawn_creep(&body, &name);
+
+        if res == ReturnCode::NameExists {
+            prefix += 1;
+        } else {
+            debug!("Spawning creep: {}, result: {}", name, res as i32);
+            break res;
+        }
+    };
+
+    if res != ReturnCode::Ok {
+        warn!("couldn't spawn: {:?}", res);
+    }
+    Ok(())
+}
+

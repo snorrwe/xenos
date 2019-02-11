@@ -1,5 +1,8 @@
+pub mod roles;
+
 mod builder;
 mod harvester;
+mod repairer;
 mod upgrader;
 
 use super::bt::*;
@@ -33,7 +36,10 @@ fn run_creep<'a>(creep: Creep) -> Node<'a> {
         }
         let tasks = vec![
             Task::new("run_role", || run_role(&creep)),
-            Task::new("assing_role", || assign_role(&creep)),
+            Task::new("assing_role", || {
+                assign_role(&creep);
+                Ok(())
+            }),
         ]
         .into_iter()
         .map(|task| Node::Task(task))
@@ -45,23 +51,18 @@ fn run_creep<'a>(creep: Creep) -> Node<'a> {
     Node::Task(task)
 }
 
-fn assign_role<'a>(creep: &'a Creep) -> ExecutionResult {
+fn assign_role<'a>(creep: &'a Creep) -> Option<String> {
     trace!("Assigning role to {}", creep.name());
 
-    // TODO: more intelligent role assignment
-    let time = screeps::game::creeps::keys().len();
-    let time = time % 3;
-    let result = match time {
-        0 => "upgrader",
-        1 => "harvester",
-        2 => "builder",
-        _ => unimplemented!(),
-    };
+    let result = roles::next_role(&creep.room()).or_else(|| {
+        warn!("Room is full");
+        None
+    })?;
 
-    creep.memory().set("role", result);
+    creep.memory().set("role", &result);
 
     trace!("Assigned role {} to {}", result, creep.name());
-    Ok(())
+    Some(result)
 }
 
 fn run_role<'a>(creep: &'a Creep) -> ExecutionResult {
@@ -75,20 +76,7 @@ fn run_role<'a>(creep: &'a Creep) -> ExecutionResult {
             trace!("creep role is null");
         })?;
 
-    trace!("Running creep {} by role {}", creep.name(), role);
-
-    let result = match role.as_str() {
-        "harvester" => harvester::run(creep),
-        "upgrader" => upgrader::run(creep),
-        "builder" => builder::run(creep),
-        _ => unimplemented!(),
-    };
-
-    if result.is_err() {
-        warn!("Running creep {} failed", creep.name());
-    }
-
-    Ok(())
+    roles::run_role(role.as_str(), creep)
 }
 
 pub fn move_to<'a>(
@@ -173,3 +161,4 @@ fn find_container<'a>(creep: &'a Creep) -> Option<Reference> {
     let result = result.try_into().unwrap_or_else(|_| None);
     result
 }
+
