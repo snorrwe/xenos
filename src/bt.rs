@@ -1,8 +1,8 @@
 //! Simple Behaviour Tree implementation
 //! See [Wiki](https://en.wikipedia.org/wiki/Behavior_tree_(artificial_intelligence,_robotics_and_control))
-//! Notes:
-//!     - Because of the way Screeps works we will not use the 'Running' state normally found in BT's
-//!     - For the above reason we have no Task cancellation
+//! Notes about the way Screeps works:
+//!     - There is no 'Running' state normally found in BT's
+//!     - There is no explicit Task cancellation
 //!
 use std::fmt::{self, Debug};
 use std::rc::Rc;

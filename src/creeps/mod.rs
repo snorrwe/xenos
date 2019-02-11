@@ -173,4 +173,3 @@ fn find_container<'a>(creep: &'a Creep) -> Option<Reference> {
     let result = result.try_into().unwrap_or_else(|_| None);
     result
 }
-

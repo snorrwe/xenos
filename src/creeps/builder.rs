@@ -28,6 +28,10 @@ pub fn run<'a>(creep: &'a Creep) -> ExecutionResult {
 fn harvest<'a>(creep: &'a Creep) -> ExecutionResult {
     trace!("Harvesting");
 
+    let loading: bool = creep.memory().bool("loading");
+    if !loading {
+        return Err(());
+    }
     if creep.carry_total() == creep.carry_capacity() {
         creep.memory().set("loading", false);
         creep.memory().del("target");
@@ -40,6 +44,10 @@ fn harvest<'a>(creep: &'a Creep) -> ExecutionResult {
 fn build<'a>(creep: &'a Creep) -> ExecutionResult {
     trace!("Building");
 
+    let loading: bool = creep.memory().bool("loading");
+    if loading {
+        return Err(());
+    }
     if creep.carry_total() == 0 {
         creep.memory().set("loading", true);
         Err(())
