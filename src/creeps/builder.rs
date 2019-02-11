@@ -1,7 +1,7 @@
 //! Build structures
 //!
 use super::super::bt::*;
-use super::{get_energy, harvester, move_to};
+use super::{get_energy, harvester, move_to, repairer};
 use screeps::{
     constants::find,
     objects::{ConstructionSite, Creep},
@@ -12,10 +12,12 @@ use screeps::{
 pub fn run<'a>(creep: &'a Creep) -> ExecutionResult {
     trace!("Running builder {}", creep.name());
     let tasks = vec![
-        Task::new("build_0", || build(creep)),
-        Task::new("get energy", || get_energy(creep)),
-        Task::new("harvest", || harvest(creep)),
-        Task::new("build_1", || build(creep)),
+        Task::new("build_0", |_| build(creep)),
+        Task::new("get energy", |_| get_energy(creep)),
+        Task::new("harvest", |_| harvest(creep)),
+        Task::new("build_1", |_| build(creep)),
+        // If nothing can be built
+        Task::new("upgrade", |_| repairer::run(creep)),
     ]
     .into_iter()
     .map(|t| Node::Task(t))

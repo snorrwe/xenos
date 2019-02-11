@@ -90,11 +90,22 @@ impl<'a> BtNode for Control<'a> {
     }
 }
 
+/// An executable that will be called by a Task
+/// Currently passes an empty tuple as argument
+/// The reason behind this is that we might want to pass
+/// Some state between tasks.
+/// So existing tasks using the pattern:
+/// ```
+/// |_| { /* task stuff */ }`
+/// ```
+/// will not require changes when this happens
+type TaskFn<'a> = Rc<Fn(()) -> ExecutionResult + 'a>;
+
 /// Represents a single task in the behaviour tree
 #[derive(Clone)]
 pub struct Task<'a> {
     name: &'a str,
-    task: Rc<Fn() -> ExecutionResult + 'a>,
+    task: TaskFn<'a>,
 }
 
 impl<'a> Debug for Task<'a> {
@@ -106,7 +117,7 @@ impl<'a> Debug for Task<'a> {
 impl<'a> Task<'a> {
     pub fn new<F>(name: &'a str, task: F) -> Self
     where
-        F: Fn() -> ExecutionResult + 'a,
+        F: Fn(()) -> ExecutionResult + 'a,
     {
         Self {
             name: name,
@@ -119,6 +130,6 @@ impl<'a> BtNode for Task<'a> {
     fn tick(&self) -> ExecutionResult {
         trace!("Executing task {:?}", self);
         let task = &*self.task;
-        task()
+        task(())
     }
 }

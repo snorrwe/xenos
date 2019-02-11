@@ -70,4 +70,3 @@ pub fn target_number_of_role_in_room<'a>(role: &'a str) -> i8 {
         _ => unimplemented!(),
     }
 }
-

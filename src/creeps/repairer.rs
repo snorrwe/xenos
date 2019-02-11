@@ -14,12 +14,12 @@ pub fn run<'a>(creep: &'a Creep) -> ExecutionResult {
     trace!("Running repairer {}", creep.name());
 
     let tasks = vec![
-        Task::new("repair_0", || attempt_repair(creep)),
-        Task::new("get energy", || get_energy(creep)),
-        Task::new("harvest", || harvest(creep)),
-        Task::new("repair_1", || attempt_repair(creep)),
+        Task::new("repair_0", |_| attempt_repair(creep)),
+        Task::new("get energy", |_| get_energy(creep)),
+        Task::new("harvest", |_| harvest(creep)),
+        Task::new("repair_1", |_| attempt_repair(creep)),
         // Fall back to upgrading
-        Task::new("upgrade", || upgrader::run(creep)),
+        Task::new("upgrade", |_| upgrader::run(creep)),
     ]
     .into_iter()
     .map(|t| Node::Task(t))
@@ -90,4 +90,3 @@ fn find_repair_target<'a>(creep: &'a Creep) -> Option<Structure> {
 
     Structure::try_from(result).ok()
 }
-

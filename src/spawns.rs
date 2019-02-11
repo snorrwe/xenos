@@ -13,8 +13,7 @@ fn run_spawns<'a>() -> Node<'a> {
     let tasks = screeps::game::spawns::values()
         .into_iter()
         .map(|spawn| {
-            let fun = move || run_spawn(&spawn);
-            let task = Task::new("spawn_task", fun);
+            let task = Task::new("spawn_task", move |_| run_spawn(&spawn));
             Node::Task(task)
         })
         .collect();
@@ -58,4 +57,3 @@ fn spawn_creep(spawn: &StructureSpawn, body: &[Part]) -> ExecutionResult {
     }
     Ok(())
 }
-

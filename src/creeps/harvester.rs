@@ -17,8 +17,8 @@ pub fn run<'a>(creep: &'a Creep) -> ExecutionResult {
     trace!("Running harvester {}", creep.name());
 
     let tasks = vec![
-        Task::new("harvest", || harvest(&creep)),
-        Task::new("unload", || unload(&creep)),
+        Task::new("harvest", |_| harvest(&creep)),
+        Task::new("unload", |_| unload(&creep)),
     ]
     .into_iter()
     .map(|task| Node::Task(task))
@@ -39,10 +39,10 @@ fn unload<'a>(creep: &'a Creep) -> ExecutionResult {
     let target = find_unload_target(creep).ok_or_else(|| {})?;
 
     let tasks = vec![
-        Task::new("transfer container", || {
+        Task::new("transfer container", |_| {
             try_transfer::<StructureContainer>(creep, &target)
         }),
-        Task::new("transfer spawn", || {
+        Task::new("transfer spawn", |_| {
             try_transfer::<StructureSpawn>(creep, &target)
         }),
     ]
@@ -73,8 +73,8 @@ fn find_unload_target<'a>(creep: &'a Creep) -> Option<Reference> {
         Some(target.as_ref().clone())
     } else {
         let tasks = vec![
-            Node::Task(Task::new("find container", || find_container(creep))),
-            Node::Task(Task::new("find spawn", || find_spawn(creep))),
+            Node::Task(Task::new("find container", |_| find_container(creep))),
+            Node::Task(Task::new("find spawn", |_| find_spawn(creep))),
         ];
         let tree = BehaviourTree::new(Control::Sequence(tasks));
         tree.tick().unwrap_or_else(|()| {

@@ -29,14 +29,14 @@ fn run_creeps<'a>() -> Node<'a> {
 }
 
 fn run_creep<'a>(creep: Creep) -> Node<'a> {
-    let task = move || {
+    let task = move |_| {
         debug!("Running creep {}", creep.name());
         if creep.spawning() {
             return Ok(());
         }
         let tasks = vec![
-            Task::new("run_role", || run_role(&creep)),
-            Task::new("assing_role", || {
+            Task::new("run_role", |_| run_role(&creep)),
+            Task::new("assing_role", |_| {
                 assign_role(&creep);
                 Ok(())
             }),
@@ -110,7 +110,7 @@ pub fn get_energy<'a>(creep: &'a Creep) -> ExecutionResult {
     } else {
         let target = find_container(creep).ok_or_else(|| {})?;
 
-        let tasks = vec![Task::new("transfer container", || {
+        let tasks = vec![Task::new("transfer container", |_| {
             try_withdraw::<StructureContainer>(creep, &target)
         })]
         .into_iter()
@@ -161,4 +161,3 @@ fn find_container<'a>(creep: &'a Creep) -> Option<Reference> {
     let result = result.try_into().unwrap_or_else(|_| None);
     result
 }
-

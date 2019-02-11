@@ -8,10 +8,10 @@ pub fn run<'a>(creep: &'a Creep) -> ExecutionResult {
     trace!("Running upgrader {}", creep.name());
 
     let tasks = vec![
-        Task::new("upgrade_0", || upgrade(creep)),
-        Task::new("get energy", || get_energy(creep)),
-        Task::new("harvest", || harvest(creep)),
-        Task::new("upgrade_1", || upgrade(creep)),
+        Task::new("upgrade_0", |_| upgrade(creep)),
+        Task::new("get energy", |_| get_energy(creep)),
+        Task::new("harvest", |_| harvest(creep)),
+        Task::new("upgrade_1", |_| upgrade(creep)),
     ]
     .into_iter()
     .map(|t| Node::Task(t))
