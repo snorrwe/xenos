@@ -1,6 +1,6 @@
 # Xenos
 
-[Screeps](https://screeps.com/) scripts in Rust
+[Screeps](https://screeps.com/) scripts in Rust using the [Screeps in Rust (via WASM)](https://github.com/daboross/screeps-in-rust-via-wasm) project
 
 ## Setup
 
