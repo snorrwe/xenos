@@ -11,6 +11,7 @@ mod creeps;
 mod game_loop;
 mod logging;
 mod spawns;
+mod towers;
 
 use game_loop::game_loop;
 

@@ -1,6 +1,7 @@
 use super::bt::*;
 use super::creeps;
 use super::spawns;
+use super::towers;
 use std::collections::HashSet;
 use stdweb::unstable::TryFrom;
 
@@ -36,7 +37,7 @@ pub fn game_loop() {
 fn run() {
     trace!("Running");
 
-    let tasks = vec![spawns::task(), creeps::task()];
+    let tasks = vec![spawns::task(), creeps::task(), towers::task()];
 
     let tree = BehaviourTree::new(Control::All(tasks));
 
