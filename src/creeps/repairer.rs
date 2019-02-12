@@ -1,14 +1,9 @@
 //! Repair structures
 //!
 use super::super::bt::*;
-use super::upgrader;
-use super::{get_energy, harvester, move_to};
-use screeps::{
-    objects::{Creep, Structure},
-    prelude::*,
-    traits::TryFrom,
-    ReturnCode,
-};
+use super::{builder, upgrader};
+use super::{get_energy, harvester};
+use screeps::{objects::Creep, prelude::*, traits::TryFrom, ReturnCode};
 
 pub fn run<'a>(creep: &'a Creep) -> ExecutionResult {
     trace!("Running repairer {}", creep.name());
@@ -19,7 +14,8 @@ pub fn run<'a>(creep: &'a Creep) -> ExecutionResult {
         Task::new("harvest", |_| harvest(creep)),
         Task::new("repair_1", |_| attempt_repair(creep)),
         // Fall back to upgrading
-        Task::new("upgrade", |_| upgrader::run(creep)),
+        Task::new("build", |_| builder::attempt_build(creep)),
+        Task::new("upgrade", |_| upgrader::attempt_upgrade(creep)),
     ]
     .into_iter()
     .map(|t| Node::Task(t))
@@ -41,11 +37,11 @@ fn harvest<'a>(creep: &'a Creep) -> ExecutionResult {
         creep.memory().del("target");
         Ok(())
     } else {
-        harvester::harvest(creep)
+        harvester::attempt_harvest(creep)
     }
 }
 
-fn attempt_repair<'a>(creep: &'a Creep) -> ExecutionResult {
+pub fn attempt_repair<'a>(creep: &'a Creep) -> ExecutionResult {
     trace!("Repairing");
 
     let loading: bool = creep.memory().bool("loading");
@@ -60,33 +56,43 @@ fn attempt_repair<'a>(creep: &'a Creep) -> ExecutionResult {
         let target = find_repair_target(creep).ok_or_else(|| {
             warn!("Could not find a repair target");
         })?;
-        trace!("Got repair target {:?}", target.id());
+        trace!("Got repair target {:?}", target);
         repair(creep, &target)
     }
 }
 
-fn repair<'a>(creep: &'a Creep, target: &'a Structure) -> ExecutionResult {
-    let res = creep.repair(target);
-    match res {
-        ReturnCode::Ok => Ok(()),
-        ReturnCode::NotInRange => move_to(creep, target),
-        _ => {
-            error!("Failed to repair target {:?} {:?}", res, target.id());
-            Err(())
+// TODO: return Structure once the Structure bug has been fixed in screeps api
+fn repair<'a>(creep: &'a Creep, target: &'a String) -> ExecutionResult {
+    let res = js!{
+        const creep = @{creep};
+        let target = @{target};
+        target = Game.getObjectById(target);
+        let result = creep.repair(target);
+        if (result == ERR_NOT_IN_RANGE) {
+            result = creep.moveTo(target);
         }
+        return result;
+    };
+    let res = ReturnCode::try_from(res).map_err(|e| error!("Expected ReturnCode {:?}", e))?;
+    if res == ReturnCode::Ok {
+        Ok(())
+    } else {
+        Err(())
     }
 }
 
-fn find_repair_target<'a>(creep: &'a Creep) -> Option<Structure> {
+// TODO: return Structure once the Structure bug has been fixed in screeps api
+fn find_repair_target<'a>(creep: &'a Creep) -> Option<String> {
     trace!("Finding repair target");
 
     let room = creep.room();
     let result = js!{
-        const candidates = @{room}.find(FIND_STRUCTURES, {
+        const room = @{room};
+        const candidates = room.find(FIND_STRUCTURES, {
             filter: function (s) { return s.hits < s.hitsMax / 2; }
         });
-        return candidates[0];
+        return candidates[0] && candidates[0].id;
     };
 
-    Structure::try_from(result).ok()
+    String::try_from(result).ok()
 }

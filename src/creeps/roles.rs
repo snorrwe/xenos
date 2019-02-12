@@ -1,5 +1,6 @@
 use super::super::bt::*;
 use super::builder;
+use super::gofer;
 use super::harvester;
 use super::repairer;
 use super::upgrader;
@@ -29,6 +30,7 @@ pub fn run_role<'a>(role: &'a str, creep: &'a Creep) -> ExecutionResult {
         "harvester" => harvester::run(creep),
         "builder" => builder::run(creep),
         "repairer" => repairer::run(creep),
+        "gofer" => gofer::run(creep),
         _ => unimplemented!(),
     };
 
@@ -45,6 +47,7 @@ pub fn count_roles_in_room<'a>(room: &'a Room) -> HashMap<String, i8> {
         ("harvester".into(), 0),
         ("builder".into(), 0),
         ("repairer".into(), 0),
+        ("gofer".into(), 0),
     ]
     .into_iter()
     .cloned()
@@ -63,10 +66,11 @@ pub fn count_roles_in_room<'a>(room: &'a Room) -> HashMap<String, i8> {
 
 pub fn target_number_of_role_in_room<'a>(role: &'a str) -> i8 {
     match role {
-        "upgrader" => 4,
+        "upgrader" => 2,
         "harvester" => 2, // TODO smarter harvester distribution
-        "builder" => 3,
+        "builder" => 2,
         "repairer" => 1,
+        "gofer" => 1,
         _ => unimplemented!(),
     }
 }

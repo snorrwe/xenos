@@ -8,10 +8,10 @@ pub fn run<'a>(creep: &'a Creep) -> ExecutionResult {
     trace!("Running upgrader {}", creep.name());
 
     let tasks = vec![
-        Task::new("upgrade_0", |_| upgrade(creep)),
+        Task::new("upgrade_0", |_| attempt_upgrade(creep)),
         Task::new("get energy", |_| get_energy(creep)),
         Task::new("harvest", |_| harvest(creep)),
-        Task::new("upgrade_1", |_| upgrade(creep)),
+        Task::new("upgrade_1", |_| attempt_upgrade(creep)),
     ]
     .into_iter()
     .map(|t| Node::Task(t))
@@ -32,11 +32,11 @@ fn harvest<'a>(creep: &'a Creep) -> ExecutionResult {
         creep.memory().set("loading", false);
         Err(())
     } else {
-        harvester::harvest(creep)
+        harvester::attempt_harvest(creep)
     }
 }
 
-fn upgrade<'a>(creep: &'a Creep) -> ExecutionResult {
+pub fn attempt_upgrade<'a>(creep: &'a Creep) -> ExecutionResult {
     trace!("Upgrading");
     let loading: bool = creep.memory().bool("loading");
     if loading {

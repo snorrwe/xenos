@@ -1,7 +1,7 @@
 //! Build structures
 //!
 use super::super::bt::*;
-use super::{get_energy, harvester, move_to, repairer};
+use super::{get_energy, harvester, move_to, repairer, upgrader};
 use screeps::{
     constants::find,
     objects::{ConstructionSite, Creep},
@@ -12,12 +12,13 @@ use screeps::{
 pub fn run<'a>(creep: &'a Creep) -> ExecutionResult {
     trace!("Running builder {}", creep.name());
     let tasks = vec![
-        Task::new("build_0", |_| build(creep)),
+        Task::new("build_0", |_| attempt_build(creep)),
         Task::new("get energy", |_| get_energy(creep)),
         Task::new("harvest", |_| harvest(creep)),
-        Task::new("build_1", |_| build(creep)),
+        Task::new("build_1", |_| attempt_build(creep)),
         // If nothing can be built
-        Task::new("upgrade", |_| repairer::run(creep)),
+        Task::new("repair", |_| repairer::attempt_repair(creep)),
+        Task::new("upgrade", |_| upgrader::attempt_upgrade(creep)),
     ]
     .into_iter()
     .map(|t| Node::Task(t))
@@ -39,11 +40,11 @@ fn harvest<'a>(creep: &'a Creep) -> ExecutionResult {
         creep.memory().del("target");
         Ok(())
     } else {
-        harvester::harvest(creep)
+        harvester::attempt_harvest(creep)
     }
 }
 
-fn build<'a>(creep: &'a Creep) -> ExecutionResult {
+pub fn attempt_build<'a>(creep: &'a Creep) -> ExecutionResult {
     trace!("Building");
 
     let loading: bool = creep.memory().bool("loading");

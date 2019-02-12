@@ -1,6 +1,7 @@
 pub mod roles;
 
 mod builder;
+mod gofer;
 mod harvester;
 mod repairer;
 mod upgrader;

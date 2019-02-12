@@ -17,8 +17,9 @@ pub fn run<'a>(creep: &'a Creep) -> ExecutionResult {
     trace!("Running harvester {}", creep.name());
 
     let tasks = vec![
-        Task::new("harvest", |_| harvest(&creep)),
+        Task::new("harvest_0", |_| attempt_harvest(&creep)),
         Task::new("unload", |_| unload(&creep)),
+        Task::new("harvest_1", |_| attempt_harvest(&creep)),
     ]
     .into_iter()
     .map(|task| Node::Task(task))
@@ -141,7 +142,7 @@ where
     Ok(())
 }
 
-pub fn harvest<'a>(creep: &'a Creep) -> ExecutionResult {
+pub fn attempt_harvest<'a>(creep: &'a Creep) -> ExecutionResult {
     trace!("Harvesting");
 
     let carry_total = creep.carry_total();
