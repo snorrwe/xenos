@@ -1,6 +1,5 @@
 use super::bt::*;
 use screeps::{
-    constants::find,
     objects::{HasId, Room, RoomObjectProperties, StructureTower},
     ReturnCode,
 };
