@@ -48,10 +48,16 @@ fn harvest<'a>(creep: &'a Creep) -> ExecutionResult {
 
 fn unload<'a>(creep: &'a Creep) -> ExecutionResult {
     trace!("Unloading");
+    let loading: bool = creep.memory().bool("loading");
+    if loading {
+        return Err(());
+    }
+
     let carry_total = creep.carry_total();
 
     if carry_total == 0 {
         trace!("Empty");
+        creep.memory().set("loading", true);
         return Err(());
     }
 

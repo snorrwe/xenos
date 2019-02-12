@@ -4,15 +4,18 @@ use super::gofer;
 use super::harvester;
 use super::repairer;
 use super::upgrader;
-use screeps::game;
-use screeps::objects::{Creep, Room, RoomObjectProperties};
+use screeps::{
+    game,
+    objects::{Creep, Room, RoomObjectProperties},
+};
 use std::collections::HashMap;
+use stdweb::unstable::TryInto;
 
 /// Get the next target role in the given room
 pub fn next_role<'a>(room: &'a Room) -> Option<String> {
     let counts = count_roles_in_room(room);
     counts.into_iter().find_map(|(role, actual)| {
-        let expected = target_number_of_role_in_room(role.as_str());
+        let expected = target_number_of_role_in_room(role.as_str(), room);
         if actual < expected {
             Some(role)
         } else {
@@ -64,13 +67,21 @@ pub fn count_roles_in_room<'a>(room: &'a Room) -> HashMap<String, i8> {
     result
 }
 
-pub fn target_number_of_role_in_room<'a>(role: &'a str) -> i8 {
+pub fn target_number_of_role_in_room<'a>(role: &'a str, room: &'a Room) -> i8 {
+    let n_sources = js!{
+        const room = @{room};
+        const sources = room.find(FIND_SOURCES) || [];
+        return sources && sources.length;
+    };
+
+    let n_sources = n_sources.try_into().unwrap_or(0);
+
     match role {
         "upgrader" => 2,
-        "harvester" => 2, // TODO smarter harvester distribution
+        "harvester" => n_sources,
         "builder" => 2,
         "repairer" => 1,
-        "gofer" => 1,
+        "gofer" => n_sources,
         _ => unimplemented!(),
     }
 }

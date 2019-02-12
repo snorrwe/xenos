@@ -2,6 +2,7 @@
 //!
 use super::super::bt::*;
 use super::move_to;
+use super::roles::count_roles_in_room;
 use screeps::{
     constants::ResourceType,
     find,
@@ -11,7 +12,7 @@ use screeps::{
     traits::TryFrom,
     ReturnCode,
 };
-use stdweb::{unstable::TryInto, InstanceOf, Reference};
+use stdweb::{unstable::TryInto, Reference};
 
 pub fn run<'a>(creep: &'a Creep) -> ExecutionResult {
     trace!("Running harvester {}", creep.name());
@@ -153,7 +154,7 @@ pub fn attempt_harvest<'a>(creep: &'a Creep) -> ExecutionResult {
         return Err(());
     }
 
-    let source = set_harvest_target(creep)?;
+    let source = harvest_target(creep)?;
 
     if creep.pos().is_near_to(&source) {
         let r = creep.harvest(&source);
@@ -168,11 +169,11 @@ pub fn attempt_harvest<'a>(creep: &'a Creep) -> ExecutionResult {
     Ok(())
 }
 
-fn set_harvest_target<'a>(creep: &'a Creep) -> Result<Source, ()> {
+fn harvest_target<'a>(creep: &'a Creep) -> Result<Source, ()> {
     trace!("Setting harvest target");
 
-    let target = creep.memory().string("target").map_err(|e| {
-        error!("failed to read creep target {:?}", e);
+    let target = creep.memory().string("harvest_target").map_err(|e| {
+        error!("Failed to read creep target {:?}", e);
     })?;
 
     if let Some(target) = target {
@@ -180,26 +181,32 @@ fn set_harvest_target<'a>(creep: &'a Creep) -> Result<Source, ()> {
         let target = get_object_erased(target.as_str()).ok_or_else(|| {
             error!("Target by id {} does not exists", target);
         })?;
-        if !Source::instance_of(target.as_ref()) {
-            trace!("Existing target is not a Source");
+        let source = Source::try_from(target.as_ref()).map_err(|e| {
+            error!("Failed to convert target to Source {:?}", e);
             creep.memory().del("target");
-            Err(())
-        } else {
-            let source = Source::try_from(target.as_ref()).map_err(|e| {
-                error!("Failed to convert target to Source {:?}", e);
-                creep.memory().del("target");
-            })?;
-            Ok(source)
-        }
+        })?;
+        Ok(source)
     } else {
         trace!("Finding new harvest target");
-        let source = creep
-            .pos()
-            .find_closest_by_range(find::SOURCES)
-            .ok_or_else(|| {
-                error!("Can't find Source in creep's room");
-            })?;
-        creep.memory().set("target", source.id());
+        let room = creep.room();
+        let count = count_roles_in_room(&room);
+        let n_harvesters = count["harvester"];
+        let n_harvesters = unsafe {
+            // In case multiple creeps require harvest target in a single tick
+            static mut N: i32 = 0;
+            N += 1;
+            n_harvesters as i32 + N
+        };
+        let sources = js!{
+            const room = @{room};
+            const sources = room.find(FIND_SOURCES) || [];
+            const n_harvesters = @{n_harvesters};
+            return sources && sources[n_harvesters % sources.length];
+        };
+        let source: Source = sources.try_into().map_err(|e| {
+            error!("Can't find Source in creep's room {:?}", e);
+        })?;
+        creep.memory().set("harvest_target", source.id());
         Ok(source)
     }
 }
