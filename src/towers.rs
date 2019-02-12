@@ -25,14 +25,18 @@ pub fn task<'a>() -> Node<'a> {
 fn run_tower<'a>(tower: &'a StructureTower) -> ExecutionResult {
     debug!("Running tower {:?}", tower.id());
 
-    let enemy = find_enemy(&tower.room()).ok_or_else(|| {})?;
-    let res = tower.attack(&enemy);
-    match res {
-        ReturnCode::Ok | ReturnCode::RclNotEnough => Ok(()),
-        _ => {
-            error!("failed to attack enemy {:?}", res);
-            Err(())
+    let enemy = find_enemy(&tower.room());
+    if let Some(enemy) = enemy {
+        let res = tower.attack(&enemy);
+        match res {
+            ReturnCode::Ok | ReturnCode::RclNotEnough => Ok(()),
+            _ => {
+                error!("failed to attack enemy {:?}", res);
+                Err(())
+            }
         }
+    } else {
+        Ok(())
     }
 }
 
@@ -45,3 +49,4 @@ fn find_enemy<'a>(room: &'a Room) -> Option<screeps::Creep> {
     };
     result.try_into().ok()
 }
+
