@@ -13,7 +13,7 @@ pub fn next_role<'a>(room: &'a Room) -> Option<String> {
     let counts = count_roles_in_room(room);
     counts.into_iter().find_map(|(role, actual)| {
         let expected = target_number_of_role_in_room(role.as_str());
-        if expected > actual {
+        if actual < expected {
             Some(role)
         } else {
             None

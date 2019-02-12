@@ -1,6 +1,6 @@
 use super::bt::*;
 use creeps::roles::next_role;
-use screeps::{self, objects::StructureSpawn, prelude::*, Part, ReturnCode};
+use screeps::{self, game, objects::StructureSpawn, prelude::*, Part, ReturnCode};
 
 /// Return the BehaviourTree that runs the spawns
 pub fn task<'a>() -> Node<'a> {
@@ -15,6 +15,10 @@ pub fn task<'a>() -> Node<'a> {
 }
 
 fn run_spawn(spawn: &StructureSpawn) -> ExecutionResult {
+    if game::time() % 8 != 0 {
+        trace!("Waiting with spawn");
+        return Ok(());
+    }
     debug!("Running spawn {}", spawn.name());
 
     if next_role(&spawn.room()).is_none() {
