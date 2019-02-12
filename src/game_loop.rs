@@ -43,9 +43,7 @@ fn run() {
 
     let result = tree.tick();
 
-    debug!("Run result {:?}", result);
-
-    trace!("Running Done");
+    trace!("Run result {:?}", result);
 }
 
 fn cleanup_memory() -> Result<(), Box<::std::error::Error>> {

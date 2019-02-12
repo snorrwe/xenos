@@ -13,7 +13,7 @@ pub fn run<'a>(creep: &'a Creep) -> ExecutionResult {
         Task::new("get energy", |_| get_energy(creep)),
         Task::new("harvest", |_| harvest(creep)),
         Task::new("repair_1", |_| attempt_repair(creep)),
-        // Fall back to upgrading
+        // Fall back
         Task::new("build", |_| builder::attempt_build(creep)),
         Task::new("upgrade", |_| upgrader::attempt_upgrade(creep)),
     ]
