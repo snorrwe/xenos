@@ -87,7 +87,19 @@ pub fn target_number_of_role_in_room<'a>(role: &'a str, room: &'a Room) -> i8 {
     }
 }
 
-pub fn basic_role_parts<'a>(role: &'a str) -> [Part; 4] {
+pub struct SpawnConfig {
+    pub basic_body: [Part; 4],
+    pub body_extension: Vec<Part>,
+}
+
+pub fn spawn_config_by_role(role: &str) -> SpawnConfig {
+    SpawnConfig {
+        basic_body: basic_role_parts(role),
+        body_extension: role_part_scale(role),
+    }
+}
+
+fn basic_role_parts<'a>(role: &'a str) -> [Part; 4] {
     match role {
         "harvester" => [Part::Move, Part::Work, Part::Carry, Part::Work],
         "upgrader" | "builder" | "repairer" | "gofer" => {
@@ -98,7 +110,7 @@ pub fn basic_role_parts<'a>(role: &'a str) -> [Part; 4] {
 }
 
 /// Intended parts to be appended to 'role_parts'
-pub fn role_part_scale<'a>(role: &'a str) -> Vec<Part> {
+fn role_part_scale<'a>(role: &'a str) -> Vec<Part> {
     match role {
         "harvester" => vec![Part::Work],
         "gofer" => vec![Part::Move, Part::Carry],

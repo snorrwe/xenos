@@ -1,5 +1,5 @@
 use super::bt::*;
-use creeps::roles::{basic_role_parts, next_role, role_part_scale};
+use creeps::roles::{next_role, spawn_config_by_role};
 use screeps::{
     self, game,
     objects::{SpawnOptions, StructureSpawn},
@@ -40,7 +40,10 @@ fn run_spawn(spawn: &StructureSpawn) -> ExecutionResult {
 fn spawn_creep(spawn: &StructureSpawn, role: &str) -> ExecutionResult {
     trace!("Spawning creep");
 
-    let mut body = basic_role_parts(role)
+    let spawn_config = spawn_config_by_role(role);
+
+    let mut body = spawn_config
+        .basic_body
         .into_iter()
         .map(|x| *x)
         .collect::<Vec<_>>();
@@ -49,7 +52,7 @@ fn spawn_creep(spawn: &StructureSpawn, role: &str) -> ExecutionResult {
     for _ in 0..10 {
         let spawn_options = SpawnOptions::new().dry_run(true);
         let mut b = body.clone();
-        b.append(&mut role_part_scale(role));
+        b.extend(spawn_config.body_extension.iter());
         let result = spawn.spawn_creep_with_options(&b, "___test_name", &spawn_options);
         if result == ReturnCode::Ok {
             body = b;
