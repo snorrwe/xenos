@@ -115,7 +115,7 @@ where
 }
 
 fn find_unload_target_by_type<'a>(creep: &'a Creep, struct_type: &'a str) -> ExecutionResult {
-    let res = js!{
+    let res = js! {
         const creep = @{creep};
         const exts = creep.room.find(FIND_STRUCTURES, {
             filter: function (s) {
@@ -144,4 +144,3 @@ where
     }
     Ok(())
 }
-

@@ -17,7 +17,7 @@ pub fn game_loop() {
     }
 
     // screeps api `bucket` method panics in simulation
-    let bucket = js!{
+    let bucket = js! {
         let bucket = Game.cpu.bucket;
         return bucket != null ? bucket : -1;
     };
@@ -66,4 +66,3 @@ fn cleanup_memory() -> Result<(), Box<::std::error::Error>> {
 
     Ok(())
 }
-

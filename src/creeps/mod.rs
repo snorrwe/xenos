@@ -144,7 +144,7 @@ where
 fn find_container<'a>(creep: &'a Creep) -> Option<Reference> {
     trace!("Finding new withdraw target");
     // screeps api is bugged at the moment and FIND_STRUCTURES panics
-    let result = js!{
+    let result = js! {
         let creep = @{creep};
         const containers = creep.room.find(FIND_STRUCTURES, {
             filter: (i) => i.structureType == STRUCTURE_CONTAINER &&
@@ -155,4 +155,3 @@ fn find_container<'a>(creep: &'a Creep) -> Option<Reference> {
     let result = result.try_into().unwrap_or_else(|_| None);
     result
 }
-

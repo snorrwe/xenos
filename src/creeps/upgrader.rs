@@ -57,4 +57,3 @@ pub fn attempt_upgrade<'a>(creep: &'a Creep) -> ExecutionResult {
         }
     }
 }
-

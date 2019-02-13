@@ -117,4 +117,3 @@ fn role_part_scale<'a>(role: &'a str) -> Vec<Part> {
         _ => vec![Part::Move, Part::Carry, Part::Work],
     }
 }
-

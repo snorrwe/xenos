@@ -91,7 +91,7 @@ where
 fn find_container<'a>(creep: &'a Creep) -> ExecutionResult {
     trace!("Finding new unload target");
     // screeps api is bugged at the moment and FIND_STRUCTURES panics
-    let result = js!{
+    let result = js! {
         let creep = @{creep};
         const container = creep.pos.findClosestByRange(FIND_STRUCTURES, {
             filter: function(i) { return i.structureType == STRUCTURE_CONTAINER &&
@@ -129,7 +129,7 @@ where
         let r = creep.transfer_all(target, ResourceType::Energy);
         if r != ReturnCode::Ok {
             debug!("couldn't unload: {:?}", r);
-            return Err(())
+            return Err(());
         }
     } else {
         move_to(creep, target)?;
@@ -176,7 +176,7 @@ fn harvest_target<'a>(creep: &'a Creep) -> Result<Source, ()> {
         trace!("Finding new harvest target");
         let room = creep.room();
         let harvester_count = harvester_count();
-        let sources = js!{
+        let sources = js! {
             const room = @{room};
             let n_harvesters = @{harvester_count};
             n_harvesters  = room.find(FIND_SOURCES).map((source) => [source.id, n_harvesters[source.id] || 0]);
@@ -221,4 +221,3 @@ fn harvester_count() -> HashMap<String, i32> {
     });
     result
 }
-

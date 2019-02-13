@@ -7,7 +7,7 @@ use stdweb::{unstable::TryInto, Value};
 
 /// Return the BehaviourTree that runs the spawns
 pub fn task<'a>() -> Task<'a> {
-    let structures = js!{
+    let structures = js! {
         return Object.values(Game.structures).filter((s) => s.structureType == STRUCTURE_TOWER) || [];
     };
     let towers: Vec<Value> = structures.try_into().expect("brah");
@@ -39,7 +39,7 @@ fn run_tower<'a>(tower: &'a StructureTower) -> ExecutionResult {
 }
 
 fn find_enemy<'a>(room: &'a Room) -> Option<screeps::Creep> {
-    let result = js!{
+    let result = js! {
         const room = @{room};
         return room.find(FIND_CREEPS, {
             filter: (c) => !c.my,
@@ -47,4 +47,3 @@ fn find_enemy<'a>(room: &'a Room) -> Option<screeps::Creep> {
     };
     result.try_into().ok()
 }
-

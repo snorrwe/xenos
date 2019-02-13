@@ -60,7 +60,7 @@ pub fn attempt_repair<'a>(creep: &'a Creep) -> ExecutionResult {
 
 // TODO: return Structure once the Structure bug has been fixed in screeps api
 fn repair<'a>(creep: &'a Creep, target: &'a String) -> ExecutionResult {
-    let res = js!{
+    let res = js! {
         const creep = @{creep};
         let target = @{target};
         target = Game.getObjectById(target);
@@ -83,7 +83,7 @@ fn find_repair_target<'a>(creep: &'a Creep) -> Option<String> {
     trace!("Finding repair target");
 
     let room = creep.room();
-    let result = js!{
+    let result = js! {
         const room = @{room};
         const candidates = room.find(FIND_STRUCTURES, {
             filter: function (s) { return s.hits < s.hitsMax / 2; }
@@ -93,4 +93,3 @@ fn find_repair_target<'a>(creep: &'a Creep) -> Option<String> {
 
     String::try_from(result).ok()
 }
-
