@@ -2,16 +2,16 @@
 //!
 use super::super::bt::*;
 use super::move_to;
-use super::roles::count_roles_in_room;
 use screeps::{
     constants::ResourceType,
-    find,
+    find, game,
     game::get_object_erased,
     objects::{Creep, Source, StructureContainer, StructureSpawn, Transferable},
     prelude::*,
     traits::TryFrom,
     ReturnCode,
 };
+use std::collections::HashMap;
 use stdweb::{unstable::TryInto, Reference};
 
 pub fn run<'a>(creep: &'a Creep) -> ExecutionResult {
@@ -177,36 +177,54 @@ fn harvest_target<'a>(creep: &'a Creep) -> Result<Source, ()> {
     })?;
 
     if let Some(target) = target {
-        trace!("Validating existing target");
-        let target = get_object_erased(target.as_str()).ok_or_else(|| {
-            error!("Target by id {} does not exists", target);
-        })?;
-        let source = Source::try_from(target.as_ref()).map_err(|e| {
-            error!("Failed to convert target to Source {:?}", e);
-            creep.memory().del("target");
-        })?;
-        Ok(source)
+        unwrap_harvest_target(creep, target)
     } else {
         trace!("Finding new harvest target");
         let room = creep.room();
-        let count = count_roles_in_room(&room);
-        let n_harvesters = count["harvester"];
-        let n_harvesters = unsafe {
-            // In case multiple creeps require harvest target in a single tick
-            static mut N: i32 = 0;
-            N += 1;
-            n_harvesters as i32 + N
-        };
+        let harvester_count = harvester_count();
         let sources = js!{
             const room = @{room};
-            const sources = room.find(FIND_SOURCES) || [];
-            const n_harvesters = @{n_harvesters};
-            return sources && sources[n_harvesters % sources.length];
+            let n_harvesters = @{harvester_count};
+            n_harvesters  = room.find(FIND_SOURCES).map((source) => [source.id, n_harvesters[source.id] || 0]);
+            let result = n_harvesters.reduce((result, source) => {
+                if (result[1] > source[1]) {
+                    return source;
+                }
+                return result;
+            }, n_harvesters[0]);
+            return result && result[0];
         };
-        let source: Source = sources.try_into().map_err(|e| {
+        let source: String = sources.try_into().map_err(|e| {
             error!("Can't find Source in creep's room {:?}", e);
         })?;
-        creep.memory().set("harvest_target", source.id());
+        creep.memory().set("harvest_target", &source);
+        let source = unwrap_harvest_target(creep, source)?;
         Ok(source)
     }
 }
+
+fn unwrap_harvest_target(creep: &Creep, target: String) -> Result<Source, ()> {
+    trace!("Validating existing target");
+    let target = get_object_erased(target.as_str()).ok_or_else(|| {
+        error!("Target by id {} does not exists", target);
+    })?;
+    let source = Source::try_from(target.as_ref()).map_err(|e| {
+        error!("Failed to convert target to Source {:?}", e);
+        creep.memory().del("target");
+    })?;
+    Ok(source)
+}
+
+fn harvester_count() -> HashMap<String, i32> {
+    let mut result = HashMap::new();
+    game::creeps::values().into_iter().for_each(|creep| {
+        let target = creep.memory().string("harvest_target");
+        if let Ok(target) = target {
+            if let Some(target) = target {
+                *result.entry(target).or_insert(0) += 1;
+            }
+        }
+    });
+    result
+}
+
