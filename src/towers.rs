@@ -6,20 +6,18 @@ use screeps::{
 use stdweb::{unstable::TryInto, Value};
 
 /// Return the BehaviourTree that runs the spawns
-pub fn task<'a>() -> Node<'a> {
+pub fn task<'a>() -> Task<'a> {
     let structures = js!{
         return Object.values(Game.structures).filter((s) => s.structureType == STRUCTURE_TOWER) || [];
     };
     let towers: Vec<Value> = structures.try_into().expect("brah");
     let tasks = towers
         .into_iter()
-        .map(|t| t.try_into().expect("bro"))
-        .map(|tower: StructureTower| {
-            let task = Task::new("run_tower", move |_| run_tower(&tower));
-            Node::Task(task)
-        })
+        .map(move |t| t.try_into().expect("bro"))
+        .map(move |tower: StructureTower| Task::new(move |_| run_tower(&tower)))
         .collect();
-    Node::Control(Control::All(tasks))
+    let tree = Control::All(tasks);
+    Task::new(move |_| tree.tick())
 }
 
 fn run_tower<'a>(tower: &'a StructureTower) -> ExecutionResult {
@@ -49,3 +47,4 @@ fn find_enemy<'a>(room: &'a Room) -> Option<screeps::Creep> {
     };
     result.try_into().ok()
 }
+

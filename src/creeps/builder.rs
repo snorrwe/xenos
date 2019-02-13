@@ -12,19 +12,18 @@ use screeps::{
 pub fn run<'a>(creep: &'a Creep) -> ExecutionResult {
     trace!("Running builder {}", creep.name());
     let tasks = vec![
-        Task::new("build_0", |_| attempt_build(creep)),
-        Task::new("get energy", |_| get_energy(creep)),
-        Task::new("harvest", |_| harvest(creep)),
-        Task::new("build_1", |_| attempt_build(creep)),
+        Task::new(|_| attempt_build(creep)),
+        Task::new(|_| get_energy(creep)),
+        Task::new(|_| harvest(creep)),
+        Task::new(|_| attempt_build(creep)),
         // If nothing can be built
-        Task::new("repair", |_| repairer::attempt_repair(creep)),
-        Task::new("upgrade", |_| upgrader::attempt_upgrade(creep)),
+        Task::new(|_| repairer::attempt_repair(creep)),
+        Task::new(|_| upgrader::attempt_upgrade(creep)),
     ]
     .into_iter()
-    .map(|t| Node::Task(t))
     .collect();
 
-    let tree = BehaviourTree::new(Control::Sequence(tasks));
+    let tree = Control::Sequence(tasks);
     tree.tick()
 }
 
@@ -75,3 +74,4 @@ fn find_build_target<'a>(creep: &'a Creep) -> Option<ConstructionSite> {
         .pos()
         .find_closest_by_range(find::MY_CONSTRUCTION_SITES)
 }
+

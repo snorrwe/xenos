@@ -39,7 +39,7 @@ fn run() {
 
     let tasks = vec![spawns::task(), creeps::task(), towers::task()];
 
-    let tree = BehaviourTree::new(Control::All(tasks));
+    let tree = Control::All(tasks);
 
     let result = tree.tick();
 

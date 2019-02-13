@@ -9,16 +9,15 @@ pub fn run<'a>(creep: &'a Creep) -> ExecutionResult {
     trace!("Running repairer {}", creep.name());
 
     let tasks = vec![
-        Task::new("repair_0", |_| attempt_repair(creep)),
-        Task::new("get energy", |_| get_energy(creep)),
-        Task::new("harvest", |_| harvest(creep)),
-        Task::new("repair_1", |_| attempt_repair(creep)),
+        Task::new(|_| attempt_repair(creep)),
+        Task::new(|_| get_energy(creep)),
+        Task::new(|_| harvest(creep)),
+        Task::new(|_| attempt_repair(creep)),
         // Fall back
-        Task::new("build", |_| builder::attempt_build(creep)),
-        Task::new("upgrade", |_| upgrader::attempt_upgrade(creep)),
+        Task::new(|_| builder::attempt_build(creep)),
+        Task::new(|_| upgrader::attempt_upgrade(creep)),
     ]
     .into_iter()
-    .map(|t| Node::Task(t))
     .collect();
 
     let tree = Control::Sequence(tasks);
@@ -96,3 +95,4 @@ fn find_repair_target<'a>(creep: &'a Creep) -> Option<String> {
 
     String::try_from(result).ok()
 }
+

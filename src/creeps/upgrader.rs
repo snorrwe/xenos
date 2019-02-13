@@ -8,16 +8,15 @@ pub fn run<'a>(creep: &'a Creep) -> ExecutionResult {
     trace!("Running upgrader {}", creep.name());
 
     let tasks = vec![
-        Task::new("upgrade_0", |_| attempt_upgrade(creep)),
-        Task::new("get energy", |_| get_energy(creep)),
-        Task::new("harvest", |_| harvest(creep)),
-        Task::new("upgrade_1", |_| attempt_upgrade(creep)),
+        Task::new(|_| attempt_upgrade(creep)),
+        Task::new(|_| get_energy(creep)),
+        Task::new(|_| harvest(creep)),
+        Task::new(|_| attempt_upgrade(creep)),
     ]
     .into_iter()
-    .map(|t| Node::Task(t))
     .collect();
 
-    let tree = BehaviourTree::new(Control::Sequence(tasks));
+    let tree = Control::Sequence(tasks);
     tree.tick()
 }
 
@@ -60,3 +59,4 @@ pub fn attempt_upgrade<'a>(creep: &'a Creep) -> ExecutionResult {
         }
     }
 }
+

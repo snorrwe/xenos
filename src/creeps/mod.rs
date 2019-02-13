@@ -15,41 +15,35 @@ use screeps::{
 };
 use stdweb::{unstable::TryInto, Reference};
 
-pub fn task<'a>() -> Node<'a> {
-    let tasks = vec![run_creeps()];
-    Node::Control(Control::Selector(tasks))
-}
-
-fn run_creeps<'a>() -> Node<'a> {
+pub fn task<'a>() -> Task<'a> {
     let tasks = screeps::game::creeps::values()
         .into_iter()
         .map(|creep| run_creep(creep))
         .collect();
 
-    Node::Control(Control::All(tasks))
+    let tree = Control::All(tasks);
+    Task::new(move |_| tree.tick())
 }
 
-fn run_creep<'a>(creep: Creep) -> Node<'a> {
+fn run_creep<'a>(creep: Creep) -> Task<'a> {
     let task = move |_| {
         debug!("Running creep {}", creep.name());
         if creep.spawning() {
             return Ok(());
         }
         let tasks = vec![
-            Task::new("run_role", |_| run_role(&creep)),
-            Task::new("assing_role", |_| {
+            Task::new(|_| run_role(&creep)),
+            Task::new(|_| {
                 assign_role(&creep);
                 Ok(())
             }),
         ]
         .into_iter()
-        .map(|task| Node::Task(task))
         .collect();
-        let tree = BehaviourTree::new(Control::Sequence(tasks));
+        let tree = Control::Sequence(tasks);
         tree.tick()
     };
-    let task = Task::new("run_creep", task);
-    Node::Task(task)
+    Task::new(task)
 }
 
 fn assign_role<'a>(creep: &'a Creep) -> Option<String> {
@@ -111,14 +105,13 @@ pub fn get_energy<'a>(creep: &'a Creep) -> ExecutionResult {
     } else {
         let target = find_container(creep).ok_or_else(|| {})?;
 
-        let tasks = vec![Task::new("transfer container", |_| {
+        let tasks = vec![Task::new(|_| {
             try_withdraw::<StructureContainer>(creep, &target)
         })]
         .into_iter()
-        .map(|task| Node::Task(task))
         .collect();
 
-        let tree = BehaviourTree::new(Control::Sequence(tasks));
+        let tree = Control::Sequence(tasks);
         tree.tick().map_err(|_| {
             creep.memory().del("target");
         })
@@ -162,3 +155,4 @@ fn find_container<'a>(creep: &'a Creep) -> Option<Reference> {
     let result = result.try_into().unwrap_or_else(|_| None);
     result
 }
+

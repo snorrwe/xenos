@@ -3,15 +3,13 @@ use creeps::roles::next_role;
 use screeps::{self, game, objects::StructureSpawn, prelude::*, Part, ReturnCode};
 
 /// Return the BehaviourTree that runs the spawns
-pub fn task<'a>() -> Node<'a> {
+pub fn task<'a>() -> Task<'a> {
     let tasks = screeps::game::spawns::values()
         .into_iter()
-        .map(|spawn| {
-            let task = Task::new("spawn_task", move |_| run_spawn(&spawn));
-            Node::Task(task)
-        })
+        .map(|spawn| Task::new(move |_| run_spawn(&spawn)))
         .collect();
-    Node::Control(Control::Sequence(tasks))
+    let tree = Control::Sequence(tasks);
+    Task::new(move |_| tree.tick())
 }
 
 fn run_spawn(spawn: &StructureSpawn) -> ExecutionResult {
@@ -54,3 +52,4 @@ fn spawn_creep(spawn: &StructureSpawn, body: &[Part]) -> ExecutionResult {
     }
     Ok(())
 }
+

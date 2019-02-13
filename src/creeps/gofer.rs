@@ -14,16 +14,15 @@ use stdweb::{unstable::TryFrom, Reference};
 pub fn run<'a>(creep: &'a Creep) -> ExecutionResult {
     trace!("Running builder {}", creep.name());
     let tasks = vec![
-        Task::new("unload_0", |_| unload(creep)),
-        Task::new("get energy", |_| get_energy(creep)),
-        Task::new("harvest", |_| harvest(creep)),
-        Task::new("unload_1", |_| unload(creep)),
+        Task::new(|_| unload(creep)),
+        Task::new(|_| get_energy(creep)),
+        Task::new(|_| harvest(creep)),
+        Task::new(|_| unload(creep)),
         // Fallback
-        Task::new("repair", |_| repairer::attempt_repair(creep)),
-        Task::new("upgrade", |_| upgrader::attempt_upgrade(creep)),
+        Task::new(|_| repairer::attempt_repair(creep)),
+        Task::new(|_| upgrader::attempt_upgrade(creep)),
     ]
     .into_iter()
-    .map(|t| Node::Task(t))
     .collect();
 
     let tree = Control::Sequence(tasks);
@@ -64,21 +63,14 @@ fn unload<'a>(creep: &'a Creep) -> ExecutionResult {
     let target = find_unload_target(creep).ok_or_else(|| {})?;
 
     let tasks = vec![
-        Task::new("transfer spawn", |_| {
-            try_transfer::<StructureSpawn>(creep, &target)
-        }),
-        Task::new("transfer extension", |_| {
-            try_transfer::<StructureExtension>(creep, &target)
-        }),
-        Task::new("transfer tower", |_| {
-            try_transfer::<StructureTower>(creep, &target)
-        }),
+        Task::new(|_| try_transfer::<StructureSpawn>(creep, &target)),
+        Task::new(|_| try_transfer::<StructureExtension>(creep, &target)),
+        Task::new(|_| try_transfer::<StructureTower>(creep, &target)),
     ]
     .into_iter()
-    .map(|task| Node::Task(task))
     .collect();
 
-    let tree = BehaviourTree::new(Control::Sequence(tasks));
+    let tree = Control::Sequence(tasks);
     tree.tick().map_err(|_| {
         creep.memory().del("target");
     })
@@ -101,14 +93,11 @@ fn find_unload_target<'a>(creep: &'a Creep) -> Option<Reference> {
         Some(target.as_ref().clone())
     } else {
         let tasks = vec![
-            Task::new("find tower", |_| find_unload_target_by_type(creep, "tower")),
-            Task::new("find spawn", |_| find_unload_target_by_type(creep, "spawn")),
-            Task::new("find extension", |_| {
-                find_unload_target_by_type(creep, "extension")
-            }),
+            Task::new(|_| find_unload_target_by_type(creep, "tower")),
+            Task::new(|_| find_unload_target_by_type(creep, "spawn")),
+            Task::new(|_| find_unload_target_by_type(creep, "extension")),
         ]
         .into_iter()
-        .map(|t| Node::Task(t))
         .collect();
         let tree = Control::Sequence(tasks);
         tree.tick().unwrap_or_else(|()| {
@@ -157,3 +146,4 @@ where
     }
     Ok(())
 }
+

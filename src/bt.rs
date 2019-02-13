@@ -4,47 +4,48 @@
 //!     - There is no 'Running' state normally found in BT's
 //!     - There is no explicit Task cancellation
 //!
-use std::fmt::{self, Debug};
-use std::rc::Rc;
-
-pub struct BehaviourTree<'a> {
-    root: Control<'a>,
-}
-
-impl<'a> BehaviourTree<'a> {
-    pub fn new(root: Control<'a>) -> Self {
-        Self { root: root }
-    }
-}
-
-impl<'a> BtNode for BehaviourTree<'a> {
-    fn tick(&self) -> ExecutionResult {
-        self.root.tick()
-    }
-}
-
-#[derive(Debug, Clone)]
-pub enum Node<'a> {
-    Task(Task<'a>),
-    Control(Control<'a>),
-}
+pub use std::rc::Rc;
 
 pub type ExecutionResult = Result<(), ()>;
+
+/// Represents a single task in the behaviour tree
+/// An executable that will be called by a Task
+/// Currently passes an empty tuple as argument
+/// The reason behind this is that we might want to pass
+/// Some state between tasks.
+/// So existing tasks using the pattern:
+/// ```
+/// |_| { /* task stuff */ }`
+/// ```
+/// will not require changes when this happens
+pub type Task<'a> = Rc<Fn(()) -> ExecutionResult + 'a>;
 
 pub trait BtNode {
     fn tick(&self) -> ExecutionResult;
 }
 
 pub trait ControlNode {
-    fn new(children: Vec<Node>) -> Self;
+    fn new(children: Vec<Task>) -> Self;
 }
 
-impl<'a> BtNode for Node<'a> {
+pub trait TaskNew<'a> {
+    fn new<F>(task: F) -> Self
+    where
+        F: Fn(()) -> ExecutionResult + 'a;
+}
+
+impl<'a> BtNode for Task<'a> {
     fn tick(&self) -> ExecutionResult {
-        match self {
-            Node::Control(node) => node.tick(),
-            Node::Task(node) => node.tick(),
-        }
+        self(())
+    }
+}
+
+impl<'a> TaskNew<'a> for Task<'a> {
+    fn new<F>(task: F) -> Self
+    where
+        F: Fn(()) -> ExecutionResult + 'a,
+    {
+        Rc::new(task)
     }
 }
 
@@ -52,11 +53,11 @@ impl<'a> BtNode for Node<'a> {
 /// - Selector runs its child tasks until the first failure
 /// - Sequence runs its child tasks until the first success
 /// - All runs all its child tasks regardless of their result
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub enum Control<'a> {
-    Selector(Vec<Node<'a>>),
-    Sequence(Vec<Node<'a>>),
-    All(Vec<Node<'a>>),
+    Selector(Vec<Task<'a>>),
+    Sequence(Vec<Task<'a>>),
+    All(Vec<Task<'a>>),
 }
 
 impl<'a> BtNode for Control<'a> {
@@ -90,46 +91,3 @@ impl<'a> BtNode for Control<'a> {
     }
 }
 
-/// An executable that will be called by a Task
-/// Currently passes an empty tuple as argument
-/// The reason behind this is that we might want to pass
-/// Some state between tasks.
-/// So existing tasks using the pattern:
-/// ```
-/// |_| { /* task stuff */ }`
-/// ```
-/// will not require changes when this happens
-type TaskFn<'a> = Rc<Fn(()) -> ExecutionResult + 'a>;
-
-/// Represents a single task in the behaviour tree
-#[derive(Clone)]
-pub struct Task<'a> {
-    name: &'a str,
-    task: TaskFn<'a>,
-}
-
-impl<'a> Debug for Task<'a> {
-    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        write!(formatter, "Task {}", self.name)
-    }
-}
-
-impl<'a> Task<'a> {
-    pub fn new<F>(name: &'a str, task: F) -> Self
-    where
-        F: Fn(()) -> ExecutionResult + 'a,
-    {
-        Self {
-            name: name,
-            task: Rc::new(task),
-        }
-    }
-}
-
-impl<'a> BtNode for Task<'a> {
-    fn tick(&self) -> ExecutionResult {
-        trace!("Executing task {:?}", self);
-        let task = &*self.task;
-        task(())
-    }
-}

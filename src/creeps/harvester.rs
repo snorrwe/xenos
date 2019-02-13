@@ -18,14 +18,13 @@ pub fn run<'a>(creep: &'a Creep) -> ExecutionResult {
     trace!("Running harvester {}", creep.name());
 
     let tasks = vec![
-        Task::new("harvest_0", |_| attempt_harvest(&creep)),
-        Task::new("unload", |_| unload(&creep)),
-        Task::new("harvest_1", |_| attempt_harvest(&creep)),
+        Task::new(|_| attempt_harvest(&creep)),
+        Task::new(|_| unload(&creep)),
+        Task::new(|_| attempt_harvest(&creep)),
     ]
     .into_iter()
-    .map(|task| Node::Task(task))
     .collect();
-    let tree = BehaviourTree::new(Control::Sequence(tasks));
+    let tree = Control::Sequence(tasks);
     tree.tick()
 }
 
@@ -41,18 +40,13 @@ fn unload<'a>(creep: &'a Creep) -> ExecutionResult {
     let target = find_unload_target(creep).ok_or_else(|| {})?;
 
     let tasks = vec![
-        Task::new("transfer container", |_| {
-            try_transfer::<StructureContainer>(creep, &target)
-        }),
-        Task::new("transfer spawn", |_| {
-            try_transfer::<StructureSpawn>(creep, &target)
-        }),
+        Task::new(|_| try_transfer::<StructureContainer>(creep, &target)),
+        Task::new(|_| try_transfer::<StructureSpawn>(creep, &target)),
     ]
     .into_iter()
-    .map(|task| Node::Task(task))
     .collect();
 
-    let tree = BehaviourTree::new(Control::Sequence(tasks));
+    let tree = Control::Sequence(tasks);
     tree.tick().map_err(|_| {
         creep.memory().del("target");
     })
@@ -75,10 +69,10 @@ fn find_unload_target<'a>(creep: &'a Creep) -> Option<Reference> {
         Some(target.as_ref().clone())
     } else {
         let tasks = vec![
-            Node::Task(Task::new("find container", |_| find_container(creep))),
-            Node::Task(Task::new("find spawn", |_| find_spawn(creep))),
+            Task::new(|_| find_container(creep)),
+            Task::new(|_| find_spawn(creep)),
         ];
-        let tree = BehaviourTree::new(Control::Sequence(tasks));
+        let tree = Control::Sequence(tasks);
         tree.tick().unwrap_or_else(|()| {
             warn!("Failed to find unload target");
         });
