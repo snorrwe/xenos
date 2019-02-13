@@ -4,9 +4,7 @@
 //!     - There is no 'Running' state normally found in BT's
 //!     - There is no explicit Task cancellation
 //!
-pub use std::rc::Rc;
-
-pub type ExecutionResult = Result<(), ()>;
+use std::rc::Rc;
 
 /// Represents a single task in the behaviour tree
 /// An executable that will be called by a Task
@@ -19,6 +17,9 @@ pub type ExecutionResult = Result<(), ()>;
 /// ```
 /// will not require changes when this happens
 pub type Task<'a> = Rc<Fn(()) -> ExecutionResult + 'a>;
+
+/// Result of a task
+pub type ExecutionResult = Result<(), ()>;
 
 pub trait BtNode {
     fn tick(&self) -> ExecutionResult;

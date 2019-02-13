@@ -14,10 +14,10 @@ use stdweb::{unstable::TryFrom, Reference};
 pub fn run<'a>(creep: &'a Creep) -> ExecutionResult {
     trace!("Running builder {}", creep.name());
     let tasks = vec![
-        Task::new(|_| unload(creep)),
+        Task::new(|_| attempt_unload(creep)),
         Task::new(|_| get_energy(creep)),
         Task::new(|_| harvest(creep)),
-        Task::new(|_| unload(creep)),
+        Task::new(|_| attempt_unload(creep)),
         // Fallback
         Task::new(|_| repairer::attempt_repair(creep)),
         Task::new(|_| upgrader::attempt_upgrade(creep)),
@@ -45,7 +45,7 @@ fn harvest<'a>(creep: &'a Creep) -> ExecutionResult {
     }
 }
 
-fn unload<'a>(creep: &'a Creep) -> ExecutionResult {
+fn attempt_unload<'a>(creep: &'a Creep) -> ExecutionResult {
     trace!("Unloading");
     let loading: bool = creep.memory().bool("loading");
     if loading {

@@ -32,8 +32,6 @@ pub fn game_loop() {
 }
 
 /// Run the game logic
-/// Adding new module:
-///     - add the modules tasks to `tasks`
 fn run() {
     trace!("Running");
 
@@ -70,3 +68,4 @@ fn cleanup_memory() -> Result<(), Box<::std::error::Error>> {
 
     Ok(())
 }
+
