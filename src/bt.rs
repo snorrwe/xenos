@@ -56,6 +56,7 @@ impl<'a> TaskNew<'a> for Task<'a> {
 /// - All runs all its child tasks regardless of their result
 #[derive(Clone)]
 pub enum Control<'a> {
+    #[allow(dead_code)]
     Selector(Vec<Task<'a>>),
     Sequence(Vec<Task<'a>>),
     All(Vec<Task<'a>>),

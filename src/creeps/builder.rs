@@ -53,7 +53,7 @@ pub fn attempt_build<'a>(creep: &'a Creep) -> ExecutionResult {
         Err(())
     } else {
         let target = find_build_target(creep).ok_or_else(|| {
-            warn!("Could not find a build target");
+            debug!("Could not find a build target");
         })?;
         let res = creep.build(&target);
         match res {

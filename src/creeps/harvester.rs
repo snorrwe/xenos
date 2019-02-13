@@ -74,7 +74,7 @@ fn find_unload_target<'a>(creep: &'a Creep) -> Option<Reference> {
         ];
         let tree = Control::Sequence(tasks);
         tree.tick().unwrap_or_else(|()| {
-            warn!("Failed to find unload target");
+            debug!("Failed to find unload target");
         });
         None
     }
@@ -128,7 +128,7 @@ where
     if creep.pos().is_near_to(target) {
         let r = creep.transfer_all(target, ResourceType::Energy);
         if r != ReturnCode::Ok {
-            warn!("couldn't unload: {:?}", r);
+            debug!("couldn't unload: {:?}", r);
             return Err(())
         }
     } else {
@@ -153,7 +153,7 @@ pub fn attempt_harvest<'a>(creep: &'a Creep) -> ExecutionResult {
     if creep.pos().is_near_to(&source) {
         let r = creep.harvest(&source);
         if r != ReturnCode::Ok {
-            warn!("Couldn't harvest: {:?}", r);
+            debug!("Couldn't harvest: {:?}", r);
         }
     } else {
         move_to(creep, &source)?;

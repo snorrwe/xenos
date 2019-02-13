@@ -50,7 +50,7 @@ fn assign_role<'a>(creep: &'a Creep) -> Option<String> {
     trace!("Assigning role to {}", creep.name());
 
     let result = roles::next_role(&creep.room()).or_else(|| {
-        warn!("Room is full");
+        debug!("Room is full");
         None
     })?;
 
@@ -82,7 +82,7 @@ pub fn move_to<'a>(
     match res {
         ReturnCode::Ok => Ok(()),
         _ => {
-            warn!("Move failed {:?}", res);
+            debug!("Move failed {:?}", res);
             Err(())
         }
     }
@@ -133,7 +133,7 @@ where
     if creep.pos().is_near_to(target) {
         let r = creep.withdraw_all(target, ResourceType::Energy);
         if r != ReturnCode::Ok {
-            warn!("couldn't unload: {:?}", r);
+            debug!("couldn't unload: {:?}", r);
         }
     } else {
         move_to(creep, target)?;

@@ -51,7 +51,7 @@ pub fn attempt_repair<'a>(creep: &'a Creep) -> ExecutionResult {
     } else {
         trace!("Repairing");
         let target = find_repair_target(creep).ok_or_else(|| {
-            warn!("Could not find a repair target");
+            debug!("Could not find a repair target");
         })?;
         trace!("Got repair target {:?}", target);
         repair(creep, &target)

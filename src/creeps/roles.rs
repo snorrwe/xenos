@@ -7,6 +7,7 @@ use super::upgrader;
 use screeps::{
     game,
     objects::{Creep, Room, RoomObjectProperties},
+    Part,
 };
 use std::collections::HashMap;
 use stdweb::unstable::TryInto;
@@ -68,7 +69,7 @@ pub fn count_roles_in_room<'a>(room: &'a Room) -> HashMap<String, i8> {
 }
 
 pub fn target_number_of_role_in_room<'a>(role: &'a str, room: &'a Room) -> i8 {
-    let n_sources = js!{
+    let n_sources = js! {
         const room = @{room};
         const sources = room.find(FIND_SOURCES) || [];
         return sources && sources.length;
@@ -85,3 +86,23 @@ pub fn target_number_of_role_in_room<'a>(role: &'a str, room: &'a Room) -> i8 {
         _ => unimplemented!(),
     }
 }
+
+pub fn role_parts<'a>(role: &'a str) -> Vec<Part> {
+    match role {
+        "harvester" => vec![Part::Move, Part::Work, Part::Carry, Part::Work],
+        "upgrader" | "builder" | "repairer" | "gofer" => {
+            vec![Part::Move, Part::Move, Part::Carry, Part::Work]
+        }
+        _ => unimplemented!(),
+    }
+}
+
+/// Intended parts to be appended to 'role_parts'
+pub fn role_part_scale<'a>(role: &'a str) -> Vec<Part> {
+    match role {
+        "harvester" => vec![Part::Work],
+        "gofer" => vec![Part::Move, Part::Carry],
+        _ => vec![Part::Move, Part::Carry, Part::Work],
+    }
+}
+
