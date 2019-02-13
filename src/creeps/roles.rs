@@ -87,11 +87,11 @@ pub fn target_number_of_role_in_room<'a>(role: &'a str, room: &'a Room) -> i8 {
     }
 }
 
-pub fn role_parts<'a>(role: &'a str) -> Vec<Part> {
+pub fn basic_role_parts<'a>(role: &'a str) -> [Part; 4] {
     match role {
-        "harvester" => vec![Part::Move, Part::Work, Part::Carry, Part::Work],
+        "harvester" => [Part::Move, Part::Work, Part::Carry, Part::Work],
         "upgrader" | "builder" | "repairer" | "gofer" => {
-            vec![Part::Move, Part::Move, Part::Carry, Part::Work]
+            [Part::Move, Part::Move, Part::Carry, Part::Work]
         }
         _ => unimplemented!(),
     }
