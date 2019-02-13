@@ -21,9 +21,8 @@ pub fn run<'a>(creep: &'a Creep) -> ExecutionResult {
         Task::new(|_| attempt_harvest(&creep)),
         Task::new(|_| unload(&creep)),
         Task::new(|_| attempt_harvest(&creep)),
-    ]
-    .into_iter()
-    .collect();
+    ];
+
     let tree = Control::Sequence(tasks);
     tree.tick()
 }

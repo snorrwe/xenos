@@ -36,9 +36,7 @@ fn run() {
     trace!("Running");
 
     let tasks = vec![spawns::task(), creeps::task(), towers::task()];
-
     let tree = Control::All(tasks);
-
     let result = tree.tick();
 
     trace!("Run result {:?}", result);

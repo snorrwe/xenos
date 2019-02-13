@@ -12,7 +12,7 @@ use screeps::{
 use stdweb::{unstable::TryFrom, Reference};
 
 pub fn run<'a>(creep: &'a Creep) -> ExecutionResult {
-    trace!("Running builder {}", creep.name());
+    trace!("Running gofer {}", creep.name());
     let tasks = vec![
         Task::new(|_| attempt_unload(creep)),
         Task::new(|_| get_energy(creep)),
@@ -21,9 +21,7 @@ pub fn run<'a>(creep: &'a Creep) -> ExecutionResult {
         // Fallback
         Task::new(|_| repairer::attempt_repair(creep)),
         Task::new(|_| upgrader::attempt_upgrade(creep)),
-    ]
-    .into_iter()
-    .collect();
+    ];
 
     let tree = Control::Sequence(tasks);
     tree.tick()

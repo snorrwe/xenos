@@ -16,9 +16,7 @@ pub fn run<'a>(creep: &'a Creep) -> ExecutionResult {
         // Fall back
         Task::new(|_| builder::attempt_build(creep)),
         Task::new(|_| upgrader::attempt_upgrade(creep)),
-    ]
-    .into_iter()
-    .collect();
+    ];
 
     let tree = Control::Sequence(tasks);
     tree.tick()

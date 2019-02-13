@@ -12,9 +12,7 @@ pub fn run<'a>(creep: &'a Creep) -> ExecutionResult {
         Task::new(|_| get_energy(creep)),
         Task::new(|_| harvest(creep)),
         Task::new(|_| attempt_upgrade(creep)),
-    ]
-    .into_iter()
-    .collect();
+    ];
 
     let tree = Control::Sequence(tasks);
     tree.tick()

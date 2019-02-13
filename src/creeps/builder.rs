@@ -19,9 +19,7 @@ pub fn run<'a>(creep: &'a Creep) -> ExecutionResult {
         // If nothing can be built
         Task::new(|_| repairer::attempt_repair(creep)),
         Task::new(|_| upgrader::attempt_upgrade(creep)),
-    ]
-    .into_iter()
-    .collect();
+    ];
 
     let tree = Control::Sequence(tasks);
     tree.tick()
