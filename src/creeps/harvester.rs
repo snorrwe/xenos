@@ -33,6 +33,7 @@ fn unload<'a>(creep: &'a Creep) -> ExecutionResult {
 
     if carry_total == 0 {
         trace!("Empty");
+        creep.memory().del("target");
         return Err(());
     }
 
@@ -92,13 +93,12 @@ fn find_container<'a>(creep: &'a Creep) -> ExecutionResult {
     // screeps api is bugged at the moment and FIND_STRUCTURES panics
     let result = js!{
         let creep = @{creep};
-        const containers = creep.room.find(FIND_STRUCTURES, {
-            filter: (i) => i.structureType == STRUCTURE_CONTAINER &&
-                           i.store[RESOURCE_ENERGY] < i.storeCapacity
+        const container = creep.pos.findClosestByRange(FIND_STRUCTURES, {
+            filter: function(i) { return i.structureType == STRUCTURE_CONTAINER &&
+                           i.store[RESOURCE_ENERGY] < i.storeCapacity }
         });
-        if (containers[0]) {
-            let structure = containers[0];
-            creep.memory.target = structure.id;
+        if (container) {
+            creep.memory.target = container.id;
             return true;
         }
         return false;
@@ -129,6 +129,7 @@ where
         let r = creep.transfer_all(target, ResourceType::Energy);
         if r != ReturnCode::Ok {
             warn!("couldn't unload: {:?}", r);
+            return Err(())
         }
     } else {
         move_to(creep, target)?;
