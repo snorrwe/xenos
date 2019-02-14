@@ -86,7 +86,7 @@ fn find_repair_target<'a>(creep: &'a Creep) -> Option<String> {
     let result = js! {
         const room = @{room};
         const candidates = room.find(FIND_STRUCTURES, {
-            filter: function (s) { return s.hits < s.hitsMax / 2; }
+            filter: function (s) { return s.hits < s.hitsMax; }
         });
         return candidates[0] && candidates[0].id;
     };

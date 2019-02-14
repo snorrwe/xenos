@@ -14,6 +14,8 @@ use screeps::{
 use std::collections::HashMap;
 use stdweb::{unstable::TryInto, Reference};
 
+const HARVEST_TARGET: &'static str = "harvest_target";
+
 pub fn run<'a>(creep: &'a Creep) -> ExecutionResult {
     trace!("Running harvester {}", creep.name());
 
@@ -145,7 +147,7 @@ pub fn attempt_harvest<'a>(creep: &'a Creep) -> ExecutionResult {
 
     if carry_total == carry_cap {
         trace!("Full");
-        creep.memory().del("harvest_target");
+        creep.memory().del(HARVEST_TARGET);
         return Err(());
     }
 
@@ -154,6 +156,7 @@ pub fn attempt_harvest<'a>(creep: &'a Creep) -> ExecutionResult {
     if creep.pos().is_near_to(&source) {
         let r = creep.harvest(&source);
         if r != ReturnCode::Ok {
+            creep.memory().del(HARVEST_TARGET);
             debug!("Couldn't harvest: {:?}", r);
         }
     } else {
@@ -167,7 +170,7 @@ pub fn attempt_harvest<'a>(creep: &'a Creep) -> ExecutionResult {
 fn harvest_target<'a>(creep: &'a Creep) -> Result<Source, ()> {
     trace!("Setting harvest target");
 
-    let target = creep.memory().string("harvest_target").map_err(|e| {
+    let target = creep.memory().string(HARVEST_TARGET).map_err(|e| {
         error!("Failed to read creep target {:?}", e);
     })?;
 
@@ -192,7 +195,7 @@ fn harvest_target<'a>(creep: &'a Creep) -> Result<Source, ()> {
         let source: String = sources.try_into().map_err(|e| {
             error!("Can't find Source in creep's room {:?}", e);
         })?;
-        creep.memory().set("harvest_target", &source);
+        creep.memory().set(HARVEST_TARGET, &source);
         let source = unwrap_harvest_target(creep, source)?;
         Ok(source)
     }
@@ -213,7 +216,7 @@ fn unwrap_harvest_target(creep: &Creep, target: String) -> Result<Source, ()> {
 fn harvester_count() -> HashMap<String, i32> {
     let mut result = HashMap::new();
     game::creeps::values().into_iter().for_each(|creep| {
-        let target = creep.memory().string("harvest_target");
+        let target = creep.memory().string(HARVEST_TARGET);
         if let Ok(target) = target {
             if let Some(target) = target {
                 *result.entry(target).or_insert(0) += 1;
@@ -222,3 +225,4 @@ fn harvester_count() -> HashMap<String, i32> {
     });
     result
 }
+
