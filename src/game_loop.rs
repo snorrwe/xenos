@@ -22,7 +22,7 @@ pub fn game_loop() {
         return bucket != null ? bucket : -1;
     };
 
-    let bucket: i32 = i32::try_from(bucket).expect("Expected bucket to be a number");
+    let bucket = i32::try_from(bucket).expect("Expected bucket to be a number");
 
     info!(
         "Done! CPU: {:.4} Bucket: {}",
@@ -66,3 +66,4 @@ fn cleanup_memory() -> Result<(), Box<::std::error::Error>> {
 
     Ok(())
 }
+

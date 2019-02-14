@@ -26,10 +26,10 @@ pub fn next_role<'a>(room: &'a Room) -> Option<String> {
 }
 
 /// Run the creep according to the given role
-pub fn run_role<'a>(role: &'a str, creep: &'a Creep) -> ExecutionResult {
+pub fn run_role<'a>(role: &'a str, creep: &'a Creep) -> Task<'a> {
     trace!("Running creep {} by role {}", creep.name(), role);
 
-    let result = match role {
+    let task = match role {
         "upgrader" => upgrader::run(creep),
         "harvester" => harvester::run(creep),
         "builder" => builder::run(creep),
@@ -38,11 +38,11 @@ pub fn run_role<'a>(role: &'a str, creep: &'a Creep) -> ExecutionResult {
         _ => unimplemented!(),
     };
 
-    if result.is_err() {
-        warn!("Running creep {} failed", creep.name());
-    }
-
-    Ok(())
+    Task::new(move |_| {
+        task.tick().map_err(|_| {
+            warn!("Running creep {} failed", creep.name());
+        })
+    })
 }
 
 pub fn count_roles_in_room<'a>(room: &'a Room) -> HashMap<String, i8> {
@@ -78,7 +78,7 @@ pub fn target_number_of_role_in_room<'a>(role: &'a str, room: &'a Room) -> i8 {
     let n_sources = n_sources.try_into().unwrap_or(0);
 
     match role {
-        "upgrader" => 1,
+        "upgrader" => 2,
         "harvester" => n_sources,
         "builder" => 1,
         "repairer" => 1,
@@ -117,3 +117,4 @@ fn role_part_scale<'a>(role: &'a str) -> Vec<Part> {
         _ => vec![Part::Move, Part::Carry, Part::Work],
     }
 }
+

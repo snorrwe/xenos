@@ -4,18 +4,18 @@ use super::super::bt::*;
 use super::{get_energy, harvester, move_to};
 use screeps::{objects::Creep, prelude::*, ReturnCode};
 
-pub fn run<'a>(creep: &'a Creep) -> ExecutionResult {
+pub fn run<'a>(creep: &'a Creep) -> Task<'a> {
     trace!("Running upgrader {}", creep.name());
 
     let tasks = vec![
-        Task::new(|_| attempt_upgrade(creep)),
-        Task::new(|_| get_energy(creep)),
-        Task::new(|_| harvest(creep)),
-        Task::new(|_| attempt_upgrade(creep)),
+        Task::new(move |_| attempt_upgrade(creep)),
+        Task::new(move |_| get_energy(creep)),
+        Task::new(move |_| harvest(creep)),
+        Task::new(move |_| attempt_upgrade(creep)),
     ];
 
     let tree = Control::Sequence(tasks);
-    tree.tick()
+    Task::new(move |_| tree.tick())
 }
 
 fn harvest<'a>(creep: &'a Creep) -> ExecutionResult {
@@ -57,3 +57,4 @@ pub fn attempt_upgrade<'a>(creep: &'a Creep) -> ExecutionResult {
         }
     }
 }
+

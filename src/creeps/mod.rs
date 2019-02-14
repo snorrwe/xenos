@@ -33,10 +33,7 @@ fn run_creep<'a>(creep: Creep) -> Task<'a> {
         }
         let tasks = vec![
             Task::new(|_| run_role(&creep)),
-            Task::new(|_| {
-                assign_role(&creep);
-                Ok(())
-            }),
+            Task::new(|_| assign_role(&creep).map(|_| {}).ok_or_else(|| {})),
         ]
         .into_iter()
         .collect();
@@ -71,7 +68,8 @@ fn run_role<'a>(creep: &'a Creep) -> ExecutionResult {
             trace!("creep role is null");
         })?;
 
-    roles::run_role(role.as_str(), creep)
+    let task = roles::run_role(role.as_str(), creep);
+    task.tick()
 }
 
 pub fn move_to<'a>(
@@ -155,3 +153,4 @@ fn find_container<'a>(creep: &'a Creep) -> Option<Reference> {
     let result = result.try_into().unwrap_or_else(|_| None);
     result
 }
+

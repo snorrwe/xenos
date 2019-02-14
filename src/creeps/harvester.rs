@@ -16,17 +16,17 @@ use stdweb::{unstable::TryInto, Reference};
 
 const HARVEST_TARGET: &'static str = "harvest_target";
 
-pub fn run<'a>(creep: &'a Creep) -> ExecutionResult {
+pub fn run<'a>(creep: &'a Creep) -> Task<'a> {
     trace!("Running harvester {}", creep.name());
 
     let tasks = vec![
-        Task::new(|_| attempt_harvest(&creep)),
-        Task::new(|_| unload(&creep)),
-        Task::new(|_| attempt_harvest(&creep)),
+        Task::new(move |_| attempt_harvest(&creep)),
+        Task::new(move |_| unload(&creep)),
+        Task::new(move |_| attempt_harvest(&creep)),
     ];
 
     let tree = Control::Sequence(tasks);
-    tree.tick()
+    Task::new(move |_| tree.tick())
 }
 
 fn unload<'a>(creep: &'a Creep) -> ExecutionResult {

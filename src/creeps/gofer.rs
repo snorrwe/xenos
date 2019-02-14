@@ -11,20 +11,20 @@ use screeps::{
 };
 use stdweb::{unstable::TryFrom, Reference};
 
-pub fn run<'a>(creep: &'a Creep) -> ExecutionResult {
+pub fn run<'a>(creep: &'a Creep) -> Task<'a> {
     trace!("Running gofer {}", creep.name());
     let tasks = vec![
-        Task::new(|_| attempt_unload(creep)),
-        Task::new(|_| get_energy(creep)),
-        Task::new(|_| harvest(creep)),
-        Task::new(|_| attempt_unload(creep)),
+        Task::new(move |_| attempt_unload(creep)),
+        Task::new(move |_| get_energy(creep)),
+        Task::new(move |_| harvest(creep)),
+        Task::new(move |_| attempt_unload(creep)),
         // Fallback
-        Task::new(|_| repairer::attempt_repair(creep)),
-        Task::new(|_| upgrader::attempt_upgrade(creep)),
+        Task::new(move |_| repairer::attempt_repair(creep)),
+        Task::new(move |_| upgrader::attempt_upgrade(creep)),
     ];
 
     let tree = Control::Sequence(tasks);
-    tree.tick()
+    Task::new(move |_| tree.tick())
 }
 
 fn harvest<'a>(creep: &'a Creep) -> ExecutionResult {
@@ -144,3 +144,4 @@ where
     }
     Ok(())
 }
+
