@@ -145,6 +145,7 @@ pub fn attempt_harvest<'a>(creep: &'a Creep) -> ExecutionResult {
 
     if carry_total == carry_cap {
         trace!("Full");
+        creep.memory().del("harvest_target");
         return Err(());
     }
 
