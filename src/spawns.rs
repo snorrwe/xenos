@@ -2,6 +2,7 @@ use super::bt::*;
 use creeps::roles::{next_role, spawn_config_by_role};
 use screeps::{
     self, game,
+    memory::MemoryReference,
     objects::{SpawnOptions, StructureSpawn},
     prelude::*,
     ReturnCode,
@@ -68,7 +69,10 @@ fn spawn_creep(spawn: &StructureSpawn, role: &str) -> ExecutionResult {
     let mut prefix = 0;
     let res = loop {
         let name = format!("{}{:x}", prefix, name);
-        let res = spawn.spawn_creep(&body, &name);
+        let mut memory = MemoryReference::new();
+        memory.set("role", role);
+        let spawn_options = SpawnOptions::new().memory(memory);
+        let res = spawn.spawn_creep_with_options(&body, &name, &spawn_options);
 
         if res == ReturnCode::NameExists {
             prefix += 1;
@@ -83,3 +87,4 @@ fn spawn_creep(spawn: &StructureSpawn, role: &str) -> ExecutionResult {
     }
     Ok(())
 }
+

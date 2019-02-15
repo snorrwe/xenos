@@ -114,7 +114,7 @@ fn role_part_scale<'a>(role: &'a str) -> Vec<Part> {
     match role {
         "harvester" => vec![Part::Work],
         "gofer" => vec![Part::Move, Part::Carry],
-        _ => vec![Part::Move, Part::Carry, Part::Work],
+        _ => vec![Part::Move, Part::Move, Part::Carry, Part::Work],
     }
 }
 

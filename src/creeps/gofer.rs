@@ -5,7 +5,7 @@ use super::{get_energy, harvester, move_to, repairer, upgrader};
 use screeps::{
     constants::ResourceType,
     game::get_object_erased,
-    objects::{Creep, StructureExtension, StructureSpawn, StructureTower, Transferable},
+    objects::{Creep, StructureExtension, StructureSpawn, StructureTower, Transferable, StructureStorage},
     prelude::*,
     ReturnCode,
 };
@@ -64,6 +64,7 @@ fn attempt_unload<'a>(creep: &'a Creep) -> ExecutionResult {
         Task::new(|_| try_transfer::<StructureSpawn>(creep, &target)),
         Task::new(|_| try_transfer::<StructureExtension>(creep, &target)),
         Task::new(|_| try_transfer::<StructureTower>(creep, &target)),
+        Task::new(|_| try_transfer::<StructureStorage>(creep, &target)),
     ]
     .into_iter()
     .collect();
@@ -94,6 +95,7 @@ fn find_unload_target<'a>(creep: &'a Creep) -> Option<Reference> {
             Task::new(|_| find_unload_target_by_type(creep, "tower")),
             Task::new(|_| find_unload_target_by_type(creep, "spawn")),
             Task::new(|_| find_unload_target_by_type(creep, "extension")),
+            Task::new(|_| find_unload_target_by_type(creep, "storage")),
         ]
         .into_iter()
         .collect();

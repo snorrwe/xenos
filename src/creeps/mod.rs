@@ -9,7 +9,7 @@ mod upgrader;
 use super::bt::*;
 use screeps::{
     constants::ResourceType,
-    objects::{Creep, StructureContainer, Withdrawable},
+    objects::{Creep, StructureContainer, Withdrawable, StructureStorage},
     prelude::*,
     ReturnCode,
 };
@@ -103,9 +103,10 @@ pub fn get_energy<'a>(creep: &'a Creep) -> ExecutionResult {
     } else {
         let target = find_container(creep).ok_or_else(|| {})?;
 
-        let tasks = vec![Task::new(|_| {
-            try_withdraw::<StructureContainer>(creep, &target)
-        })]
+        let tasks = vec![
+            Task::new(|_| try_withdraw::<StructureStorage>(creep, &target)),
+            Task::new(|_| try_withdraw::<StructureContainer>(creep, &target)),
+        ]
         .into_iter()
         .collect();
 
@@ -145,7 +146,7 @@ fn find_container<'a>(creep: &'a Creep) -> Option<Reference> {
     let result = js! {
         let creep = @{creep};
         const containers = creep.room.find(FIND_STRUCTURES, {
-            filter: (i) => i.structureType == STRUCTURE_CONTAINER &&
+            filter: (i) => (i.structureType == STRUCTURE_CONTAINER || i.structureType == STRUCTURE_STORAGE) &&
                            i.store[RESOURCE_ENERGY] > 0
         });
         return containers[0];
