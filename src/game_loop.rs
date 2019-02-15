@@ -25,7 +25,7 @@ pub fn game_loop() {
     let bucket = i32::try_from(bucket).expect("Expected bucket to be a number");
 
     info!(
-        "Done! CPU: {:.4} Bucket: {}",
+        "---------------- Done! CPU: {:.4} Bucket: {} ----------------",
         screeps::game::cpu::get_used(),
         bucket
     );

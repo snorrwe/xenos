@@ -20,7 +20,7 @@ fn main() {
     logging::setup_logging(logging::Info);
 
     js! {
-        var game_loop = @{game_loop};
+        const game_loop = @{game_loop};
 
         module.exports.loop = function() {
             // Provide actual error traces.

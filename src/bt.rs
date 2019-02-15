@@ -84,7 +84,7 @@ impl<'a> BtNode for Control<'a> {
             Control::All(nodes) => {
                 nodes.iter().for_each(|node| {
                     node.tick().unwrap_or_else(|e| {
-                        error!("node failure in an All control {:?}", e);
+                        warn!("node failure in an All control {:?}", e);
                     });
                 });
                 Ok(())

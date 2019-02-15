@@ -5,7 +5,9 @@ use super::{get_energy, harvester, move_to, repairer, upgrader};
 use screeps::{
     constants::ResourceType,
     game::get_object_erased,
-    objects::{Creep, StructureExtension, StructureSpawn, StructureTower, Transferable, StructureStorage},
+    objects::{
+        Creep, StructureExtension, StructureSpawn, StructureStorage, StructureTower, Transferable,
+    },
     prelude::*,
     ReturnCode,
 };
