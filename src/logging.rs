@@ -46,7 +46,7 @@ pub fn setup_logging(verbosity: log::LevelFilter) {
         .chain(Box::new(JsLog) as Box<log::Log>)
         .chain(
             fern::Dispatch::new()
-                .level(log::LevelFilter::Warn)
+                .level(log::LevelFilter::Error)
                 .format(|out, message, _record| {
                     let time = screeps::game::time();
                     out.finish(format_args!("[{}] {}", time, message))
@@ -56,3 +56,4 @@ pub fn setup_logging(verbosity: log::LevelFilter) {
         .apply()
         .expect("expected setup_logging to only ever be called once per instance");
 }
+
