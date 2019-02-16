@@ -62,7 +62,7 @@ fn cleanup_memory() -> Result<(), Box<::std::error::Error>> {
         }
     }
 
-    info!("Cleaned up memory");
+    debug!("Cleaned up memory");
 
     Ok(())
 }
