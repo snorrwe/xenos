@@ -41,7 +41,9 @@ fn unload<'a>(creep: &'a Creep) -> ExecutionResult {
 
     let target = find_unload_target(creep).ok_or_else(|| {
         creep.memory().del("target");
-        String::from("could not find unload target")
+        let error = String::from("could not find unload target");
+        trace!("{}", error);
+        error
     })?;
 
     let tasks = vec![
@@ -61,6 +63,20 @@ fn unload<'a>(creep: &'a Creep) -> ExecutionResult {
 fn find_unload_target<'a>(creep: &'a Creep) -> Option<Reference> {
     trace!("Setting unload target");
 
+    read_unload_target(creep).or_else(|| {
+        let tasks = vec![
+            Task::new(|_| find_container(creep)),
+            Task::new(|_| find_spawn(creep)),
+        ];
+        let tree = Control::Sequence(tasks);
+        tree.tick().unwrap_or_else(|e| {
+            debug!("Failed to find unload target {:?}", e);
+        });
+        read_unload_target(creep)
+    })
+}
+
+fn read_unload_target<'a>(creep: &'a Creep) -> Option<Reference> {
     let target = creep
         .memory()
         .string("target")
@@ -74,14 +90,6 @@ fn find_unload_target<'a>(creep: &'a Creep) -> Option<Reference> {
         let target = get_object_erased(target.as_str())?;
         Some(target.as_ref().clone())
     } else {
-        let tasks = vec![
-            Task::new(|_| find_container(creep)),
-            Task::new(|_| find_spawn(creep)),
-        ];
-        let tree = Control::Sequence(tasks);
-        tree.tick().unwrap_or_else(|e| {
-            debug!("Failed to find unload target {:?}", e);
-        });
         None
     }
 }
@@ -101,7 +109,7 @@ fn find_container<'a>(creep: &'a Creep) -> ExecutionResult {
         let creep = @{creep};
         const container = creep.pos.findClosestByRange(FIND_STRUCTURES, {
             filter: function(i) { return i.structureType == STRUCTURE_CONTAINER &&
-                           i.store[RESOURCE_ENERGY] < i.storeCapacity }
+                i.store[RESOURCE_ENERGY] < i.storeCapacity }
         });
         if (container) {
             creep.memory.target = container.id;
@@ -111,9 +119,12 @@ fn find_container<'a>(creep: &'a Creep) -> ExecutionResult {
     };
 
     if result.try_into().unwrap_or_else(|_| false) {
+        trace!("unload target found");
         Ok(())
     } else {
-        Err(String::new())
+        let error = format!("No container was found");
+        trace!("{}", error);
+        Err(error)
     }
 }
 
