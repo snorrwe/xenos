@@ -20,9 +20,9 @@ pub fn run<'a>(creep: &'a Creep) -> Task<'a> {
     trace!("Running harvester {}", creep.name());
 
     let tasks = vec![
-        Task::new(move |_| attempt_harvest(&creep)),
+        Task::new(move |_| attempt_harvest(&creep, None)),
         Task::new(move |_| unload(&creep)),
-        Task::new(move |_| attempt_harvest(&creep)),
+        Task::new(move |_| attempt_harvest(&creep, None)),
     ];
 
     let tree = Control::Sequence(tasks);
@@ -98,7 +98,7 @@ fn try_transfer<'a, T>(creep: &'a Creep, target: &'a Reference) -> ExecutionResu
 where
     T: Transferable + screeps::traits::TryFrom<&'a Reference>,
 {
-    let target = T::try_from(target.as_ref()).map_err(|_| String::new())?;
+    let target = T::try_from(target.as_ref()).map_err(|_| format!("Bad type"))?;
     transfer(creep, &target)
 }
 
@@ -154,24 +154,27 @@ where
     Ok(())
 }
 
-pub fn attempt_harvest<'a>(creep: &'a Creep) -> ExecutionResult {
+pub fn attempt_harvest<'a>(creep: &'a Creep, target_memory: Option<&'a str>) -> ExecutionResult {
     trace!("Harvesting");
+
+    let target_memory = target_memory.unwrap_or(HARVEST_TARGET);
 
     let carry_total = creep.carry_total();
     let carry_cap = creep.carry_capacity();
 
     if carry_total == carry_cap {
         trace!("Full");
-        creep.memory().del(HARVEST_TARGET);
+        creep.memory().del(target_memory);
         return Err(String::new());
     }
 
-    let source = harvest_target(creep).map_err(|()| String::new())?;
+    let source =
+        harvest_target(creep, target_memory).ok_or_else(|| format!("No harvest target found"))?;
 
     if creep.pos().is_near_to(&source) {
         let r = creep.harvest(&source);
         if r != ReturnCode::Ok {
-            creep.memory().del(HARVEST_TARGET);
+            creep.memory().del(target_memory);
             debug!("Couldn't harvest: {:?}", r);
         }
     } else {
@@ -182,12 +185,16 @@ pub fn attempt_harvest<'a>(creep: &'a Creep) -> ExecutionResult {
     Ok(())
 }
 
-fn harvest_target<'a>(creep: &'a Creep) -> Result<Source, ()> {
+fn harvest_target<'a>(creep: &'a Creep, target_memory: &'a str) -> Option<Source> {
     trace!("Setting harvest target");
 
-    let target = creep.memory().string(HARVEST_TARGET).map_err(|e| {
-        error!("Failed to read creep target {:?}", e);
-    })?;
+    let target = creep
+        .memory()
+        .string(target_memory)
+        .map_err(|e| {
+            error!("Failed to read creep target {:?}", e);
+        })
+        .ok()?;
 
     if let Some(target) = target {
         unwrap_harvest_target(creep, target)
@@ -200,6 +207,9 @@ fn harvest_target<'a>(creep: &'a Creep) -> Result<Source, ()> {
             let n_harvesters = @{harvester_count};
             n_harvesters  = room.find(FIND_SOURCES).map((source) => [source.id, n_harvesters[source.id] || 0]);
             let result = n_harvesters.reduce((result, source) => {
+                if (!result){
+                    return source;
+                }
                 if (result[1] > source[1]) {
                     return source;
                 }
@@ -207,25 +217,28 @@ fn harvest_target<'a>(creep: &'a Creep) -> Result<Source, ()> {
             }, n_harvesters[0]);
             return result && result[0];
         };
-        let source: String = sources.try_into().map_err(|e| {
-            error!("Can't find Source in creep's room {:?}", e);
-        })?;
-        creep.memory().set(HARVEST_TARGET, &source);
+        let source: String = sources
+            .try_into()
+            .map_err(|e| {
+                error!("Can't find Source in creep's room {:?}", e);
+            })
+            .ok()?;
+        creep.memory().set(target_memory, &source);
         let source = unwrap_harvest_target(creep, source)?;
-        Ok(source)
+        Some(source)
     }
 }
 
-fn unwrap_harvest_target(creep: &Creep, target: String) -> Result<Source, ()> {
+fn unwrap_harvest_target(creep: &Creep, target: String) -> Option<Source> {
     trace!("Validating existing target");
-    let target = get_object_erased(target.as_str()).ok_or_else(|| {
-        error!("Target by id {} does not exists", target);
-    })?;
-    let source = Source::try_from(target.as_ref()).map_err(|e| {
-        error!("Failed to convert target to Source {:?}", e);
-        creep.memory().del("target");
-    })?;
-    Ok(source)
+    let target = get_object_erased(target.as_str())?;
+    let source = Source::try_from(target.as_ref())
+        .map_err(|e| {
+            error!("Failed to convert target to Source {:?}", e);
+            creep.memory().del("target");
+        })
+        .ok()?;
+    Some(source)
 }
 
 fn harvester_count() -> HashMap<String, i32> {

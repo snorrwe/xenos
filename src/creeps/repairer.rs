@@ -1,8 +1,7 @@
 //! Repair structures
 //!
 use super::super::bt::*;
-use super::{builder, upgrader};
-use super::{get_energy, harvester};
+use super::{builder, get_energy, harvest, upgrader};
 use screeps::{objects::Creep, prelude::*, traits::TryFrom, ReturnCode};
 
 pub fn run<'a>(creep: &'a Creep) -> Task<'a> {
@@ -20,22 +19,6 @@ pub fn run<'a>(creep: &'a Creep) -> Task<'a> {
 
     let tree = Control::Sequence(tasks);
     Task::new(move |_| tree.tick())
-}
-
-fn harvest<'a>(creep: &'a Creep) -> ExecutionResult {
-    trace!("Harvesting");
-
-    let loading: bool = creep.memory().bool("loading");
-    if !loading {
-        return Err("not loading".into());
-    }
-    if creep.carry_total() == creep.carry_capacity() {
-        creep.memory().set("loading", false);
-        creep.memory().del("target");
-        Ok(())
-    } else {
-        harvester::attempt_harvest(creep)
-    }
 }
 
 pub fn attempt_repair<'a>(creep: &'a Creep) -> ExecutionResult {

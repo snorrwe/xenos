@@ -114,7 +114,7 @@ fn basic_role_parts<'a>(role: &'a str) -> [Part; 4] {
 /// Intended parts to be appended to 'role_parts'
 fn role_part_scale<'a>(role: &'a str) -> Vec<Part> {
     match role {
-        "harvester" => vec![Part::Work],
+        "harvester" => vec![Part::Work, Part::Work, Part::Move],
         "gofer" => vec![Part::Move, Part::Carry],
         _ => vec![Part::Move, Part::Move, Part::Carry, Part::Work],
     }

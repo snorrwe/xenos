@@ -1,7 +1,7 @@
 //! Upgrade Controllers
 //!
 use super::super::bt::*;
-use super::{get_energy, harvester, move_to};
+use super::{get_energy, harvest, move_to};
 use screeps::{objects::Creep, prelude::*, ReturnCode};
 
 pub fn run<'a>(creep: &'a Creep) -> Task<'a> {
@@ -16,21 +16,6 @@ pub fn run<'a>(creep: &'a Creep) -> Task<'a> {
 
     let tree = Control::Sequence(tasks);
     Task::new(move |_| tree.tick())
-}
-
-fn harvest<'a>(creep: &'a Creep) -> ExecutionResult {
-    trace!("Harvesting");
-
-    let loading: bool = creep.memory().bool("loading");
-    if !loading {
-        return Err("not loading".into());
-    }
-    if creep.carry_total() == creep.carry_capacity() {
-        creep.memory().set("loading", false);
-        Err("full".into())
-    } else {
-        harvester::attempt_harvest(creep)
-    }
 }
 
 pub fn attempt_upgrade<'a>(creep: &'a Creep) -> ExecutionResult {

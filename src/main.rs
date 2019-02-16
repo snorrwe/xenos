@@ -17,7 +17,7 @@ use game_loop::game_loop;
 
 fn main() {
     stdweb::initialize();
-    logging::setup_logging(logging::Debug);
+    logging::setup_logging(logging::Info);
 
     js! {
         const game_loop = @{game_loop};

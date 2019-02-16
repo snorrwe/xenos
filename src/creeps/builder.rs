@@ -1,7 +1,7 @@
 //! Build structures
 //!
 use super::super::bt::*;
-use super::{get_energy, harvester, move_to, repairer, upgrader};
+use super::{get_energy, harvest, move_to, repairer, upgrader};
 use screeps::{
     constants::find,
     objects::{ConstructionSite, Creep},
@@ -23,22 +23,6 @@ pub fn run<'a>(creep: &'a Creep) -> Task<'a> {
 
     let tree = Control::Sequence(tasks);
     Task::new(move |_| tree.tick())
-}
-
-fn harvest<'a>(creep: &'a Creep) -> ExecutionResult {
-    trace!("Harvesting");
-
-    let loading: bool = creep.memory().bool("loading");
-    if !loading {
-        return Err("not loading".into());
-    }
-    if creep.carry_total() == creep.carry_capacity() {
-        creep.memory().set("loading", false);
-        creep.memory().del("target");
-        Ok(())
-    } else {
-        harvester::attempt_harvest(creep)
-    }
 }
 
 pub fn attempt_build<'a>(creep: &'a Creep) -> ExecutionResult {

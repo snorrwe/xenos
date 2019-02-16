@@ -165,3 +165,22 @@ fn find_container<'a>(creep: &'a Creep) -> Option<Reference> {
     result
 }
 
+/// Fallback harvest, method for a worker to harvest energy temporary
+/// ## Contracts:
+/// - Should not interfere with the harvester::harvest functionality
+pub fn harvest<'a>(creep: &'a Creep) -> ExecutionResult {
+    trace!("Harvesting");
+
+    let loading: bool = creep.memory().bool("loading");
+    if !loading {
+        return Err("not loading".into());
+    }
+    if creep.carry_total() == creep.carry_capacity() {
+        creep.memory().set("loading", false);
+        creep.memory().del("target");
+        Ok(())
+    } else {
+        harvester::attempt_harvest(creep, Some("target"))
+    }
+}
+
