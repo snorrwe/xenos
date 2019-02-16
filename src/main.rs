@@ -17,7 +17,7 @@ use game_loop::game_loop;
 
 fn main() {
     stdweb::initialize();
-    logging::setup_logging(logging::Info);
+    logging::setup_logging(logging::Debug);
 
     js! {
         const game_loop = @{game_loop};
@@ -26,10 +26,12 @@ fn main() {
             let cpu = Game.cpu.getUsed();
             let bucket = Game.cpu.bucket;
             let gcl = Game.gcl;
+            let population = Object.keys(Game.creeps).length;
             let stats = {
                 cpu,
                 bucket,
-                gcl
+                gcl,
+                population
             };
             stats = JSON.stringify(stats);
             Game.notify(stats, 0);

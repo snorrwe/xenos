@@ -46,7 +46,7 @@ def main():
 
     data = []
 
-    for i, message in enumerate(messages[:10]):
+    for i, message in enumerate(messages):
         message = service.users().messages().get(
             userId='me',
             id=message['id'],
@@ -59,7 +59,7 @@ def main():
         soup = BeautifulSoup(str(mime_msg), 'html.parser')
         rows = soup.find_all("pre")
 
-        for row in rows:
+        for row in rows[::-1]:
             try:
                 row = row.contents
                 stats = json.loads(row[0])
