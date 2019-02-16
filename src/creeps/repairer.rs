@@ -27,7 +27,7 @@ fn harvest<'a>(creep: &'a Creep) -> ExecutionResult {
 
     let loading: bool = creep.memory().bool("loading");
     if !loading {
-        return Err(());
+        return Err("not loading".into());
     }
     if creep.carry_total() == creep.carry_capacity() {
         creep.memory().set("loading", false);
@@ -43,15 +43,17 @@ pub fn attempt_repair<'a>(creep: &'a Creep) -> ExecutionResult {
 
     let loading: bool = creep.memory().bool("loading");
     if loading {
-        return Err(());
+        return Err("loading".into());
     }
     if creep.carry_total() == 0 {
         creep.memory().set("loading", true);
-        Err(())
+        Err("empty".into())
     } else {
         trace!("Repairing");
         let target = find_repair_target(creep).ok_or_else(|| {
-            debug!("Could not find a repair target");
+            let error = format!("Could not find a repair target");
+            debug!("{}", error);
+            error
         })?;
         trace!("Got repair target {:?}", target);
         repair(creep, &target)
@@ -70,11 +72,16 @@ fn repair<'a>(creep: &'a Creep, target: &'a String) -> ExecutionResult {
         }
         return result;
     };
-    let res = ReturnCode::try_from(res).map_err(|e| error!("Expected ReturnCode {:?}", e))?;
+    let res = ReturnCode::try_from(res).map_err(|e| {
+        let error = format!("Expected ReturnCode {:?}", e);
+        error!("{}", error);
+        error
+    })?;
     if res == ReturnCode::Ok {
         Ok(())
     } else {
-        Err(())
+        let error = format!("Unexpected ReturnCode {:?}", res);
+        Err(error)
     }
 }
 

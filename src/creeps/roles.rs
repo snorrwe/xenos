@@ -40,7 +40,9 @@ pub fn run_role<'a>(role: &'a str, creep: &'a Creep) -> Task<'a> {
 
     Task::new(move |_| {
         task.tick().map_err(|_| {
-            warn!("Running creep {} failed", creep.name());
+            let error = format!("Running creep {} failed", creep.name());
+            warn!("{}", error);
+            error
         })
     })
 }

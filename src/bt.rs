@@ -19,7 +19,7 @@ use std::rc::Rc;
 pub type Task<'a> = Rc<Fn(()) -> ExecutionResult + 'a>;
 
 /// Result of a task
-pub type ExecutionResult = Result<(), ()>;
+pub type ExecutionResult = Result<(), String>;
 
 pub trait BtNode {
     fn tick(&self) -> ExecutionResult;
@@ -62,15 +62,22 @@ pub enum Control<'a> {
     All(Vec<Task<'a>>),
 }
 
+use std::ops::Fn;
+
 impl<'a> BtNode for Control<'a> {
     fn tick(&self) -> ExecutionResult {
         match self {
             Control::Selector(nodes) => {
-                let found = nodes.iter().any(|node| node.tick().is_err());
-                if !found {
-                    Ok(())
+                let found = nodes
+                    .iter()
+                    .map(|node| node.tick())
+                    .find(|result| result.is_err());
+                if let Some(found) = found {
+                    let error = found.unwrap_err();
+                    debug!("Failure in selector {:?}", error);
+                    Err(error)
                 } else {
-                    Err(())
+                    Ok(())
                 }
             }
             Control::Sequence(nodes) => {
@@ -78,7 +85,7 @@ impl<'a> BtNode for Control<'a> {
                 if found {
                     Ok(())
                 } else {
-                    Err(())
+                    Err("All tasks failed in sequence".into())
                 }
             }
             Control::All(nodes) => {
@@ -92,3 +99,4 @@ impl<'a> BtNode for Control<'a> {
         }
     }
 }
+

@@ -30,7 +30,7 @@ fn harvest<'a>(creep: &'a Creep) -> ExecutionResult {
 
     let loading: bool = creep.memory().bool("loading");
     if !loading {
-        return Err(());
+        return Err("not loading".into());
     }
     if creep.carry_total() == creep.carry_capacity() {
         creep.memory().set("loading", false);
@@ -46,22 +46,24 @@ pub fn attempt_build<'a>(creep: &'a Creep) -> ExecutionResult {
 
     let loading: bool = creep.memory().bool("loading");
     if loading {
-        return Err(());
+        return Err("loading".into());
     }
     if creep.carry_total() == 0 {
         creep.memory().set("loading", true);
-        Err(())
+        Err("empty".into())
     } else {
         let target = find_build_target(creep).ok_or_else(|| {
             debug!("Could not find a build target");
+            String::new()
         })?;
         let res = creep.build(&target);
         match res {
             ReturnCode::Ok => Ok(()),
             ReturnCode::NotInRange => move_to(creep, &target),
             _ => {
-                error!("Failed to build target {:?} {:?}", res, target.id());
-                Err(())
+                let error = format!("Failed to build target {:?} {:?}", res, target.id());
+                error!("{}", error);
+                Err(error)
             }
         }
     }

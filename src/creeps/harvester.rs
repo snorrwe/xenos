@@ -36,10 +36,10 @@ fn unload<'a>(creep: &'a Creep) -> ExecutionResult {
     if carry_total == 0 {
         trace!("Empty");
         creep.memory().del("target");
-        return Err(());
+        return Err("empty".into());
     }
 
-    let target = find_unload_target(creep).ok_or_else(|| {})?;
+    let target = find_unload_target(creep).ok_or_else(|| String::new())?;
 
     let tasks = vec![
         Task::new(|_| try_transfer::<StructureContainer>(creep, &target)),
@@ -51,6 +51,7 @@ fn unload<'a>(creep: &'a Creep) -> ExecutionResult {
     let tree = Control::Sequence(tasks);
     tree.tick().map_err(|_| {
         creep.memory().del("target");
+        String::new()
     })
 }
 
@@ -75,8 +76,8 @@ fn find_unload_target<'a>(creep: &'a Creep) -> Option<Reference> {
             Task::new(|_| find_spawn(creep)),
         ];
         let tree = Control::Sequence(tasks);
-        tree.tick().unwrap_or_else(|()| {
-            debug!("Failed to find unload target");
+        tree.tick().unwrap_or_else(|e| {
+            debug!("Failed to find unload target {:?}", e);
         });
         None
     }
@@ -86,7 +87,7 @@ fn try_transfer<'a, T>(creep: &'a Creep, target: &'a Reference) -> ExecutionResu
 where
     T: Transferable + screeps::traits::TryFrom<&'a Reference>,
 {
-    let target = T::try_from(target.as_ref()).map_err(|_| {})?;
+    let target = T::try_from(target.as_ref()).map_err(|_| String::new())?;
     transfer(creep, &target)
 }
 
@@ -109,7 +110,7 @@ fn find_container<'a>(creep: &'a Creep) -> ExecutionResult {
     if result.try_into().unwrap_or_else(|_| false) {
         Ok(())
     } else {
-        Err(())
+        Err(String::new())
     }
 }
 
@@ -118,7 +119,7 @@ fn find_spawn<'a>(creep: &'a Creep) -> ExecutionResult {
     let target = creep
         .pos()
         .find_closest_by_range(find::MY_SPAWNS)
-        .ok_or_else(|| {})?;
+        .ok_or_else(|| String::new())?;
     creep.memory().set("target", target.id());
     Ok(())
 }
@@ -131,7 +132,7 @@ where
         let r = creep.transfer_all(target, ResourceType::Energy);
         if r != ReturnCode::Ok {
             debug!("couldn't unload: {:?}", r);
-            return Err(());
+            return Err(String::new());
         }
     } else {
         move_to(creep, target)?;
@@ -148,10 +149,10 @@ pub fn attempt_harvest<'a>(creep: &'a Creep) -> ExecutionResult {
     if carry_total == carry_cap {
         trace!("Full");
         creep.memory().del(HARVEST_TARGET);
-        return Err(());
+        return Err(String::new());
     }
 
-    let source = harvest_target(creep)?;
+    let source = harvest_target(creep).map_err(|()| String::new())?;
 
     if creep.pos().is_near_to(&source) {
         let r = creep.harvest(&source);

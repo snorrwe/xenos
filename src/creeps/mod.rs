@@ -9,7 +9,7 @@ mod upgrader;
 use super::bt::*;
 use screeps::{
     constants::ResourceType,
-    objects::{Creep, StructureContainer, Withdrawable, StructureStorage},
+    objects::{Creep, StructureContainer, StructureStorage, Withdrawable},
     prelude::*,
     ReturnCode,
 };
@@ -33,7 +33,11 @@ fn run_creep<'a>(creep: Creep) -> Task<'a> {
         }
         let tasks = vec![
             Task::new(|_| run_role(&creep)),
-            Task::new(|_| assign_role(&creep).map(|_| {}).ok_or_else(|| {})),
+            Task::new(|_| {
+                assign_role(&creep)
+                    .map(|_| {})
+                    .ok_or_else(|| "Failed to find a role for creep".into())
+            }),
         ]
         .into_iter()
         .collect();
@@ -62,10 +66,14 @@ fn run_role<'a>(creep: &'a Creep) -> ExecutionResult {
         .memory()
         .string("role")
         .map_err(|e| {
-            error!("failed to read creep role {:?}", e);
+            let error = format!("failed to read creep role {:?}", e);
+            error!("{}", error);
+            error
         })?
         .ok_or_else(|| {
-            trace!("creep role is null");
+            let error: String = "creep role is null".into();
+            trace!("{}", error);
+            error
         })?;
 
     let task = roles::run_role(role.as_str(), creep);
@@ -78,10 +86,11 @@ pub fn move_to<'a>(
 ) -> ExecutionResult {
     let res = creep.move_to(target);
     match res {
-        ReturnCode::Ok => Ok(()),
+        ReturnCode::Ok | ReturnCode::Tired => Ok(()),
         _ => {
-            debug!("Move failed {:?}", res);
-            Err(())
+            let error = format!("Move failed {:?}", res);
+            debug!("{}", error);
+            Err(error)
         }
     }
 }
@@ -95,13 +104,13 @@ pub fn get_energy<'a>(creep: &'a Creep) -> ExecutionResult {
 
     let loading: bool = creep.memory().bool("loading");
     if !loading {
-        return Err(());
+        return Err("not loading".into());
     }
     if creep.carry_total() == creep.carry_capacity() {
         creep.memory().set("loading", false);
-        Err(())
+        Err("full".into())
     } else {
-        let target = find_container(creep).ok_or_else(|| {})?;
+        let target = find_container(creep).ok_or_else(|| String::new())?;
 
         let tasks = vec![
             Task::new(|_| try_withdraw::<StructureStorage>(creep, &target)),
@@ -113,6 +122,7 @@ pub fn get_energy<'a>(creep: &'a Creep) -> ExecutionResult {
         let tree = Control::Sequence(tasks);
         tree.tick().map_err(|_| {
             creep.memory().del("target");
+            "".into()
         })
     }
 }
@@ -121,7 +131,7 @@ fn try_withdraw<'a, T>(creep: &'a Creep, target: &'a Reference) -> ExecutionResu
 where
     T: Withdrawable + screeps::traits::TryFrom<&'a Reference>,
 {
-    let target = T::try_from(target.as_ref()).map_err(|_| {})?;
+    let target = T::try_from(target.as_ref()).map_err(|_| String::new())?;
     withdraw(creep, &target)
 }
 

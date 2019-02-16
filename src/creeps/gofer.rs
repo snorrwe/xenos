@@ -34,7 +34,7 @@ fn harvest<'a>(creep: &'a Creep) -> ExecutionResult {
 
     let loading: bool = creep.memory().bool("loading");
     if !loading {
-        return Err(());
+        return Err("not loading".into());
     }
     if creep.carry_total() == creep.carry_capacity() {
         creep.memory().set("loading", false);
@@ -49,7 +49,7 @@ fn attempt_unload<'a>(creep: &'a Creep) -> ExecutionResult {
     trace!("Unloading");
     let loading: bool = creep.memory().bool("loading");
     if loading {
-        return Err(());
+        return Err("loading".into());
     }
 
     let carry_total = creep.carry_total();
@@ -57,10 +57,10 @@ fn attempt_unload<'a>(creep: &'a Creep) -> ExecutionResult {
     if carry_total == 0 {
         trace!("Empty");
         creep.memory().set("loading", true);
-        return Err(());
+        return Err("empty".into());
     }
 
-    let target = find_unload_target(creep).ok_or_else(|| {})?;
+    let target = find_unload_target(creep).ok_or_else(|| String::new())?;
 
     let tasks = vec![
         Task::new(|_| try_transfer::<StructureSpawn>(creep, &target)),
@@ -72,8 +72,9 @@ fn attempt_unload<'a>(creep: &'a Creep) -> ExecutionResult {
     .collect();
 
     let tree = Control::Sequence(tasks);
-    tree.tick().map_err(|_| {
+    tree.tick().map_err(|e| {
         creep.memory().del("target");
+        e
     })
 }
 
@@ -102,7 +103,7 @@ fn find_unload_target<'a>(creep: &'a Creep) -> Option<Reference> {
         .into_iter()
         .collect();
         let tree = Control::Sequence(tasks);
-        tree.tick().unwrap_or_else(|()| {
+        tree.tick().unwrap_or_else(|e| {
             debug!("Failed to find unload target");
             creep.memory().del("target");
         });
@@ -114,7 +115,8 @@ fn try_transfer<'a, T>(creep: &'a Creep, target: &'a Reference) -> ExecutionResu
 where
     T: Transferable + screeps::traits::TryFrom<&'a Reference>,
 {
-    let target = T::try_from(target.as_ref()).map_err(|_| {})?;
+    let target = T::try_from(target.as_ref())
+        .map_err(|_| String::from("failed to convert transfer target"))?;
     transfer(creep, &target)
 }
 
@@ -128,7 +130,7 @@ fn find_unload_target_by_type<'a>(creep: &'a Creep, struct_type: &'a str) -> Exe
         });
         return exts[0] && exts[0].id;
     };
-    let target = String::try_from(res).map_err(|_| {})?;
+    let target = String::try_from(res).map_err(|_| String::from("expected string"))?;
     creep.memory().set("target", target);
     Ok(())
 }

@@ -23,11 +23,11 @@ fn harvest<'a>(creep: &'a Creep) -> ExecutionResult {
 
     let loading: bool = creep.memory().bool("loading");
     if !loading {
-        return Err(());
+        return Err("not loading".into());
     }
     if creep.carry_total() == creep.carry_capacity() {
         creep.memory().set("loading", false);
-        Err(())
+        Err("full".into())
     } else {
         harvester::attempt_harvest(creep)
     }
@@ -37,22 +37,25 @@ pub fn attempt_upgrade<'a>(creep: &'a Creep) -> ExecutionResult {
     trace!("Upgrading");
     let loading: bool = creep.memory().bool("loading");
     if loading {
-        return Err(());
+        return Err("loading".into());
     }
     if creep.carry_total() == 0 {
         creep.memory().set("loading", true);
-        Err(())
+        Err("empty".into())
     } else {
         let controller = creep.room().controller().ok_or_else(|| {
-            error!("Creep has no access to a controller in the room!");
+            let error = format!("Creep has no access to a controller in the room!");
+            error!("{}", error);
+            error
         })?;
         let res = creep.upgrade_controller(&controller);
         match res {
             ReturnCode::Ok => Ok(()),
             ReturnCode::NotInRange => move_to(creep, &controller),
             _ => {
-                error!("Failed to upgrade controller {:?}", res);
-                Err(())
+                let error = format!("Failed to upgrade controller {:?}", res);
+                error!("{}", error);
+                Err(error)
             }
         }
     }

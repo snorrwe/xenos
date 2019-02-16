@@ -61,7 +61,7 @@ fn spawn_creep(spawn: &StructureSpawn, role: &str) -> ExecutionResult {
             break;
         } else {
             warn!("Can not spawn, error: {:?}", result);
-            return Err(());
+            return Err("Can not spawn".into());
         }
     }
 

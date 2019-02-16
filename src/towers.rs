@@ -29,8 +29,9 @@ fn run_tower<'a>(tower: &'a StructureTower) -> ExecutionResult {
         match res {
             ReturnCode::Ok | ReturnCode::RclNotEnough => Ok(()),
             _ => {
-                error!("failed to attack enemy {:?}", res);
-                Err(())
+                let error = format!("failed ta attack enemy {:?}", res);
+                error!("{}", error);
+                Err(error)
             }
         }
     } else {
@@ -47,3 +48,4 @@ fn find_enemy<'a>(room: &'a Room) -> Option<screeps::Creep> {
     };
     result.try_into().ok()
 }
+
