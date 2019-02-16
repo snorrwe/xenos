@@ -39,7 +39,10 @@ fn unload<'a>(creep: &'a Creep) -> ExecutionResult {
         return Err("empty".into());
     }
 
-    let target = find_unload_target(creep).ok_or_else(|| String::new())?;
+    let target = find_unload_target(creep).ok_or_else(|| {
+        creep.memory().del("target");
+        String::from("could not find unload target")
+    })?;
 
     let tasks = vec![
         Task::new(|_| try_transfer::<StructureContainer>(creep, &target)),
@@ -49,9 +52,9 @@ fn unload<'a>(creep: &'a Creep) -> ExecutionResult {
     .collect();
 
     let tree = Control::Sequence(tasks);
-    tree.tick().map_err(|_| {
+    tree.tick().map_err(|error| {
         creep.memory().del("target");
-        String::new()
+        error
     })
 }
 

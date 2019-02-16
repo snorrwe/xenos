@@ -40,3 +40,7 @@ nbproject
 screeps.toml
 
 \.ipynb_checkpoints/
+
+stats/token\.pickle
+
+stats/__pycache__/

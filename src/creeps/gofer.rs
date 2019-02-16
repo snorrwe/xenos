@@ -104,7 +104,7 @@ fn find_unload_target<'a>(creep: &'a Creep) -> Option<Reference> {
         .collect();
         let tree = Control::Sequence(tasks);
         tree.tick().unwrap_or_else(|e| {
-            debug!("Failed to find unload target");
+            debug!("Failed to find unload target {:?}", e);
             creep.memory().del("target");
         });
         None
