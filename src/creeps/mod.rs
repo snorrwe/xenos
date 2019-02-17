@@ -1,8 +1,8 @@
 pub mod roles;
 
 mod builder;
-mod gofer;
 mod conqueror;
+mod gofer;
 mod harvester;
 mod repairer;
 mod upgrader;
@@ -184,4 +184,3 @@ pub fn harvest<'a>(creep: &'a Creep) -> ExecutionResult {
         harvester::attempt_harvest(creep, Some("target"))
     }
 }
-

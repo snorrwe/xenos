@@ -36,10 +36,13 @@ pub fn attempt_build<'a>(creep: &'a Creep) -> ExecutionResult {
         creep.memory().set("loading", true);
         Err("empty".into())
     } else {
-        let target = find_build_target(creep).ok_or_else(|| {
-            debug!("Could not find a build target");
-            String::new()
-        })?;
+        let target = creep
+            .pos()
+            .find_closest_by_range(find::MY_CONSTRUCTION_SITES)
+            .ok_or_else(|| {
+                debug!("Could not find a build target");
+                String::new()
+            })?;
         let res = creep.build(&target);
         match res {
             ReturnCode::Ok => Ok(()),
@@ -51,10 +54,4 @@ pub fn attempt_build<'a>(creep: &'a Creep) -> ExecutionResult {
             }
         }
     }
-}
-
-fn find_build_target<'a>(creep: &'a Creep) -> Option<ConstructionSite> {
-    creep
-        .pos()
-        .find_closest_by_range(find::MY_CONSTRUCTION_SITES)
 }

@@ -11,8 +11,8 @@ pub fn run<'a>(creep: &'a Creep) -> Task<'a> {
     let tasks = vec![
         Task::new(move |_| claim_target(creep)),
         Task::new(move |_| set_target(creep)),
-        Task::new(move |_| harvest(creep)),
         Task::new(move |_| builder::attempt_build(creep)),
+        Task::new(move |_| harvest(creep)),
     ];
 
     let tree = Control::Sequence(tasks);
@@ -85,4 +85,3 @@ fn set_target<'a>(creep: &'a Creep) -> ExecutionResult {
 
     Ok(())
 }
-
