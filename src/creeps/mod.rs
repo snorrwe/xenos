@@ -2,6 +2,7 @@ pub mod roles;
 
 mod builder;
 mod gofer;
+mod conqueror;
 mod harvester;
 mod repairer;
 mod upgrader;

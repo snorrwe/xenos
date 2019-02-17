@@ -1,9 +1,4 @@
-use super::super::bt::*;
-use super::builder;
-use super::gofer;
-use super::harvester;
-use super::repairer;
-use super::upgrader;
+use super::{super::bt::*, builder, conqueror, gofer, harvester, repairer, upgrader};
 use screeps::{
     game,
     objects::{Creep, Room, RoomObjectProperties},
@@ -35,6 +30,7 @@ pub fn run_role<'a>(role: &'a str, creep: &'a Creep) -> Task<'a> {
         "builder" => builder::run(creep),
         "repairer" => repairer::run(creep),
         "gofer" => gofer::run(creep),
+        "conqueror" => conqueror::run(creep),
         _ => unimplemented!(),
     };
 
@@ -54,6 +50,7 @@ pub fn count_roles_in_room<'a>(room: &'a Room) -> HashMap<String, i8> {
         ("builder".into(), 0),
         ("repairer".into(), 0),
         ("gofer".into(), 0),
+        ("conqueror".into(), 0),
     ]
     .into_iter()
     .cloned()
@@ -84,6 +81,7 @@ pub fn target_number_of_role_in_room<'a>(role: &'a str, room: &'a Room) -> i8 {
         "harvester" => n_sources,
         "builder" => 1,
         "repairer" => 1,
+        "conqueror" => game::flags::keys().len() as i8,
         "gofer" => n_sources,
         _ => unimplemented!(),
     }
@@ -104,6 +102,7 @@ pub fn spawn_config_by_role(role: &str) -> SpawnConfig {
 fn basic_role_parts<'a>(role: &'a str) -> [Part; 4] {
     match role {
         "harvester" => [Part::Move, Part::Work, Part::Carry, Part::Work],
+        "conqueror" => [Part::Move, Part::Work, Part::Carry, Part::Claim],
         "upgrader" | "builder" | "repairer" | "gofer" => {
             [Part::Move, Part::Move, Part::Carry, Part::Work]
         }
@@ -115,7 +114,9 @@ fn basic_role_parts<'a>(role: &'a str) -> [Part; 4] {
 fn role_part_scale<'a>(role: &'a str) -> Vec<Part> {
     match role {
         "harvester" => vec![Part::Work, Part::Work, Part::Move],
+        "conqueror" => vec![Part::Work, Part::Carry, Part::Move, Part::Move, Part::Move],
         "gofer" => vec![Part::Move, Part::Carry],
         _ => vec![Part::Move, Part::Move, Part::Carry, Part::Work],
     }
 }
+

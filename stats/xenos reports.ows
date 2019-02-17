@@ -1,12 +1,12 @@
 <?xml version='1.0' encoding='utf-8'?>
 <scheme description="" title="xenos reports" version="2.0">
 	<nodes>
-		<node id="0" name="File" position="(150, 300)" project_name="Orange3" qualified_name="Orange.widgets.data.owfile.OWFile" title="File" version="" />
-		<node id="1" name="Select Columns" position="(300, 300)" project_name="Orange3" qualified_name="Orange.widgets.data.owselectcolumns.OWSelectAttributes" title="Select Columns" version="" />
+		<node id="0" name="File" position="(103.0, 307.0)" project_name="Orange3" qualified_name="Orange.widgets.data.owfile.OWFile" title="File" version="" />
+		<node id="1" name="Select Columns" position="(300.0, 301.0)" project_name="Orange3" qualified_name="Orange.widgets.data.owselectcolumns.OWSelectAttributes" title="Select Columns" version="" />
 		<node id="2" name="Outliers" position="(450, 300)" project_name="Orange3" qualified_name="Orange.widgets.data.owoutliers.OWOutliers" title="Outliers" version="" />
-		<node id="3" name="Distributions" position="(750, 300)" project_name="Orange3" qualified_name="Orange.widgets.visualize.owdistributions.OWDistributions" title="inliers dist" version="" />
-		<node id="4" name="Distributions" position="(750, 450)" project_name="Orange3" qualified_name="Orange.widgets.visualize.owdistributions.OWDistributions" title="outliers dist" version="" />
-		<node id="5" name="Distributions" position="(450, 600)" project_name="Orange3" qualified_name="Orange.widgets.visualize.owdistributions.OWDistributions" title="Distributions" version="" />
+		<node id="3" name="Distributions" position="(600, 150)" project_name="Orange3" qualified_name="Orange.widgets.visualize.owdistributions.OWDistributions" title="inliers dist" version="" />
+		<node id="4" name="Distributions" position="(600, 300)" project_name="Orange3" qualified_name="Orange.widgets.visualize.owdistributions.OWDistributions" title="outliers dist" version="" />
+		<node id="5" name="Distributions" position="(450, 450)" project_name="Orange3" qualified_name="Orange.widgets.visualize.owdistributions.OWDistributions" title="Distributions" version="" />
 	</nodes>
 	<links>
 		<link enabled="true" id="0" sink_channel="Data" sink_node_id="1" source_channel="Data" source_node_id="0" />
@@ -71,7 +71,7 @@ FEsASv7///+GcSFoB0sBdWgWfXEiaBhLAnNoGX1xI3ViZXUu
 </properties>
 		<properties format="pickle" node_id="4">gAN9cQAoWBIAAABjb250cm9sQXJlYVZpc2libGVxAYhYCQAAAGRpc2NfY29udHECiVgNAAAAcmVs
 YXRpdmVfZnJlcXEDiVgTAAAAc2F2ZWRXaWRnZXRHZW9tZXRyeXEEQzIB2dDLAAIAAAAAB3kAAAAA
-AAALRgAABBYAAAeBAAAAHwAACz4AAAQOAAAAAQAAAAAHgHEFWA8AAABzbW9vdGhpbmdfaW5kZXhx
+AAALRgAAAg4AAAeBAAAAHwAACz4AAAIGAAAAAQAAAAAHgHEFWA8AAABzbW9vdGhpbmdfaW5kZXhx
 BksKWAsAAABfX3ZlcnNpb25fX3EHSwFYEAAAAGNvbnRleHRfc2V0dGluZ3NxCF1xCShjT3Jhbmdl
 LndpZGdldHMuc2V0dGluZ3MKQ29udGV4dApxCimBcQt9cQwoWAQAAAB0aW1lcQ1HQdcaW8HANJxY
 BgAAAHZhbHVlc3EOfXEPKFgMAAAAZ3JvdXB2YXJfaWR4cRBLAEr+////hnERWAkAAABzaG93X3By
@@ -81,8 +81,8 @@ SwJzdWJoCimBcRx9cR0oaA1HQdcaW4JwqZhoDn1xHihoEEsASv7///+GcR9oEksASv7///+GcSBo
 FEsASv7///+GcSFoB0sBdWgWfXEiaBhLAnNoGX1xI3ViZXUu
 </properties>
 		<properties format="pickle" node_id="5">gAN9cQAoWBIAAABjb250cm9sQXJlYVZpc2libGVxAYhYCQAAAGRpc2NfY29udHECiVgNAAAAcmVs
-YXRpdmVfZnJlcXEDiVgTAAAAc2F2ZWRXaWRnZXRHZW9tZXRyeXEEQzIB2dDLAAIAAP////j////4
-AAAHhwAABBcAAAAAAAAAFwAAB38AAAQPAAAAAAAAAAAHgHEFWA8AAABzbW9vdGhpbmdfaW5kZXhx
+YXRpdmVfZnJlcXEDiVgTAAAAc2F2ZWRXaWRnZXRHZW9tZXRyeXEEQzIB2dDLAAIAAAAAB3kAAAII
+AAALRgAABBYAAAeBAAACJwAACz4AAAQOAAAAAQAAAAAHgHEFWA8AAABzbW9vdGhpbmdfaW5kZXhx
 BksGWAsAAABfX3ZlcnNpb25fX3EHSwFYEAAAAGNvbnRleHRfc2V0dGluZ3NxCF1xCWNPcmFuZ2Uu
 d2lkZ2V0cy5zZXR0aW5ncwpDb250ZXh0CnEKKYFxC31xDChYBAAAAHRpbWVxDUdB1xpbh0x6LlgG
 AAAAdmFsdWVzcQ59cQ8oWAwAAABncm91cHZhcl9pZHhxEEsASv7///+GcRFYCQAAAHNob3dfcHJv

@@ -65,10 +65,10 @@ fn spawn_creep(spawn: &StructureSpawn, role: &str) -> ExecutionResult {
         }
     }
 
-    let name = screeps::game::time();
+    let name = screeps::game::time() % 1_000;
     let mut prefix = 0;
     let res = loop {
-        let name = format!("{}_{}{:x}", role, prefix, name);
+        let name = format!("{}_{:x}", role, name + prefix);
         let mut memory = MemoryReference::new();
         memory.set("role", role);
         let spawn_options = SpawnOptions::new().memory(memory);
