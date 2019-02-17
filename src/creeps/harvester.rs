@@ -49,9 +49,7 @@ fn unload<'a>(creep: &'a Creep) -> ExecutionResult {
     let tasks = vec![
         Task::new(|_| try_transfer::<StructureContainer>(creep, &target)),
         Task::new(|_| try_transfer::<StructureSpawn>(creep, &target)),
-    ]
-    .into_iter()
-    .collect();
+    ];
 
     let tree = Control::Sequence(tasks);
     tree.tick().map_err(|error| {
@@ -253,4 +251,3 @@ fn harvester_count() -> HashMap<String, i32> {
     });
     result
 }
-

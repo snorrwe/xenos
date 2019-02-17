@@ -56,4 +56,3 @@ pub fn setup_logging(verbosity: log::LevelFilter) {
         .apply()
         .expect("expected setup_logging to only ever be called once per instance");
 }
-

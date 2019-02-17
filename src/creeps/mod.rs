@@ -38,9 +38,7 @@ fn run_creep<'a>(creep: Creep) -> Task<'a> {
                     .map(|_| {})
                     .ok_or_else(|| "Failed to find a role for creep".into())
             }),
-        ]
-        .into_iter()
-        .collect();
+        ];
         let tree = Control::Sequence(tasks);
         tree.tick()
     };
@@ -115,14 +113,11 @@ pub fn get_energy<'a>(creep: &'a Creep) -> ExecutionResult {
         let tasks = vec![
             Task::new(|_| try_withdraw::<StructureStorage>(creep, &target)),
             Task::new(|_| try_withdraw::<StructureContainer>(creep, &target)),
-        ]
-        .into_iter()
-        .collect();
-
+        ];
         let tree = Control::Sequence(tasks);
         tree.tick().map_err(|_| {
             creep.memory().del("target");
-            "".into()
+            "can't withdraw".into()
         })
     }
 }
@@ -155,11 +150,11 @@ fn find_container<'a>(creep: &'a Creep) -> Option<Reference> {
     // screeps api is bugged at the moment and FIND_STRUCTURES panics
     let result = js! {
         let creep = @{creep};
-        const containers = creep.room.find(FIND_STRUCTURES, {
+        const container = creep.pos.findClosestByRange(FIND_STRUCTURES, {
             filter: (i) => (i.structureType == STRUCTURE_CONTAINER || i.structureType == STRUCTURE_STORAGE) &&
                            i.store[RESOURCE_ENERGY] > 0
         });
-        return containers[0];
+        return container;
     };
     let result = result.try_into().unwrap_or_else(|_| None);
     result
@@ -183,4 +178,3 @@ pub fn harvest<'a>(creep: &'a Creep) -> ExecutionResult {
         harvester::attempt_harvest(creep, Some("target"))
     }
 }
-

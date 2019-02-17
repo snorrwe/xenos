@@ -48,4 +48,3 @@ fn find_enemy<'a>(room: &'a Room) -> Option<screeps::Creep> {
     };
     result.try_into().ok()
 }
-

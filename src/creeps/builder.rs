@@ -58,4 +58,3 @@ fn find_build_target<'a>(creep: &'a Creep) -> Option<ConstructionSite> {
         .pos()
         .find_closest_by_range(find::MY_CONSTRUCTION_SITES)
 }
-

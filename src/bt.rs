@@ -99,4 +99,3 @@ impl<'a> BtNode for Control<'a> {
         }
     }
 }
-

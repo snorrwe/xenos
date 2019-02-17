@@ -83,4 +83,3 @@ fn find_repair_target<'a>(creep: &'a Creep) -> Option<String> {
 
     String::try_from(result).ok()
 }
-
