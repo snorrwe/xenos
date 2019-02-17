@@ -48,6 +48,11 @@ fn run_creep<'a>(creep: Creep) -> Task<'a> {
 fn assign_role<'a>(creep: &'a Creep) -> Option<String> {
     trace!("Assigning role to {}", creep.name());
 
+    if creep.memory().string("role").ok().is_some() {
+        trace!("Already has a role");
+        return None;
+    }
+
     let result = roles::next_role(&creep.room()).or_else(|| {
         debug!("Room is full");
         None
@@ -178,3 +183,4 @@ pub fn harvest<'a>(creep: &'a Creep) -> ExecutionResult {
         harvester::attempt_harvest(creep, Some("target"))
     }
 }
+

@@ -232,7 +232,7 @@ fn unwrap_harvest_target(creep: &Creep, target: String) -> Option<Source> {
     let target = get_object_erased(target.as_str())?;
     let source = Source::try_from(target.as_ref())
         .map_err(|e| {
-            error!("Failed to convert target to Source {:?}", e);
+            debug!("Failed to convert target to Source {:?}", e);
             creep.memory().del("target");
         })
         .ok()?;
@@ -251,3 +251,4 @@ fn harvester_count() -> HashMap<String, i32> {
     });
     result
 }
+
