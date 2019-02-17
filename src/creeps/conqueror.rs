@@ -1,6 +1,6 @@
 //! Takes Rooms
 //!
-use super::{super::bt::*, move_to};
+use super::{super::bt::*, builder, harvest, move_to};
 use screeps::{game, objects::Creep, prelude::*, ReturnCode};
 use stdweb::unstable::TryFrom;
 
@@ -11,6 +11,8 @@ pub fn run<'a>(creep: &'a Creep) -> Task<'a> {
     let tasks = vec![
         Task::new(move |_| claim_target(creep)),
         Task::new(move |_| set_target(creep)),
+        Task::new(move |_| harvest(creep)),
+        Task::new(move |_| builder::attempt_build(creep)),
     ];
 
     let tree = Control::Sequence(tasks);
@@ -34,7 +36,6 @@ fn claim_target<'a>(creep: &'a Creep) -> ExecutionResult {
     let arrived = js! {
         const creep = @{creep};
         const flag = @{&flag};
-
         return creep.room.name == (flag.room && flag.room.name);
     };
     let arrived =
@@ -45,8 +46,6 @@ fn claim_target<'a>(creep: &'a Creep) -> ExecutionResult {
     }
 
     if room.controller().unwrap().my() {
-        debug!("room claimed, assuming builder role");
-        creep.memory().set("role", "builder");
         return Err(format!("room is already claimed"));
     }
 
