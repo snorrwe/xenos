@@ -49,19 +49,21 @@ fn spawn_creep(spawn: &StructureSpawn, role: &str) -> ExecutionResult {
         .map(|x| *x)
         .collect::<Vec<_>>();
 
-    // Max n tries
-    for _ in 0..10 {
-        let spawn_options = SpawnOptions::new().dry_run(true);
-        let mut b = body.clone();
-        b.extend(spawn_config.body_extension.iter());
-        let result = spawn.spawn_creep_with_options(&b, "___test_name", &spawn_options);
-        if result == ReturnCode::Ok {
-            body = b;
-        } else if result == ReturnCode::NotEnough {
-            break;
-        } else {
-            warn!("Can not spawn, error: {:?}", result);
-            return Err("Can not spawn".into());
+    if !spawn_config.body_extension.is_empty() {
+        // Limit number of tries
+        for _ in 0..10 {
+            let spawn_options = SpawnOptions::new().dry_run(true);
+            let mut b = body.clone();
+            b.extend(spawn_config.body_extension.iter());
+            let result = spawn.spawn_creep_with_options(&b, "___test_name", &spawn_options);
+            if result == ReturnCode::Ok {
+                body = b;
+            } else if result == ReturnCode::NotEnough {
+                break;
+            } else {
+                warn!("Can not spawn, error: {:?}", result);
+                return Err("Can not spawn".into());
+            }
         }
     }
 
