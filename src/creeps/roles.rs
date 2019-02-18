@@ -80,7 +80,7 @@ pub fn target_number_of_role_in_room<'a>(role: &'a str, room: &'a Room) -> i8 {
         "upgrader" => 1,
         "harvester" => n_sources,
         "builder" => 1,
-        "repairer" => 1,
+        "repairer" => 0, // Disable repairers for now
         "conqueror" => game::flags::keys().len() as i8,
         "gofer" => n_sources,
         _ => unimplemented!(),

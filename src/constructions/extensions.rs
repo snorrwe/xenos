@@ -34,7 +34,7 @@ pub fn build_extensions<'a>(room: &'a Room) -> ExecutionResult {
     let neighbour_pos = neighbours(&pos);
     let mut todo = neighbour_pos
         .into_iter()
-        .filter(|p| free(room, p))
+        .filter(|p| is_free(room, p))
         .cloned()
         .collect::<VecDeque<_>>();
 
@@ -52,11 +52,11 @@ pub fn build_extensions<'a>(room: &'a Room) -> ExecutionResult {
 
         neighbour_pos
             .iter()
-            .filter(|p| !visited.contains(&Pos { x: p.x(), y: p.y() }) && free(room, p))
+            .filter(|p| !visited.contains(&Pos { x: p.x(), y: p.y() }) && is_free(room, p))
             .cloned()
             .for_each(|p| todo.push_back(p));
 
-        let valid = valid_extension_pos(room, &pos, &construction);
+        let valid = valid_construction_pos(room, &pos, &construction);
         if !valid {
             continue;
         }
@@ -75,62 +75,7 @@ pub fn build_extensions<'a>(room: &'a Room) -> ExecutionResult {
     Ok(())
 }
 
-fn valid_extension_pos(room: &Room, pos: &RoomPosition, visited: &HashSet<Pos>) -> bool {
-    let pp = Pos {
-        x: pos.x(),
-        y: pos.y(),
-    };
-    if visited.contains(&pp) {
-        return false;
-    }
-
-    let x = pos.x();
-    let y = pos.y();
-    let name = pos.room_name();
-    [
-        RoomPosition::new(x - 1, y, name.as_str()),
-        RoomPosition::new(x + 1, y, name.as_str()),
-        RoomPosition::new(x, y - 1, name.as_str()),
-        RoomPosition::new(x, y + 1, name.as_str()),
-    ]
-    .into_iter()
-    .all(|p| free(room, p) && !visited.contains(&Pos { x: p.x(), y: p.y() }))
-}
-
 fn place_extension<'a>(room: &'a Room, pos: &'a RoomPosition) -> ReturnCode {
     room.create_construction_site(pos.clone(), StructureType::Extension)
 }
 
-fn free(room: &Room, pos: &RoomPosition) -> bool {
-    let result = js! {
-        const p = @{pos};
-        const room = @{room};
-        let objects = room.lookAt(p);
-        try {
-            return objects.find((o) => {
-                return (o.type == "terrain" && o.terrain != "swamp" && o.terrain != "plain")
-                    || (o.type == "structure" && o.structure != "road")
-                    || o.type == "constructionSite";
-            }) || null;
-        } catch (e) {
-            return null;
-        }
-    };
-    result.is_null()
-}
-
-fn neighbours(pos: &RoomPosition) -> [RoomPosition; 8] {
-    let x = pos.x();
-    let y = pos.y();
-    let name = pos.room_name();
-    [
-        RoomPosition::new(x - 1, y, name.as_str()),
-        RoomPosition::new(x + 1, y, name.as_str()),
-        RoomPosition::new(x, y - 1, name.as_str()),
-        RoomPosition::new(x, y + 1, name.as_str()),
-        RoomPosition::new(x - 1, y - 1, name.as_str()),
-        RoomPosition::new(x - 1, y + 1, name.as_str()),
-        RoomPosition::new(x + 1, y - 1, name.as_str()),
-        RoomPosition::new(x + 1, y + 1, name.as_str()),
-    ]
-}
