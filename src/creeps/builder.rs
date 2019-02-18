@@ -2,12 +2,7 @@
 //!
 use super::super::bt::*;
 use super::{get_energy, harvest, move_to, repairer, upgrader};
-use screeps::{
-    constants::find,
-    objects::{ConstructionSite, Creep},
-    prelude::*,
-    ReturnCode,
-};
+use screeps::{constants::find, objects::Creep, prelude::*, ReturnCode};
 
 pub fn run<'a>(creep: &'a Creep) -> Task<'a> {
     trace!("Running builder {}", creep.name());
@@ -39,10 +34,7 @@ pub fn attempt_build<'a>(creep: &'a Creep) -> ExecutionResult {
         let target = creep
             .pos()
             .find_closest_by_range(find::MY_CONSTRUCTION_SITES)
-            .ok_or_else(|| {
-                debug!("Could not find a build target");
-                String::new()
-            })?;
+            .ok_or_else(|| String::from("Could not find a build target"))?;
         let res = creep.build(&target);
         match res {
             ReturnCode::Ok => Ok(()),

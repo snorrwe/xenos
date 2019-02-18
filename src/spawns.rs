@@ -14,7 +14,7 @@ pub fn task<'a>() -> Task<'a> {
         .into_iter()
         .map(|spawn| Task::new(move |_| run_spawn(&spawn)))
         .collect();
-    let tree = Control::Sequence(tasks);
+    let tree = Control::All(tasks);
     Task::new(move |_| tree.tick())
 }
 

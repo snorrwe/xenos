@@ -7,6 +7,7 @@ extern crate screeps;
 extern crate stdweb;
 
 mod bt;
+mod constructions;
 mod creeps;
 mod game_loop;
 mod logging;
@@ -52,7 +53,7 @@ fn main() {
                 // reset the VM since we don't know if everything was cleaned up and don't
                 // want an inconsistent state.
                 module.exports.loop = function() {
-                    __initialize(new WebAssembly.Module(require("compiled")), false);
+                    __initialize(new WebAssembly.Module(require("xenos_bg")), false);
                     module.exports.loop();
                 }
             }

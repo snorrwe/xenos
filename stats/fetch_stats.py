@@ -46,7 +46,8 @@ def main():
 
     data = []
 
-    for i, message in enumerate(messages):
+    # last 10 messages
+    for i, message in enumerate(messages[-10:]):
         message = service.users().messages().get(
             userId='me',
             id=message['id'],

@@ -1,4 +1,5 @@
 use super::bt::*;
+use super::constructions;
 use super::creeps;
 use super::spawns;
 use super::towers;
@@ -35,7 +36,12 @@ pub fn game_loop() {
 fn run() {
     trace!("Running");
 
-    let tasks = vec![spawns::task(), creeps::task(), towers::task()];
+    let tasks = vec![
+        spawns::task(),
+        creeps::task(),
+        towers::task(),
+        constructions::task(),
+    ];
     let tree = Control::All(tasks);
     let result = tree.tick();
 

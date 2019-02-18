@@ -222,8 +222,7 @@ fn harvest_target<'a>(creep: &'a Creep, target_memory: &'a str) -> Option<Source
             })
             .ok()?;
         creep.memory().set(target_memory, &source);
-        let source = unwrap_harvest_target(creep, source)?;
-        Some(source)
+        unwrap_harvest_target(creep, source)
     }
 }
 
