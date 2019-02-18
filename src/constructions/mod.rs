@@ -132,4 +132,3 @@ fn neighbours(pos: &RoomPosition) -> [RoomPosition; 8] {
         RoomPosition::new(x + 1, y + 1, name.as_str()),
     ]
 }
-
