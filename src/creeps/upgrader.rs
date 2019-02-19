@@ -1,7 +1,7 @@
 //! Upgrade Controllers
 //!
 use super::super::bt::*;
-use super::{get_energy, harvest, move_to};
+use super::{get_energy, move_to};
 use screeps::{objects::Creep, prelude::*, ReturnCode};
 
 pub fn run<'a>(creep: &'a Creep) -> Task<'a> {
@@ -10,7 +10,6 @@ pub fn run<'a>(creep: &'a Creep) -> Task<'a> {
     let tasks = vec![
         Task::new(move |_| attempt_upgrade(creep)),
         Task::new(move |_| get_energy(creep)),
-        Task::new(move |_| harvest(creep)),
         Task::new(move |_| attempt_upgrade(creep)),
     ];
 

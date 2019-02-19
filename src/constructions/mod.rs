@@ -7,6 +7,7 @@ use screeps::{
     objects::{Room, RoomPosition},
 };
 use std::collections::HashSet;
+use stdweb::unstable::TryFrom;
 
 #[derive(Debug, Clone, Hash, Eq, PartialEq)]
 struct Pos {
@@ -101,20 +102,21 @@ fn valid_construction_pos(room: &Room, pos: &RoomPosition, taken: &HashSet<Pos>)
 
 fn is_free(room: &Room, pos: &RoomPosition) -> bool {
     let result = js! {
-        const p = @{pos};
+        const pos = @{pos};
         const room = @{room};
-        let objects = room.lookAt(p);
         try {
-            return objects.find((o) => {
+            let objects = room.lookAt(pos);
+            let invalidNeighbour = objects.find((o) => {
                 return (o.type == "terrain" && o.terrain != "swamp" && o.terrain != "plain")
                     || (o.type == "structure" && o.structure != "road")
                     || o.type == "constructionSite";
-            }) || null;
+            });
+            return invalidNeighbour == null;
         } catch (e) {
-            return null;
+            return false;
         }
     };
-    result.is_null()
+    bool::try_from(result).unwrap_or(false)
 }
 
 fn neighbours(pos: &RoomPosition) -> [RoomPosition; 8] {

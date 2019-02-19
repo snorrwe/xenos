@@ -77,7 +77,7 @@ pub fn target_number_of_role_in_room<'a>(role: &'a str, room: &'a Room) -> i8 {
     let n_sources = n_sources.try_into().unwrap_or(0);
 
     match role {
-        "upgrader" => 1,
+        "upgrader" => 3,
         "harvester" => n_sources,
         "builder" => 1,
         "repairer" => 0, // Disable repairers for now

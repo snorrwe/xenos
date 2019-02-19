@@ -1,7 +1,7 @@
 //! Move resources
 //!
 use super::super::bt::*;
-use super::{harvest, move_to, repairer, upgrader};
+use super::{move_to, repairer, upgrader};
 use screeps::{
     constants::ResourceType,
     game::get_object_erased,
@@ -22,7 +22,6 @@ pub fn run<'a>(creep: &'a Creep) -> Task<'a> {
     let tasks = vec![
         Task::new(move |_| attempt_unload(creep)),
         Task::new(move |_| get_energy(creep)),
-        Task::new(move |_| harvest(creep)),
         Task::new(move |_| attempt_unload(creep)),
         // Fallback
         Task::new(move |_| repairer::attempt_repair(creep)),
@@ -81,8 +80,8 @@ fn find_unload_target<'a>(creep: &'a Creep) -> Option<Reference> {
         Some(target.as_ref().clone())
     } else {
         let tasks = vec![
-            Task::new(|_| find_unload_target_by_type(creep, "tower")),
             Task::new(|_| find_unload_target_by_type(creep, "spawn")),
+            Task::new(|_| find_unload_target_by_type(creep, "tower")),
             Task::new(|_| find_unload_target_by_type(creep, "extension")),
             Task::new(|_| find_storage(creep)),
         ];

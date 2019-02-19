@@ -1,7 +1,7 @@
 //! Repair structures
 //!
 use super::super::bt::*;
-use super::{builder, get_energy, harvest, upgrader};
+use super::{builder, get_energy, upgrader};
 use screeps::{objects::Creep, prelude::*, traits::TryFrom, ReturnCode};
 
 pub fn run<'a>(creep: &'a Creep) -> Task<'a> {
@@ -10,7 +10,6 @@ pub fn run<'a>(creep: &'a Creep) -> Task<'a> {
     let tasks = vec![
         Task::new(move |_| attempt_repair(creep)),
         Task::new(move |_| get_energy(creep)),
-        Task::new(move |_| harvest(creep)),
         Task::new(move |_| attempt_repair(creep)),
         // Fall back
         Task::new(move |_| builder::attempt_build(creep)),
