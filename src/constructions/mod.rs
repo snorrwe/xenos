@@ -26,16 +26,16 @@ impl Pos {
 pub fn task<'a>() -> Task<'a> {
     trace!("Init construction task");
 
-    if screeps::game::time() % 16 != 2 {
-        trace!("Skipping build");
-        return Task::new(move |_| Ok(()));
-    }
-
+    let time = screeps::game::time();
     let tasks = screeps::game::rooms::values()
         .into_iter()
-        .map(|room| move |_| manage_room(&room))
-        .map(|task| Task::new(task))
+        .enumerate()
+        // Do not update all rooms in the same tick to hopefully reduce cpu load of contructions in
+        // a single tick
+        .filter(|(i, _)| (time + *i as u32) % 16 == 0)
+        .map(|(_, room)| Task::new(move |_| manage_room(&room)))
         .collect();
+
     let task = Control::All(tasks);
 
     Task::new(move |_| {
