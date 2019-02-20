@@ -1,5 +1,6 @@
 mod containers;
 mod extensions;
+mod roads;
 
 use super::bt::*;
 use screeps::{
@@ -13,6 +14,12 @@ use stdweb::unstable::TryFrom;
 struct Pos {
     pub x: u32,
     pub y: u32,
+}
+
+impl Pos {
+    pub fn new(x: u32, y: u32) -> Self {
+        Self { x: x, y: y }
+    }
 }
 
 /// Return the BehaviourTree that runs the spawns
@@ -41,7 +48,7 @@ fn manage_room<'a>(room: &'a Room) -> ExecutionResult {
     let tasks = vec![
         Task::new(move |_| build_structures(room)),
         Task::new(move |_| containers::build_containers(room)),
-        Task::new(move |_| build_roads(room)),
+        Task::new(move |_| roads::build_roads(room)),
     ];
     let tree = Control::All(tasks);
     tree.tick()
@@ -74,15 +81,8 @@ fn build_structures<'a>(room: &'a Room) -> ExecutionResult {
     tree.tick()
 }
 
-fn build_roads<'a>(_room: &'a Room) -> ExecutionResult {
-    Err("unimplemented".into())
-}
-
 fn valid_construction_pos(room: &Room, pos: &RoomPosition, taken: &HashSet<Pos>) -> bool {
-    let pp = Pos {
-        x: pos.x(),
-        y: pos.y(),
-    };
+    let pp = Pos::new(pos.x(), pos.y());
     if taken.contains(&pp) {
         return false;
     }
@@ -97,7 +97,7 @@ fn valid_construction_pos(room: &Room, pos: &RoomPosition, taken: &HashSet<Pos>)
         RoomPosition::new(x, y + 1, name.as_str()),
     ]
     .into_iter()
-    .all(|p| is_free(room, p) && !taken.contains(&Pos { x: p.x(), y: p.y() }))
+    .all(|p| is_free(room, p) && !taken.contains(&Pos::new(p.x(), p.y())))
 }
 
 fn is_free(room: &Room, pos: &RoomPosition) -> bool {
@@ -123,14 +123,15 @@ fn neighbours(pos: &RoomPosition) -> [RoomPosition; 8] {
     let x = pos.x();
     let y = pos.y();
     let name = pos.room_name();
+    let name = name.as_str();
     [
-        RoomPosition::new(x - 1, y, name.as_str()),
-        RoomPosition::new(x + 1, y, name.as_str()),
-        RoomPosition::new(x, y - 1, name.as_str()),
-        RoomPosition::new(x, y + 1, name.as_str()),
-        RoomPosition::new(x - 1, y - 1, name.as_str()),
-        RoomPosition::new(x - 1, y + 1, name.as_str()),
-        RoomPosition::new(x + 1, y - 1, name.as_str()),
-        RoomPosition::new(x + 1, y + 1, name.as_str()),
+        RoomPosition::new(x - 1, y, name),
+        RoomPosition::new(x + 1, y, name),
+        RoomPosition::new(x, y - 1, name),
+        RoomPosition::new(x, y + 1, name),
+        RoomPosition::new(x - 1, y - 1, name),
+        RoomPosition::new(x - 1, y + 1, name),
+        RoomPosition::new(x + 1, y - 1, name),
+        RoomPosition::new(x + 1, y + 1, name),
     ]
 }

@@ -25,10 +25,7 @@ pub fn build_extensions<'a>(room: &'a Room) -> ExecutionResult {
         .pos();
 
     let mut visited = HashSet::with_capacity(100);
-    visited.insert(Pos {
-        x: pos.x(),
-        y: pos.y(),
-    });
+    visited.insert(Pos::new(pos.x(), pos.y()));
     let mut construction = HashSet::with_capacity(5);
 
     let neighbour_pos = neighbours(&pos);
@@ -40,10 +37,7 @@ pub fn build_extensions<'a>(room: &'a Room) -> ExecutionResult {
 
     while !todo.is_empty() && construction.len() < 5 {
         let pos = todo.pop_front().unwrap();
-        let pp = Pos {
-            x: pos.x(),
-            y: pos.y(),
-        };
+        let pp = Pos::new(pos.x(), pos.y());
         if visited.contains(&pp) {
             continue;
         }
@@ -52,7 +46,7 @@ pub fn build_extensions<'a>(room: &'a Room) -> ExecutionResult {
 
         neighbour_pos
             .iter()
-            .filter(|p| !visited.contains(&Pos { x: p.x(), y: p.y() }) && is_free(room, p))
+            .filter(|p| !visited.contains(&Pos::new(p.x(), p.y())) && is_free(room, p))
             .cloned()
             .for_each(|p| todo.push_back(p));
 
