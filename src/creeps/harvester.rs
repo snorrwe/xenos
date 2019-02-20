@@ -31,8 +31,8 @@ pub fn run<'a>(creep: &'a Creep) -> Task<'a> {
 
 fn unload<'a>(creep: &'a Creep) -> ExecutionResult {
     trace!("Unloading");
-    let carry_total = creep.carry_total();
 
+    let carry_total = creep.carry_total();
     if carry_total == 0 {
         trace!("Empty");
         creep.memory().del("target");
@@ -106,8 +106,8 @@ fn find_container<'a>(creep: &'a Creep) -> ExecutionResult {
     let result = js! {
         let creep = @{creep};
         const container = creep.pos.findClosestByRange(FIND_STRUCTURES, {
-            filter: function(i) { return i.structureType == STRUCTURE_CONTAINER &&
-                i.store[RESOURCE_ENERGY] < i.storeCapacity }
+            filter: (i) => i.structureType == STRUCTURE_CONTAINER
+                        && i.store[RESOURCE_ENERGY] < i.storeCapacity
         });
         if (container) {
             creep.memory.target = container.id;
@@ -250,3 +250,4 @@ fn harvester_count() -> HashMap<String, i32> {
     });
     result
 }
+
