@@ -48,17 +48,28 @@ fn connect(pos0: &RoomPosition, pos1: &RoomPosition, room: &Room) -> ExecutionRe
         const pos0 = @{pos0};
         const pos1 = @{pos1};
         const room = @{room};
-        const path = room.findPath(pos0, pos1);
+        const path = room.findPath(pos0, pos1, {
+            ignoreCreeps: true,
+            plainCost: 1,
+            swampCost: 1,
+
+        });
         return Object.values(path.map((step) => new RoomPosition( step.x, step.y, room.name )));
     };
     let path = Vec::<RoomPosition>::try_from(path)
         .map_err(|e| format!("Failed to read list of connections {:?}", e))?;
 
-    for pos in path {
-        let result = room.create_construction_site(pos, StructureType::Road);
-        if result == ReturnCode::Full {
-            return Err("can't place any more construction sites".into());
-        }
+    if path.len() < 2 {
+        trace!("points are too close to connect");
+        return Ok(());
     }
-    Ok(())
+
+    path[0..path.len() - 1].into_iter().try_for_each(|pos| {
+        let result = room.create_construction_site(pos.clone(), StructureType::Road);
+        if result == ReturnCode::Full {
+            Err("can't place any more construction sites".into())
+        } else {
+            Ok(())
+        }
+    })
 }
