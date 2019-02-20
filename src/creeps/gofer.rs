@@ -121,12 +121,12 @@ fn find_storage<'a>(creep: &'a Creep) -> ExecutionResult {
 fn find_unload_target_by_type<'a>(creep: &'a Creep, struct_type: &'a str) -> ExecutionResult {
     let res = js! {
         const creep = @{creep};
-        const exts = creep.room.find(FIND_STRUCTURES, {
+        const ext = creep.pos.findClosestByRange(FIND_STRUCTURES, {
             filter: function (s) {
                 return s.structureType == @{struct_type} && s.energy < s.energyCapacity;
             }
         });
-        return exts[0] && exts[0].id;
+        return ext && ext.id;
     };
     let target = String::try_from(res).map_err(|_| String::from("expected string"))?;
     creep.memory().set("target", target);
