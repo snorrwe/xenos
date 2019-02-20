@@ -179,6 +179,7 @@ pub fn attempt_harvest<'a>(creep: &'a Creep, target_memory: Option<&'a str>) -> 
         move_to(creep, &source)?;
     }
 
+    creep.memory().del("target"); // Can't find the code that 'leaks' "target"
     trace!("Harvest finished");
     Ok(())
 }
