@@ -10,13 +10,22 @@ use stdweb::unstable::TryInto;
 /// Get the next target role in the given room
 pub fn next_role<'a>(room: &'a Room) -> Option<String> {
     let counts = count_roles_in_room(room);
-    counts.into_iter().find_map(|(role, actual)| {
+    counts.into_iter().fold(None, |result, (role, actual)| {
         let expected = target_number_of_role_in_room(role.as_str(), room);
-        if actual < expected {
-            Some(role)
-        } else {
-            None
+        if expected <= actual {
+            return result;
         }
+        result
+            .map(|result| {
+                let result_prio = role_priority(room, result.as_str());
+                let role_prio = role_priority(room, role.as_str());
+                if role_prio > result_prio {
+                    role.clone()
+                } else {
+                    result
+                }
+            })
+            .or_else(|| Some(role))
     })
 }
 
@@ -41,6 +50,14 @@ pub fn run_role<'a>(role: &'a str, creep: &'a Creep) -> Task<'a> {
             error
         })
     })
+}
+
+pub fn role_priority<'a>(_room: &'a Room, role: &'a str) -> i8 {
+    match role {
+        "harvester" => 2,
+        "builder" => 1,
+        _ => 0,
+    }
 }
 
 pub fn count_roles_in_room<'a>(room: &'a Room) -> HashMap<String, i8> {
@@ -77,9 +94,9 @@ pub fn target_number_of_role_in_room<'a>(role: &'a str, room: &'a Room) -> i8 {
     let n_sources = n_sources.try_into().unwrap_or(0);
 
     match role {
-        "upgrader" => 3,
+        "upgrader" => 1,
         "harvester" => n_sources,
-        "builder" => 1,
+        "builder" => 2,
         "repairer" => 0, // Disable repairers for now
         "conqueror" => game::flags::keys().len() as i8,
         "gofer" => n_sources,
