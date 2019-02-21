@@ -29,7 +29,12 @@ pub fn run<'a>(creep: &'a Creep) -> Task<'a> {
     ];
 
     let tree = Control::Sequence(tasks);
-    Task::new(move |_| tree.tick())
+    Task::new(move |_| {
+        tree.tick().map_err(|e| {
+            creep.memory().del("target");
+            e
+        })
+    })
 }
 
 fn attempt_unload<'a>(creep: &'a Creep) -> ExecutionResult {
@@ -191,7 +196,7 @@ fn find_container<'a>(creep: &'a Creep) -> Option<Reference> {
         let creep = @{creep};
         const container = creep.pos.findClosestByRange(FIND_STRUCTURES, {
             filter: (i) => i.structureType == STRUCTURE_CONTAINER &&
-                           i.store[RESOURCE_ENERGY] > 0
+                i.store[RESOURCE_ENERGY] > 0
         });
         return container;
     };
