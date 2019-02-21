@@ -9,6 +9,14 @@ use stdweb::unstable::TryFrom;
 pub fn build_roads<'a>(room: &'a Room) -> ExecutionResult {
     trace!("Building roads in room {}", room.name());
 
+    let rcl = room.controller().map(|c| c.level()).unwrap_or(0);
+    if rcl < 3 {
+        return Err(format!(
+            "controller is not advanced enough to warrant road construction in room {}",
+            room.name()
+        ));
+    }
+
     let targets = js! {
         const room = @{room};
         const targets = [
@@ -51,7 +59,7 @@ fn connect(pos0: &RoomPosition, pos1: &RoomPosition, room: &Room) -> ExecutionRe
         const path = room.findPath(pos0, pos1, {
             ignoreCreeps: true,
             plainCost: 1,
-            swampCost: 1,
+            swampCost: 2,
 
         });
         return Object.values(path.map((step) => new RoomPosition( step.x, step.y, room.name )));

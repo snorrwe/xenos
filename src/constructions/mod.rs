@@ -3,10 +3,7 @@ mod extensions;
 mod roads;
 
 use super::bt::*;
-use screeps::{
-    memory,
-    objects::{Room, RoomPosition},
-};
+use screeps::objects::{Room, RoomPosition};
 use std::collections::HashSet;
 use stdweb::unstable::TryFrom;
 
@@ -55,30 +52,10 @@ fn manage_room<'a>(room: &'a Room) -> ExecutionResult {
 }
 
 fn build_structures<'a>(room: &'a Room) -> ExecutionResult {
-    let rcl = room
-        .controller()
-        .ok_or_else(|| format!("room {} has no controller", room.name()))?
-        .level();
-
-    let memory = memory::root();
-
-    let rcl_path = format!("roomManagement.{}.builtGcl", room.name());
-
-    let last_rcl = memory
-        .path_i32(&rcl_path)
-        .map_err(|e| format!("failed to get rcl of room {} {:?}", room.name(), e))?
-        .unwrap_or(0) as u32;
-
-    if last_rcl == rcl {
-        // TODO: check for damages
-        trace!("nothing to do in room {}", room.name());
-        return Ok(());
-    }
-
-    memory.path_set(&rcl_path, rcl);
-    let tasks = vec![Task::new(move |_| extensions::build_extensions(room))];
-    let tree = Control::All(tasks);
-    tree.tick()
+    extensions::build_extensions(room).unwrap_or_else(|e| {
+        debug!("Failed to build extensions {:?}", e);
+    });
+    Ok(())
 }
 
 fn valid_construction_pos(room: &Room, pos: &RoomPosition, taken: &HashSet<Pos>) -> bool {
