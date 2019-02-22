@@ -4,15 +4,18 @@ use super::super::bt::*;
 use super::move_to;
 use screeps::{
     constants::ResourceType,
-    find, game,
+    find,
+    game,
     game::get_object_erased,
     objects::{Creep, Source, StructureContainer, StructureSpawn, Transferable},
     prelude::*,
-    traits::TryFrom,
     ReturnCode,
 };
 use std::collections::HashMap;
-use stdweb::{unstable::TryInto, Reference};
+use stdweb::{
+    unstable::{TryFrom, TryInto},
+    Reference,
+};
 
 const HARVEST_TARGET: &'static str = "harvest_target";
 
@@ -107,7 +110,7 @@ fn find_container<'a>(creep: &'a Creep) -> ExecutionResult {
         let creep = @{creep};
         const container = creep.pos.findClosestByRange(FIND_STRUCTURES, {
             filter: (i) => i.structureType == STRUCTURE_CONTAINER
-                        && i.store[RESOURCE_ENERGY] < i.storeCapacity
+                && i.store[RESOURCE_ENERGY] < i.storeCapacity
         });
         if (container) {
             creep.memory.target = container.id;
@@ -202,32 +205,29 @@ fn harvest_target<'a>(creep: &'a Creep, target_memory: &'a str) -> Option<Source
         let room = creep.room();
         let harvester_count = harvester_count();
         let sources = js! {
-            const creep = @{creep};
             const room = @{room};
-            let n_harvesters = @{harvester_count};
-            n_harvesters = room.find(FIND_SOURCES).map((source) => [source, n_harvesters[source.id] || 0]);
-            let result = n_harvesters.reduce((result, source) => {
-                const dist = creep.pos.getRangeTo(source[0].pos);
-                if (!result) {
-                    return [...source, dist];
-                }
-                if (result[1] > source[1]
-                    || (result[1] === source[1] && dist < result[2])
-                ) {
-                    return [...source, dist];
-                }
-                return result;
-            }, null);
-            return result && result[0] && result[0].id;
+            return Object.values(room.find(FIND_SOURCES));
         };
-        let source: String = sources
-            .try_into()
+        let sources = Vec::<Source>::try_from(sources)
             .map_err(|e| {
                 error!("Can't find Source in creep's room {:?}", e);
             })
             .ok()?;
-        creep.memory().set(target_memory, &source);
-        unwrap_harvest_target(creep, source)
+        let mut sources = sources.into_iter();
+        let first_source = sources.next()?;
+        let first_dist = first_source.pos().get_range_to(&creep.pos());
+        let first_count = harvester_count.get(&first_source.id());
+        let (source, _, _) =
+            sources.fold((first_source, first_dist, first_count), |result, source| {
+                let dist = source.pos().get_range_to(&creep.pos());
+                let count = harvester_count.get(&source.id());
+                if count < result.2 || (count == result.2 && dist < result.1) {
+                    (source, dist, count)
+                } else {
+                    result
+                }
+            });
+        Some(source)
     }
 }
 
