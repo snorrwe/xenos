@@ -9,7 +9,7 @@ pub fn run<'a>(creep: &'a Creep) -> Task<'a> {
 
     let tasks = vec![
         Task::new(move |_| attempt_repair(creep)),
-        Task::new(move |state| get_energy(&state, creep)),
+        Task::new(move |state| get_energy(state, creep)),
         Task::new(move |_| attempt_repair(creep)),
         // Fall back
         Task::new(move |_| builder::attempt_build(creep)),
@@ -17,7 +17,7 @@ pub fn run<'a>(creep: &'a Creep) -> Task<'a> {
     ];
 
     let tree = Control::Sequence(tasks);
-    Task::new(move |state| tree.tick(&state))
+    Task::new(move |state| tree.tick(state))
 }
 
 pub fn attempt_repair<'a>(creep: &'a Creep) -> ExecutionResult {

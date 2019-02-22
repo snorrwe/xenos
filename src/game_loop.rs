@@ -8,7 +8,20 @@ use stdweb::unstable::TryFrom;
 pub fn game_loop() {
     debug!("Loop starting! CPU: {}", screeps::game::cpu::get_used());
 
-    run();
+    trace!("Running");
+
+    let mut state = GameState {};
+
+    let tasks = vec![
+        spawns::task(),
+        creeps::task(),
+        towers::task(),
+        constructions::task(),
+    ];
+    let tree = Control::All(tasks);
+    let result = tree.tick(&mut state);
+
+    trace!("Run result {:?}", result);
 
     if screeps::game::time() % 32 == 0 {
         cleanup_memory().unwrap_or_else(|e| {
@@ -29,24 +42,6 @@ pub fn game_loop() {
         screeps::game::cpu::get_used(),
         bucket
     );
-}
-
-/// Run the game logic
-fn run() {
-    trace!("Running");
-
-    let state = GameState {};
-
-    let tasks = vec![
-        spawns::task(),
-        creeps::task(),
-        towers::task(),
-        constructions::task(),
-    ];
-    let tree = Control::All(tasks);
-    let result = tree.tick(&state);
-
-    trace!("Run result {:?}", result);
 }
 
 fn cleanup_memory() -> Result<(), Box<::std::error::Error>> {

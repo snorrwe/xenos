@@ -9,7 +9,7 @@ use std::rc::Rc;
 
 /// Represents a single task in the behaviour tree
 /// An executable that will be called by a Task
-pub type Task<'a> = Rc<Fn(&GameState) -> ExecutionResult + 'a>;
+pub type Task<'a> = Rc<Fn(&mut GameState) -> ExecutionResult + 'a>;
 
 #[derive(Debug, Clone)]
 pub struct GameState {}
@@ -18,7 +18,7 @@ pub struct GameState {}
 pub type ExecutionResult = Result<(), String>;
 
 pub trait BtNode {
-    fn tick(&self, state: &GameState) -> ExecutionResult;
+    fn tick(&self, state: &mut GameState) -> ExecutionResult;
 }
 
 pub trait ControlNode {
@@ -28,11 +28,11 @@ pub trait ControlNode {
 pub trait TaskNew<'a> {
     fn new<F>(task: F) -> Self
     where
-        F: Fn(&GameState) -> ExecutionResult + 'a;
+        F: Fn(&mut GameState) -> ExecutionResult + 'a;
 }
 
 impl<'a> BtNode for Task<'a> {
-    fn tick(&self, state: &GameState) -> ExecutionResult {
+    fn tick(&self, state: &mut GameState) -> ExecutionResult {
         self(state)
     }
 }
@@ -40,7 +40,7 @@ impl<'a> BtNode for Task<'a> {
 impl<'a> TaskNew<'a> for Task<'a> {
     fn new<F>(task: F) -> Self
     where
-        F: Fn(&GameState) -> ExecutionResult + 'a,
+        F: Fn(&mut GameState) -> ExecutionResult + 'a,
     {
         Rc::new(task)
     }
@@ -59,7 +59,7 @@ pub enum Control<'a> {
 }
 
 impl<'a> BtNode for Control<'a> {
-    fn tick(&self, state: &GameState) -> ExecutionResult {
+    fn tick(&self, state: &mut GameState) -> ExecutionResult {
         match self {
             Control::Selector(nodes) => {
                 let found = nodes
@@ -93,4 +93,3 @@ impl<'a> BtNode for Control<'a> {
         }
     }
 }
-

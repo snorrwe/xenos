@@ -44,7 +44,7 @@ pub fn run_role<'a>(role: &'a str, creep: &'a Creep) -> Task<'a> {
     };
 
     Task::new(move |state| {
-        task.tick(&state).map_err(|e| {
+        task.tick(state).map_err(|e| {
             let error = format!("Creep {} is idle: {:?}", creep.name(), e);
             warn!("{}", error);
             error

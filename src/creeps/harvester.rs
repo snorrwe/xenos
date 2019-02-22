@@ -21,15 +21,15 @@ pub fn run<'a>(creep: &'a Creep) -> Task<'a> {
 
     let tasks = vec![
         Task::new(move |_| attempt_harvest(&creep, None)),
-        Task::new(move |state| unload(&state, &creep)),
+        Task::new(move |state| unload(state, &creep)),
         Task::new(move |_| attempt_harvest(&creep, None)),
     ];
 
     let tree = Control::Sequence(tasks);
-    Task::new(move |state| tree.tick(&state))
+    Task::new(move |state| tree.tick(state))
 }
 
-fn unload<'a>(state: &'a GameState, creep: &'a Creep) -> ExecutionResult {
+fn unload<'a>(state: &'a mut GameState, creep: &'a Creep) -> ExecutionResult {
     trace!("Unloading");
 
     let carry_total = creep.carry_total();
@@ -58,7 +58,7 @@ fn unload<'a>(state: &'a GameState, creep: &'a Creep) -> ExecutionResult {
     })
 }
 
-fn find_unload_target<'a>(state: &'a GameState, creep: &'a Creep) -> Option<Reference> {
+fn find_unload_target<'a>(state: &'a mut GameState, creep: &'a Creep) -> Option<Reference> {
     trace!("Setting unload target");
 
     read_unload_target(creep).or_else(|| {

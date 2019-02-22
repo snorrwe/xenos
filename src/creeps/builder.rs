@@ -8,7 +8,7 @@ pub fn run<'a>(creep: &'a Creep) -> Task<'a> {
     trace!("Running builder {}", creep.name());
     let tasks = vec![
         Task::new(move |_| attempt_build(creep)),
-        Task::new(move |state| get_energy(&state, creep)),
+        Task::new(move |state| get_energy(state, creep)),
         Task::new(move |_| harvest(creep)),
         Task::new(move |_| attempt_build(creep)),
         // If nothing can be built
@@ -17,7 +17,7 @@ pub fn run<'a>(creep: &'a Creep) -> Task<'a> {
     ];
 
     let tree = Control::Sequence(tasks);
-    Task::new(move |state| tree.tick(&state))
+    Task::new(move |state| tree.tick(state))
 }
 
 pub fn attempt_build<'a>(creep: &'a Creep) -> ExecutionResult {

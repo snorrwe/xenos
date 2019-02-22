@@ -16,7 +16,7 @@ pub fn run<'a>(creep: &'a Creep) -> Task<'a> {
     ];
 
     let tree = Control::Sequence(tasks);
-    Task::new(move |state| tree.tick(&state))
+    Task::new(move |state| tree.tick(state))
 }
 
 fn claim_target<'a>(creep: &'a Creep) -> ExecutionResult {

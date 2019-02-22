@@ -20,9 +20,9 @@ use stdweb::{
 pub fn run<'a>(creep: &'a Creep) -> Task<'a> {
     trace!("Running gofer {}", creep.name());
     let tasks = vec![
-        Task::new(move |state| attempt_unload(&state, creep)),
+        Task::new(move |state| attempt_unload(state, creep)),
         Task::new(move |_| get_energy(creep)),
-        Task::new(move |state| attempt_unload(&state, creep)),
+        Task::new(move |state| attempt_unload(state, creep)),
         // Fallback
         Task::new(move |_| repairer::attempt_repair(creep)),
         Task::new(move |_| upgrader::attempt_upgrade(creep)),
@@ -30,14 +30,14 @@ pub fn run<'a>(creep: &'a Creep) -> Task<'a> {
 
     let tree = Control::Sequence(tasks);
     Task::new(move |state| {
-        tree.tick(&state).map_err(|e| {
+        tree.tick(state).map_err(|e| {
             creep.memory().del("target");
             e
         })
     })
 }
 
-fn attempt_unload<'a>(state: &'a GameState, creep: &'a Creep) -> ExecutionResult {
+fn attempt_unload<'a>(state: &'a mut GameState, creep: &'a Creep) -> ExecutionResult {
     trace!("Unloading");
     let loading: bool = creep.memory().bool("loading");
     if loading {
@@ -68,7 +68,7 @@ fn attempt_unload<'a>(state: &'a GameState, creep: &'a Creep) -> ExecutionResult
     })
 }
 
-fn find_unload_target<'a>(state: &'a GameState, creep: &'a Creep) -> Option<Reference> {
+fn find_unload_target<'a>(state: &'a mut GameState, creep: &'a Creep) -> Option<Reference> {
     trace!("Setting unload target");
 
     let target = creep

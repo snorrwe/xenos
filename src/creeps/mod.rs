@@ -23,7 +23,7 @@ pub fn task<'a>() -> Task<'a> {
         .collect();
 
     let tree = Control::All(tasks);
-    Task::new(move |state| tree.tick(&state))
+    Task::new(move |state| tree.tick(state))
 }
 
 fn run_creep<'a>(creep: Creep) -> Task<'a> {
@@ -33,7 +33,7 @@ fn run_creep<'a>(creep: Creep) -> Task<'a> {
             return Ok(());
         }
         let tasks = vec![
-            Task::new(|state| run_role(&state, &creep)),
+            Task::new(|state| run_role(state, &creep)),
             Task::new(|_| {
                 assign_role(&creep)
                     .map(|_| {})
@@ -41,7 +41,7 @@ fn run_creep<'a>(creep: Creep) -> Task<'a> {
             }),
         ];
         let tree = Control::Sequence(tasks);
-        tree.tick(&state)
+        tree.tick(state)
     })
 }
 
@@ -64,7 +64,7 @@ fn assign_role<'a>(creep: &'a Creep) -> Option<String> {
     Some(result)
 }
 
-fn run_role<'a>(state: &'a GameState, creep: &'a Creep) -> ExecutionResult {
+fn run_role<'a>(state: &'a mut GameState, creep: &'a Creep) -> ExecutionResult {
     let role = creep
         .memory()
         .string("role")
@@ -102,7 +102,7 @@ pub fn move_to<'a>(
 /// # Contracts & Side effects
 /// Required the `loading` flag to be set to true
 /// If the creep is full sets the `loading` flag to false
-pub fn get_energy<'a>(state: &'a GameState, creep: &'a Creep) -> ExecutionResult {
+pub fn get_energy<'a>(state: &'a mut GameState, creep: &'a Creep) -> ExecutionResult {
     trace!("Getting energy");
 
     let loading: bool = creep.memory().bool("loading");
