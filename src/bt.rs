@@ -4,18 +4,11 @@
 //!     - There is no 'Running' state normally found in BT's
 //!     - There is no explicit Task cancellation
 //!
+use std::ops::Fn;
 use std::rc::Rc;
 
 /// Represents a single task in the behaviour tree
 /// An executable that will be called by a Task
-/// Currently passes an empty tuple as argument
-/// The reason behind this is that we might want to pass
-/// Some state between tasks.
-/// So existing tasks using the pattern:
-/// ```
-/// |_| { /* task stuff */ }`
-/// ```
-/// will not require changes when this happens
 pub type Task<'a> = Rc<Fn(&GameState) -> ExecutionResult + 'a>;
 
 #[derive(Debug, Clone)]
@@ -64,8 +57,6 @@ pub enum Control<'a> {
     Sequence(Vec<Task<'a>>),
     All(Vec<Task<'a>>),
 }
-
-use std::ops::Fn;
 
 impl<'a> BtNode for Control<'a> {
     fn tick(&self, state: &GameState) -> ExecutionResult {
