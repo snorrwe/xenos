@@ -17,13 +17,13 @@ pub fn task<'a>() -> Task<'a> {
     let tasks = towers
         .into_iter()
         .map(move |t| t.try_into().expect("bro"))
-        .map(move |tower: StructureTower| Task::new(move |_| run_tower(&tower)))
+        .map(move |tower: StructureTower| Task::new(move |state| run_tower(&state, &tower)))
         .collect();
     let tree = Control::All(tasks);
-    Task::new(move |_| tree.tick())
+    Task::new(move |state| tree.tick(state))
 }
 
-fn run_tower<'a>(tower: &'a StructureTower) -> ExecutionResult {
+fn run_tower<'a>(state: &'a GameState, tower: &'a StructureTower) -> ExecutionResult {
     debug!("Running tower {:?}", tower.id());
 
     let tasks = [
@@ -35,7 +35,7 @@ fn run_tower<'a>(tower: &'a StructureTower) -> ExecutionResult {
     .collect();
 
     let tree = Control::Sequence(tasks);
-    tree.tick()
+    tree.tick(state)
 }
 
 fn attempt_attack<'a>(tower: &'a StructureTower) -> ExecutionResult {

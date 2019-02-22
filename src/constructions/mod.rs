@@ -30,25 +30,25 @@ pub fn task<'a>() -> Task<'a> {
         // Do not update all rooms in the same tick to hopefully reduce cpu load of contructions in
         // a single tick
         .filter(|(i, _)| (time + *i as u32) % 16 == 0)
-        .map(|(_, room)| Task::new(move |_| manage_room(&room)))
+        .map(|(_, room)| Task::new(move |state| manage_room(&state, &room)))
         .collect();
 
     let task = Control::All(tasks);
 
-    Task::new(move |_| {
-        task.tick()
+    Task::new(move |state| {
+        task.tick(&state)
             .map_err(|_| "Failed all building subtasks".into())
     })
 }
 
-fn manage_room<'a>(room: &'a Room) -> ExecutionResult {
+fn manage_room<'a>(state: &'a GameState, room: &'a Room) -> ExecutionResult {
     let tasks = vec![
         Task::new(move |_| build_structures(room)),
         Task::new(move |_| containers::build_containers(room)),
         Task::new(move |_| roads::build_roads(room)),
     ];
     let tree = Control::All(tasks);
-    tree.tick()
+    tree.tick(state)
 }
 
 fn build_structures<'a>(room: &'a Room) -> ExecutionResult {

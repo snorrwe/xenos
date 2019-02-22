@@ -21,15 +21,15 @@ pub fn run<'a>(creep: &'a Creep) -> Task<'a> {
 
     let tasks = vec![
         Task::new(move |_| attempt_harvest(&creep, None)),
-        Task::new(move |_| unload(&creep)),
+        Task::new(move |state| unload(&state, &creep)),
         Task::new(move |_| attempt_harvest(&creep, None)),
     ];
 
     let tree = Control::Sequence(tasks);
-    Task::new(move |_| tree.tick())
+    Task::new(move |state| tree.tick(&state))
 }
 
-fn unload<'a>(creep: &'a Creep) -> ExecutionResult {
+fn unload<'a>(state: &'a GameState, creep: &'a Creep) -> ExecutionResult {
     trace!("Unloading");
 
     let carry_total = creep.carry_total();
@@ -39,7 +39,7 @@ fn unload<'a>(creep: &'a Creep) -> ExecutionResult {
         return Err("empty".into());
     }
 
-    let target = find_unload_target(creep).ok_or_else(|| {
+    let target = find_unload_target(state, creep).ok_or_else(|| {
         creep.memory().del("target");
         let error = String::from("could not find unload target");
         trace!("{}", error);
@@ -52,13 +52,13 @@ fn unload<'a>(creep: &'a Creep) -> ExecutionResult {
     ];
 
     let tree = Control::Sequence(tasks);
-    tree.tick().map_err(|error| {
+    tree.tick(state).map_err(|error| {
         creep.memory().del("target");
         error
     })
 }
 
-fn find_unload_target<'a>(creep: &'a Creep) -> Option<Reference> {
+fn find_unload_target<'a>(state: &'a GameState, creep: &'a Creep) -> Option<Reference> {
     trace!("Setting unload target");
 
     read_unload_target(creep).or_else(|| {
@@ -67,7 +67,7 @@ fn find_unload_target<'a>(creep: &'a Creep) -> Option<Reference> {
             Task::new(|_| find_spawn(creep)),
         ];
         let tree = Control::Sequence(tasks);
-        tree.tick().unwrap_or_else(|e| {
+        tree.tick(state).unwrap_or_else(|e| {
             debug!("Failed to find unload target {:?}", e);
         });
         read_unload_target(creep)

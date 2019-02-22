@@ -23,17 +23,17 @@ pub fn task<'a>() -> Task<'a> {
         .collect();
 
     let tree = Control::All(tasks);
-    Task::new(move |_| tree.tick())
+    Task::new(move |state| tree.tick(&state))
 }
 
 fn run_creep<'a>(creep: Creep) -> Task<'a> {
-    let task = move |_| {
+    Task::new(move |state| {
         debug!("Running creep {}", creep.name());
         if creep.spawning() {
             return Ok(());
         }
         let tasks = vec![
-            Task::new(|_| run_role(&creep)),
+            Task::new(|state| run_role(&state, &creep)),
             Task::new(|_| {
                 assign_role(&creep)
                     .map(|_| {})
@@ -41,9 +41,8 @@ fn run_creep<'a>(creep: Creep) -> Task<'a> {
             }),
         ];
         let tree = Control::Sequence(tasks);
-        tree.tick()
-    };
-    Task::new(task)
+        tree.tick(&state)
+    })
 }
 
 fn assign_role<'a>(creep: &'a Creep) -> Option<String> {
@@ -65,7 +64,7 @@ fn assign_role<'a>(creep: &'a Creep) -> Option<String> {
     Some(result)
 }
 
-fn run_role<'a>(creep: &'a Creep) -> ExecutionResult {
+fn run_role<'a>(state: &'a GameState, creep: &'a Creep) -> ExecutionResult {
     let role = creep
         .memory()
         .string("role")
@@ -81,7 +80,7 @@ fn run_role<'a>(creep: &'a Creep) -> ExecutionResult {
         })?;
 
     let task = roles::run_role(role.as_str(), creep);
-    task.tick()
+    task.tick(state)
 }
 
 pub fn move_to<'a>(
@@ -103,7 +102,7 @@ pub fn move_to<'a>(
 /// # Contracts & Side effects
 /// Required the `loading` flag to be set to true
 /// If the creep is full sets the `loading` flag to false
-pub fn get_energy<'a>(creep: &'a Creep) -> ExecutionResult {
+pub fn get_energy<'a>(state: &'a GameState, creep: &'a Creep) -> ExecutionResult {
     trace!("Getting energy");
 
     let loading: bool = creep.memory().bool("loading");
@@ -121,7 +120,7 @@ pub fn get_energy<'a>(creep: &'a Creep) -> ExecutionResult {
             Task::new(|_| try_withdraw::<StructureContainer>(creep, &target)),
         ];
         let tree = Control::Sequence(tasks);
-        tree.tick().map_err(|_| {
+        tree.tick(state).map_err(|_| {
             creep.memory().del("target");
             "can't withdraw".into()
         })

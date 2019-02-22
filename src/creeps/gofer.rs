@@ -20,24 +20,24 @@ use stdweb::{
 pub fn run<'a>(creep: &'a Creep) -> Task<'a> {
     trace!("Running gofer {}", creep.name());
     let tasks = vec![
-        Task::new(move |_| attempt_unload(creep)),
+        Task::new(move |state| attempt_unload(&state, creep)),
         Task::new(move |_| get_energy(creep)),
-        Task::new(move |_| attempt_unload(creep)),
+        Task::new(move |state| attempt_unload(&state, creep)),
         // Fallback
         Task::new(move |_| repairer::attempt_repair(creep)),
         Task::new(move |_| upgrader::attempt_upgrade(creep)),
     ];
 
     let tree = Control::Sequence(tasks);
-    Task::new(move |_| {
-        tree.tick().map_err(|e| {
+    Task::new(move |state| {
+        tree.tick(&state).map_err(|e| {
             creep.memory().del("target");
             e
         })
     })
 }
 
-fn attempt_unload<'a>(creep: &'a Creep) -> ExecutionResult {
+fn attempt_unload<'a>(state: &'a GameState, creep: &'a Creep) -> ExecutionResult {
     trace!("Unloading");
     let loading: bool = creep.memory().bool("loading");
     if loading {
@@ -52,7 +52,7 @@ fn attempt_unload<'a>(creep: &'a Creep) -> ExecutionResult {
         return Err("empty".into());
     }
 
-    let target = find_unload_target(creep).ok_or_else(|| String::new())?;
+    let target = find_unload_target(state, creep).ok_or_else(|| String::new())?;
 
     let tasks = vec![
         Task::new(|_| try_transfer::<StructureSpawn>(creep, &target)),
@@ -62,13 +62,13 @@ fn attempt_unload<'a>(creep: &'a Creep) -> ExecutionResult {
     ];
 
     let tree = Control::Sequence(tasks);
-    tree.tick().map_err(|e| {
+    tree.tick(state).map_err(|e| {
         creep.memory().del("target");
         e
     })
 }
 
-fn find_unload_target<'a>(creep: &'a Creep) -> Option<Reference> {
+fn find_unload_target<'a>(state: &'a GameState, creep: &'a Creep) -> Option<Reference> {
     trace!("Setting unload target");
 
     let target = creep
@@ -91,7 +91,7 @@ fn find_unload_target<'a>(creep: &'a Creep) -> Option<Reference> {
             Task::new(|_| find_storage(creep)),
         ];
         let tree = Control::Sequence(tasks);
-        tree.tick().unwrap_or_else(|e| {
+        tree.tick(state).unwrap_or_else(|e| {
             debug!("Failed to find unload target {:?}", e);
             creep.memory().del("target");
         });

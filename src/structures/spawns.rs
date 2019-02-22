@@ -15,7 +15,7 @@ pub fn task<'a>() -> Task<'a> {
         .map(|spawn| Task::new(move |_| run_spawn(&spawn)))
         .collect();
     let tree = Control::All(tasks);
-    Task::new(move |_| tree.tick())
+    Task::new(move |state| tree.tick(state))
 }
 
 fn run_spawn(spawn: &StructureSpawn) -> ExecutionResult {

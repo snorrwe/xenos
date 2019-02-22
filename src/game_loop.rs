@@ -1,8 +1,7 @@
 use super::bt::*;
 use super::constructions;
 use super::creeps;
-use super::spawns;
-use super::towers;
+use super::structures::{spawns, towers};
 use std::collections::HashSet;
 use stdweb::unstable::TryFrom;
 
@@ -36,6 +35,8 @@ pub fn game_loop() {
 fn run() {
     trace!("Running");
 
+    let state = GameState {};
+
     let tasks = vec![
         spawns::task(),
         creeps::task(),
@@ -43,7 +44,7 @@ fn run() {
         constructions::task(),
     ];
     let tree = Control::All(tasks);
-    let result = tree.tick();
+    let result = tree.tick(&state);
 
     trace!("Run result {:?}", result);
 }
@@ -72,3 +73,4 @@ fn cleanup_memory() -> Result<(), Box<::std::error::Error>> {
 
     Ok(())
 }
+

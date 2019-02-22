@@ -16,13 +16,16 @@ use std::rc::Rc;
 /// |_| { /* task stuff */ }`
 /// ```
 /// will not require changes when this happens
-pub type Task<'a> = Rc<Fn(()) -> ExecutionResult + 'a>;
+pub type Task<'a> = Rc<Fn(&GameState) -> ExecutionResult + 'a>;
+
+#[derive(Debug, Clone)]
+pub struct GameState {}
 
 /// Result of a task
 pub type ExecutionResult = Result<(), String>;
 
 pub trait BtNode {
-    fn tick(&self) -> ExecutionResult;
+    fn tick(&self, state: &GameState) -> ExecutionResult;
 }
 
 pub trait ControlNode {
@@ -32,19 +35,19 @@ pub trait ControlNode {
 pub trait TaskNew<'a> {
     fn new<F>(task: F) -> Self
     where
-        F: Fn(()) -> ExecutionResult + 'a;
+        F: Fn(&GameState) -> ExecutionResult + 'a;
 }
 
 impl<'a> BtNode for Task<'a> {
-    fn tick(&self) -> ExecutionResult {
-        self(())
+    fn tick(&self, state: &GameState) -> ExecutionResult {
+        self(state)
     }
 }
 
 impl<'a> TaskNew<'a> for Task<'a> {
     fn new<F>(task: F) -> Self
     where
-        F: Fn(()) -> ExecutionResult + 'a,
+        F: Fn(&GameState) -> ExecutionResult + 'a,
     {
         Rc::new(task)
     }
@@ -65,12 +68,12 @@ pub enum Control<'a> {
 use std::ops::Fn;
 
 impl<'a> BtNode for Control<'a> {
-    fn tick(&self) -> ExecutionResult {
+    fn tick(&self, state: &GameState) -> ExecutionResult {
         match self {
             Control::Selector(nodes) => {
                 let found = nodes
                     .iter()
-                    .map(|node| node.tick())
+                    .map(|node| node.tick(state))
                     .find(|result| result.is_err());
                 if let Some(found) = found {
                     let error = found.unwrap_err();
@@ -81,7 +84,7 @@ impl<'a> BtNode for Control<'a> {
                 }
             }
             Control::Sequence(nodes) => {
-                let found = nodes.iter().any(|node| node.tick().is_ok());
+                let found = nodes.iter().any(|node| node.tick(state).is_ok());
                 if found {
                     Ok(())
                 } else {
@@ -90,7 +93,7 @@ impl<'a> BtNode for Control<'a> {
             }
             Control::All(nodes) => {
                 nodes.iter().for_each(|node| {
-                    node.tick().unwrap_or_else(|e| {
+                    node.tick(state).unwrap_or_else(|e| {
                         debug!("node failure in an All control {:?}", e);
                     });
                 });
@@ -99,3 +102,4 @@ impl<'a> BtNode for Control<'a> {
         }
     }
 }
+

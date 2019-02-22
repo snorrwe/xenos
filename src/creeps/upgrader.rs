@@ -9,12 +9,12 @@ pub fn run<'a>(creep: &'a Creep) -> Task<'a> {
 
     let tasks = vec![
         Task::new(move |_| attempt_upgrade(creep)),
-        Task::new(move |_| get_energy(creep)),
+        Task::new(move |state| get_energy(&state, creep)),
         Task::new(move |_| attempt_upgrade(creep)),
     ];
 
     let tree = Control::Sequence(tasks);
-    Task::new(move |_| tree.tick())
+    Task::new(move |state| tree.tick(&state))
 }
 
 pub fn attempt_upgrade<'a>(creep: &'a Creep) -> ExecutionResult {
