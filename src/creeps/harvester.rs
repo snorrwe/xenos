@@ -207,17 +207,17 @@ fn harvest_target<'a>(creep: &'a Creep, target_memory: &'a str) -> Option<Source
             let n_harvesters = @{harvester_count};
             n_harvesters = room.find(FIND_SOURCES).map((source) => [source, n_harvesters[source.id] || 0]);
             let result = n_harvesters.reduce((result, source) => {
+                const dist = creep.pos.getRangeTo(source[0].pos);
                 if (!result) {
-                    return [...source, creep.pos.getRangeTo(source[0])];
+                    return [...source, dist];
                 }
-                const dist = result[0].pos.getRangeTo(source[0].pos);
                 if (result[1] > source[1]
                     || (result[1] === source[1] && dist < result[2])
                 ) {
                     return [...source, dist];
                 }
                 return result;
-            }, n_harvesters[0]);
+            }, null);
             return result && result[0] && result[0].id;
         };
         let source: String = sources
@@ -255,3 +255,4 @@ fn harvester_count() -> HashMap<String, i32> {
     });
     result
 }
+
