@@ -10,7 +10,7 @@ mod upgrader;
 use super::bt::*;
 use screeps::{
     constants::ResourceType,
-    objects::{Creep, StructureContainer, StructureStorage, Withdrawable},
+    objects::{Creep, StructureContainer, StructureStorage, Tombstone, Withdrawable},
     prelude::*,
     ReturnCode,
 };
@@ -105,17 +105,18 @@ pub fn move_to<'a>(
 pub fn get_energy<'a>(state: &'a mut GameState, creep: &'a Creep) -> ExecutionResult {
     trace!("Getting energy");
 
-    let loading: bool = creep.memory().bool("loading");
-    if !loading {
+    if !creep.memory().bool("loading") {
         return Err("not loading".into());
     }
+
     if creep.carry_total() == creep.carry_capacity() {
         creep.memory().set("loading", false);
         Err("full".into())
     } else {
-        let target = find_container(creep).ok_or_else(|| String::new())?;
+        let target = find_available_energy(creep).ok_or_else(|| String::new())?;
 
         let tasks = vec![
+            Task::new(|_| try_withdraw::<Tombstone>(creep, &target)),
             Task::new(|_| try_withdraw::<StructureStorage>(creep, &target)),
             Task::new(|_| try_withdraw::<StructureContainer>(creep, &target)),
         ];
@@ -150,19 +151,24 @@ where
     Ok(())
 }
 
-fn find_container<'a>(creep: &'a Creep) -> Option<Reference> {
+fn find_available_energy<'a>(creep: &'a Creep) -> Option<Reference> {
     trace!("Finding new withdraw target");
     // screeps api is bugged at the moment and FIND_STRUCTURES panics
     let result = js! {
-        let creep = @{creep};
+        const creep = @{creep};
+        const energy = creep.pos.findClosestByRange(FIND_TOMBSTONES, {
+            filter: (ts) => ts.creep.my && ts.store[RESOURCE_ENERGY]
+        });
+        if (energy) {
+            return energy;
+        }
         const container = creep.pos.findClosestByRange(FIND_STRUCTURES, {
             filter: (i) => (i.structureType == STRUCTURE_CONTAINER || i.structureType == STRUCTURE_STORAGE) &&
                            i.store[RESOURCE_ENERGY] > 0
         });
         return container;
     };
-    let result = result.try_into().unwrap_or_else(|_| None);
-    result
+    result.try_into().unwrap_or_else(|_| None)
 }
 
 /// Fallback harvest, method for a worker to harvest energy temporary

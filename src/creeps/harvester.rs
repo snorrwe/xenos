@@ -202,19 +202,23 @@ fn harvest_target<'a>(creep: &'a Creep, target_memory: &'a str) -> Option<Source
         let room = creep.room();
         let harvester_count = harvester_count();
         let sources = js! {
+            const creep = @{creep};
             const room = @{room};
             let n_harvesters = @{harvester_count};
-            n_harvesters  = room.find(FIND_SOURCES).map((source) => [source.id, n_harvesters[source.id] || 0]);
+            n_harvesters = room.find(FIND_SOURCES).map((source) => [source, n_harvesters[source.id] || 0]);
             let result = n_harvesters.reduce((result, source) => {
-                if (!result){
-                    return source;
+                if (!result) {
+                    return [...source, creep.pos.getRangeTo(source[0])];
                 }
-                if (result[1] > source[1]) {
-                    return source;
+                const dist = result[0].pos.getRangeTo(source[0].pos);
+                if (result[1] > source[1]
+                    || (result[1] === source[1] && dist < result[2])
+                ) {
+                    return [...source, dist];
                 }
                 return result;
             }, n_harvesters[0]);
-            return result && result[0];
+            return result && result[0] && result[0].id;
         };
         let source: String = sources
             .try_into()
