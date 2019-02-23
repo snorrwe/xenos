@@ -120,9 +120,8 @@ fn basic_role_parts<'a>(role: &'a str) -> [Part; 4] {
     match role {
         "harvester" => [Part::Move, Part::Work, Part::Carry, Part::Work],
         "conqueror" => [Part::Move, Part::Work, Part::Carry, Part::Claim],
-        "upgrader" | "builder" | "repairer" | "gofer" => {
-            [Part::Move, Part::Move, Part::Carry, Part::Work]
-        }
+        "gofer" => [Part::Move, Part::Move, Part::Carry, Part::Carry],
+        "upgrader" | "builder" | "repairer" => [Part::Move, Part::Move, Part::Carry, Part::Work],
         _ => unimplemented!(),
     }
 }
@@ -136,3 +135,4 @@ fn role_part_scale<'a>(role: &'a str) -> Vec<Part> {
         _ => vec![Part::Move, Part::Carry, Part::Work],
     }
 }
+
