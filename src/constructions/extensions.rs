@@ -70,5 +70,5 @@ pub fn build_extensions<'a>(room: &'a Room) -> ExecutionResult {
 }
 
 fn place_extension<'a>(room: &'a Room, pos: &'a RoomPosition) -> ReturnCode {
-    room.create_construction_site(pos.clone(), StructureType::Extension)
+    room.create_construction_site(pos, StructureType::Extension)
 }

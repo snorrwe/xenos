@@ -4,8 +4,7 @@ use super::super::bt::*;
 use super::move_to;
 use screeps::{
     constants::ResourceType,
-    find,
-    game,
+    find, game,
     game::get_object_erased,
     objects::{Creep, Source, StructureContainer, StructureSpawn, Transferable},
     prelude::*,
@@ -204,15 +203,7 @@ fn harvest_target<'a>(creep: &'a Creep, target_memory: &'a str) -> Option<Source
         trace!("Finding new harvest target");
         let room = creep.room();
         let harvester_count = harvester_count();
-        let sources = js! {
-            const room = @{room};
-            return Object.values(room.find(FIND_SOURCES));
-        };
-        let sources = Vec::<Source>::try_from(sources)
-            .map_err(|e| {
-                error!("Can't find Source in creep's room {:?}", e);
-            })
-            .ok()?;
+        let sources = room.find(find::SOURCES);
         let mut sources = sources.into_iter();
         let first_source = sources.next()?;
         let first_dist = first_source.pos().get_range_to(&creep.pos());
@@ -256,4 +247,3 @@ fn harvester_count() -> HashMap<String, i32> {
     });
     result
 }
-

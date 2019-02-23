@@ -7,7 +7,7 @@ authors = []
 stdweb = "0.4"
 log = "0.4"
 fern = "0.5"
-screeps-game-api = "0.3"
+screeps-game-api = { version = "0.4", path="../screeps-in-rust-via-wasm/screeps-game-api" }
 
 [profile.release]
 panic = "abort"

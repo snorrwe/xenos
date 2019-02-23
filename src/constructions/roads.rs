@@ -73,7 +73,7 @@ fn connect(pos0: &RoomPosition, pos1: &RoomPosition, room: &Room) -> ExecutionRe
     }
 
     path[0..path.len() - 1].into_iter().try_for_each(|pos| {
-        let result = room.create_construction_site(pos.clone(), StructureType::Road);
+        let result = room.create_construction_site(pos, StructureType::Road);
         if result == ReturnCode::Full {
             Err("can't place any more construction sites".into())
         } else {
