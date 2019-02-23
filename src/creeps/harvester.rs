@@ -227,6 +227,7 @@ fn harvest_target<'a>(creep: &'a Creep, target_memory: &'a str) -> Option<Source
                     result
                 }
             });
+        creep.memory().set(HARVEST_TARGET, source.id());
         Some(source)
     }
 }
