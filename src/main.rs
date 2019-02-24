@@ -27,7 +27,9 @@ fn main() {
             let bucket = Game.cpu.bucket;
             let gcl = Game.gcl;
             let population = Object.keys(Game.creeps).length;
+            let time = Game.time;
             let stats = {
+                time,
                 cpu,
                 bucket,
                 gcl,
