@@ -2,7 +2,7 @@
 //!
 use super::{super::bt::*, builder, harvest, move_to};
 use screeps::{game, objects::Creep, prelude::*, ReturnCode};
-use stdweb::unstable::TryFrom;
+use stdweb::unstable::TryInto;
 
 const CONQUEST_TARGET: &'static str = "conquest_target";
 
@@ -38,20 +38,21 @@ fn claim_target<'a>(creep: &'a Creep) -> ExecutionResult {
         const flag = @{&flag};
         return creep.room.name == (flag.room && flag.room.name);
     };
-    let arrived =
-        bool::try_from(arrived).map_err(|e| format!("failed to convert result to bool {:?}", e))?;
+    let arrived: bool = arrived
+        .try_into()
+        .map_err(|e| format!("failed to convert result to bool {:?}", e))?;
     if !arrived {
         trace!("approaching target room");
         return move_to(creep, &flag);
     }
 
-    if room.controller().unwrap().my() {
-        return Err(format!("room is already claimed"));
-    }
-
     let controller = room
         .controller()
-        .ok_or_else(|| String::from("room has no controller"))?;
+        .ok_or_else(|| format!("room {:?} has no controller", room.name()))?;
+
+    if controller.my() {
+        return Err(format!("room is already claimed"));
+    }
 
     let result = creep.claim_controller(&controller);
 

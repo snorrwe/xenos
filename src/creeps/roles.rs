@@ -1,11 +1,16 @@
 use super::{super::bt::*, builder, conqueror, gofer, harvester, repairer, upgrader};
 use screeps::{
+    constants::{find, StructureType},
     game,
-    objects::{Creep, Room, RoomObjectProperties},
+    objects::{Creep, Room, RoomObjectProperties, StructureProperties},
     Part,
 };
 use std::collections::HashMap;
-use stdweb::unstable::TryInto;
+
+pub struct SpawnConfig {
+    pub basic_body: Vec<Part>,
+    pub body_extension: Vec<Part>,
+}
 
 /// Get the next target role in the given room
 pub fn next_role<'a>(room: &'a Room) -> Option<String> {
@@ -85,28 +90,22 @@ pub fn count_roles_in_room<'a>(room: &'a Room) -> HashMap<String, i8> {
 }
 
 pub fn target_number_of_role_in_room<'a>(role: &'a str, room: &'a Room) -> i8 {
-    let n_sources = js! {
-        const room = @{room};
-        const sources = room.find(FIND_SOURCES) || [];
-        return sources && sources.length;
-    };
-
-    let n_sources = n_sources.try_into().unwrap_or(0);
-
+    let n_flags = game::flags::keys().len() as i8;
+    let n_sources = room.find(find::SOURCES).len() as i8;
+    let n_containers = room
+        .find(find::STRUCTURES)
+        .into_iter()
+        .filter(|s| s.structure_type() == StructureType::Container)
+        .count() as i8;
     match role {
         "upgrader" => 1,
         "harvester" => n_sources,
         "builder" => 2,
         "repairer" => 0, // Disable repairers for now
-        "conqueror" => game::flags::keys().len() as i8,
-        "gofer" => n_sources,
+        "conqueror" => n_flags,
+        "gofer" => n_sources.min(n_containers),
         _ => unimplemented!(),
     }
-}
-
-pub struct SpawnConfig {
-    pub basic_body: [Part; 4],
-    pub body_extension: Vec<Part>,
 }
 
 pub fn spawn_config_by_role(role: &str) -> SpawnConfig {
@@ -116,12 +115,14 @@ pub fn spawn_config_by_role(role: &str) -> SpawnConfig {
     }
 }
 
-fn basic_role_parts<'a>(role: &'a str) -> [Part; 4] {
+fn basic_role_parts<'a>(role: &'a str) -> Vec<Part> {
     match role {
-        "harvester" => [Part::Move, Part::Work, Part::Carry, Part::Work],
-        "conqueror" => [Part::Move, Part::Work, Part::Carry, Part::Claim],
-        "gofer" => [Part::Move, Part::Move, Part::Carry, Part::Carry],
-        "upgrader" | "builder" | "repairer" => [Part::Move, Part::Move, Part::Carry, Part::Work],
+        "harvester" => vec![Part::Move, Part::Work, Part::Carry, Part::Work],
+        "conqueror" => vec![Part::Move, Part::Work, Part::Carry, Part::Claim, Part::Move],
+        "gofer" => vec![Part::Move, Part::Move, Part::Carry, Part::Carry],
+        "upgrader" | "builder" | "repairer" => {
+            vec![Part::Move, Part::Move, Part::Carry, Part::Work]
+        }
         _ => unimplemented!(),
     }
 }

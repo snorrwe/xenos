@@ -43,11 +43,7 @@ fn spawn_creep(spawn: &StructureSpawn, role: &str) -> ExecutionResult {
 
     let spawn_config = spawn_config_by_role(role);
 
-    let mut body = spawn_config
-        .basic_body
-        .into_iter()
-        .map(|x| *x)
-        .collect::<Vec<_>>();
+    let mut body = spawn_config.basic_body;
 
     if !spawn_config.body_extension.is_empty() {
         // Limit number of tries
