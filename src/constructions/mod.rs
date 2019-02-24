@@ -1,10 +1,13 @@
 mod containers;
-mod extensions;
 mod roads;
 
 use super::bt::*;
-use screeps::objects::{Room, RoomPosition};
-use std::collections::HashSet;
+use screeps::{
+    constants::StructureType,
+    objects::{HasPosition, Room, RoomPosition, StructureSpawn},
+    ReturnCode,
+};
+use std::collections::{HashSet, VecDeque};
 use stdweb::unstable::TryFrom;
 
 #[derive(Debug, Clone, Hash, Eq, PartialEq)]
@@ -53,10 +56,15 @@ fn manage_room<'a>(state: &'a mut GameState, room: &'a Room) -> ExecutionResult 
 }
 
 fn build_structures<'a>(room: &'a Room) -> ExecutionResult {
-    extensions::build_extensions(room).unwrap_or_else(|e| {
-        debug!("Failed to build extensions {:?}", e);
-    });
-    Ok(())
+    let structures = [
+        StructureType::Extension,
+        StructureType::Extension,
+        StructureType::Extension,
+        StructureType::Extension,
+        StructureType::Extension,
+        StructureType::Tower,
+    ];
+    place_construction_sites(room, structures.into_iter())
 }
 
 fn valid_construction_pos(room: &Room, pos: &RoomPosition, taken: &HashSet<Pos>) -> bool {
@@ -113,3 +121,78 @@ fn neighbours(pos: &RoomPosition) -> [RoomPosition; 8] {
         RoomPosition::new(x + 1, y + 1, name),
     ]
 }
+
+pub fn place_construction_sites<'a, T>(room: &'a Room, mut structures: T) -> ExecutionResult
+where
+    T: Iterator<Item = &'a StructureType>,
+{
+    trace!("Building extensions in room {:?}", room.name());
+
+    let spawn = js! {
+        const room = @{room};
+        const spawns = room.find(FIND_STRUCTURES, {
+            filter: { structureType: STRUCTURE_SPAWN }
+        });
+        return spawns && spawns[0] || null;
+    };
+
+    if spawn.is_null() {
+        let e = Err("No spawn in the room".into());
+        trace!("{:?}", e);
+        return e;
+    }
+
+    let pos = StructureSpawn::try_from(spawn)
+        .map_err(|e| {
+            let e = format!("failed to find spawn {:?}", e);
+            trace!("{}", e);
+            e
+        })?
+        .pos();
+
+    let mut visited = HashSet::with_capacity(100);
+    visited.insert(Pos::new(pos.x(), pos.y()));
+    let mut construction = HashSet::with_capacity(5);
+
+    let neighbour_pos = neighbours(&pos);
+    let mut todo = neighbour_pos.into_iter().cloned().collect::<VecDeque<_>>();
+    let mut current = structures.next();
+
+    while !todo.is_empty() && current.is_some() {
+        let pos = todo.pop_front().unwrap();
+        let pp = Pos::new(pos.x(), pos.y());
+        if visited.contains(&pp) {
+            continue;
+        }
+        let structure = current.unwrap();
+
+        visited.insert(pp.clone());
+        let neighbour_pos = neighbours(&pos);
+
+        todo.extend(
+            neighbour_pos
+                .iter()
+                .filter(|p| !visited.contains(&Pos::new(p.x(), p.y())))
+                .cloned(),
+        );
+
+        if !valid_construction_pos(room, &pos, &construction) {
+            continue;
+        }
+
+        let result = room.create_construction_site(&pos, *structure);
+        match result {
+            ReturnCode::Ok => {
+                construction.insert(pp);
+            }
+            // TODO: check what type of structure is blocked by rcl before returning
+            // ReturnCode::RclNotEnough => return Ok(()),
+            ReturnCode::Full => return Err(format!("cant place extension {:?}", result)),
+            _ => {}
+        }
+        current = structures.next();
+    }
+
+    Ok(())
+}
+
