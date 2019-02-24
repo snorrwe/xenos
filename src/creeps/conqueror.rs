@@ -33,10 +33,10 @@ fn claim_target<'a>(creep: &'a Creep) -> ExecutionResult {
     })?;
 
     let room = creep.room();
+
     let arrived = js! {
-        const creep = @{creep};
         const flag = @{&flag};
-        return creep.room.name == (flag.room && flag.room.name);
+        return @{&room}.name == (flag.room && flag.room.name);
     };
     let arrived: bool = arrived
         .try_into()
