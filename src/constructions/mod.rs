@@ -42,6 +42,7 @@ pub fn task<'a>() -> Task<'a> {
 }
 
 fn manage_room<'a>(state: &'a mut GameState, room: &'a Room) -> ExecutionResult {
+    debug!("Manage constructionSites of room {:?}", room.name());
     let tasks = vec![
         Task::new(move |_| build_structures(room)),
         Task::new(move |_| containers::build_containers(room)),
@@ -84,9 +85,9 @@ fn is_free(room: &Room, pos: &RoomPosition) -> bool {
         try {
             let objects = room.lookAt(pos);
             let invalidNeighbour = objects.find((o) => {
-                return (o.type == "terrain" && o.terrain != "swamp" && o.terrain != "plain")
-                    || (o.type == "structure" && o.structure != "road")
-                    || o.type == "constructionSite";
+                return (o.type == LOOK_TERRAIN && o.terrain == "wall")
+                    || (o.type == LOOK_STRUCTURES && o.structure.structureType != STRUCTURE_ROAD)
+                    || o.type == LOOK_CONSTRUCTION_SITES;
             });
             return invalidNeighbour == null;
         } catch (e) {

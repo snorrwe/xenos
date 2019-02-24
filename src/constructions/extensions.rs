@@ -1,13 +1,15 @@
 use super::*;
 use screeps::{
     constants::StructureType,
-    objects::{HasPosition, Room, RoomPosition, StructureSpawn},
+    objects::{HasPosition, Room, StructureSpawn},
     ReturnCode,
 };
 use std::collections::{HashSet, VecDeque};
 use stdweb::unstable::TryFrom;
 
 pub fn build_extensions<'a>(room: &'a Room) -> ExecutionResult {
+    trace!("Building extensions in room {:?}", room.name());
+
     let spawn = js! {
         const room = @{room};
         const spawns = room.find(FIND_STRUCTURES, {
@@ -17,11 +19,17 @@ pub fn build_extensions<'a>(room: &'a Room) -> ExecutionResult {
     };
 
     if spawn.is_null() {
-        return Err("No spawn in the room".into());
+        let e = Err("No spawn in the room".into());
+        trace!("{:?}", e);
+        return e;
     }
 
     let pos = StructureSpawn::try_from(spawn)
-        .map_err(|e| format!("failed to find spawn {:?}", e))?
+        .map_err(|e| {
+            let e = format!("failed to find spawn {:?}", e);
+            trace!("{}", e);
+            e
+        })?
         .pos();
 
     let mut visited = HashSet::with_capacity(100);
@@ -31,7 +39,7 @@ pub fn build_extensions<'a>(room: &'a Room) -> ExecutionResult {
     let neighbour_pos = neighbours(&pos);
     let mut todo = neighbour_pos
         .into_iter()
-        .filter(|p| is_free(room, p))
+        // .filter(|p| is_free(room, p))
         .cloned()
         .collect::<VecDeque<_>>();
 
@@ -41,34 +49,36 @@ pub fn build_extensions<'a>(room: &'a Room) -> ExecutionResult {
         if visited.contains(&pp) {
             continue;
         }
+        trace!(
+            "trying to construct on position {:?}, {}",
+            pp,
+            construction.len()
+        );
+
         visited.insert(pp.clone());
         let neighbour_pos = neighbours(&pos);
 
         neighbour_pos
             .iter()
-            .filter(|p| !visited.contains(&Pos::new(p.x(), p.y())) && is_free(room, p))
+            .filter(|p| !visited.contains(&Pos::new(p.x(), p.y())))
             .cloned()
             .for_each(|p| todo.push_back(p));
 
-        let valid = valid_construction_pos(room, &pos, &construction);
-        if !valid {
+        if !valid_construction_pos(room, &pos, &construction) {
             continue;
         }
 
-        let result = place_extension(room, &pos);
-        if result != ReturnCode::Ok && result != ReturnCode::RclNotEnough {
-            return Err(format!("cant place extension {:?}", result));
-        } else if result == ReturnCode::RclNotEnough {
-            return Ok(());
-        } else {
-            construction.insert(pp);
-            continue;
+        let result = room.create_construction_site(&pos, StructureType::Extension);
+        trace!("extension construction result {:?}", result);
+        match result {
+            ReturnCode::Ok => {
+                construction.insert(pp);
+            }
+            ReturnCode::RclNotEnough => return Ok(()),
+            ReturnCode::Full => return Err(format!("cant place extension {:?}", result)),
+            _ => {}
         }
     }
 
     Ok(())
-}
-
-fn place_extension<'a>(room: &'a Room, pos: &'a RoomPosition) -> ReturnCode {
-    room.create_construction_site(pos, StructureType::Extension)
 }
