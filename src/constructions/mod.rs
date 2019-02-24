@@ -1,6 +1,8 @@
 mod containers;
+mod neighbours;
 mod roads;
 
+use self::neighbours::*;
 use super::bt::*;
 use screeps::{
     constants::StructureType,
@@ -59,12 +61,12 @@ fn build_structures<'a>(room: &'a Room) -> ExecutionResult {
     let structures = [
         StructureType::Extension,
         StructureType::Extension,
-        StructureType::Extension,
-        StructureType::Extension,
-        StructureType::Extension,
         StructureType::Tower,
-    ];
-    place_construction_sites(room, structures.into_iter())
+    ]
+    .into_iter()
+    .cloned()
+    .collect();
+    place_construction_sites(room, structures)
 }
 
 fn valid_construction_pos(room: &Room, pos: &RoomPosition, taken: &HashSet<Pos>) -> bool {
@@ -105,27 +107,10 @@ fn is_free(room: &Room, pos: &RoomPosition) -> bool {
     bool::try_from(result).unwrap_or(false)
 }
 
-fn neighbours(pos: &RoomPosition) -> [RoomPosition; 8] {
-    let x = pos.x();
-    let y = pos.y();
-    let name = pos.room_name();
-    let name = name.as_str();
-    [
-        RoomPosition::new(x - 1, y, name),
-        RoomPosition::new(x + 1, y, name),
-        RoomPosition::new(x, y - 1, name),
-        RoomPosition::new(x, y + 1, name),
-        RoomPosition::new(x - 1, y - 1, name),
-        RoomPosition::new(x - 1, y + 1, name),
-        RoomPosition::new(x + 1, y - 1, name),
-        RoomPosition::new(x + 1, y + 1, name),
-    ]
-}
-
-pub fn place_construction_sites<'a, T>(room: &'a Room, mut structures: T) -> ExecutionResult
-where
-    T: Iterator<Item = &'a StructureType>,
-{
+pub fn place_construction_sites<'a>(
+    room: &'a Room,
+    mut structures: VecDeque<StructureType>,
+) -> ExecutionResult {
     trace!("Building extensions in room {:?}", room.name());
 
     let spawn = js! {
@@ -154,20 +139,21 @@ where
     visited.insert(Pos::new(pos.x(), pos.y()));
     let mut construction = HashSet::with_capacity(5);
 
-    let neighbour_pos = neighbours(&pos);
-    let mut todo = neighbour_pos.into_iter().cloned().collect::<VecDeque<_>>();
-    let mut current = structures.next();
+    let mut todo = pos
+        .neighbours()
+        .into_iter()
+        .cloned()
+        .collect::<VecDeque<_>>();
 
-    while !todo.is_empty() && current.is_some() {
+    while !todo.is_empty() && !structures.is_empty() {
         let pos = todo.pop_front().unwrap();
         let pp = Pos::new(pos.x(), pos.y());
         if visited.contains(&pp) {
             continue;
         }
-        let structure = current.unwrap();
 
         visited.insert(pp.clone());
-        let neighbour_pos = neighbours(&pos);
+        let neighbour_pos = pos.neighbours();
 
         todo.extend(
             neighbour_pos
@@ -180,19 +166,19 @@ where
             continue;
         }
 
-        let result = room.create_construction_site(&pos, *structure);
+        let structure = structures.pop_front().unwrap();
+        let result = room.create_construction_site(&pos, structure);
         match result {
             ReturnCode::Ok => {
                 construction.insert(pp);
             }
-            // TODO: check what type of structure is blocked by rcl before returning
-            // ReturnCode::RclNotEnough => return Ok(()),
+            ReturnCode::RclNotEnough => {}
             ReturnCode::Full => return Err(format!("cant place extension {:?}", result)),
-            _ => {}
+            _ => {
+                structures.push_back(structure);
+            }
         }
-        current = structures.next();
     }
 
     Ok(())
 }
-
