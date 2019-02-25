@@ -17,7 +17,7 @@ use game_loop::game_loop;
 
 fn main() {
     stdweb::initialize();
-    logging::setup_logging(logging::Info);
+    logging::setup_logging(logging::Debug);
 
     js! {
         const game_loop = @{game_loop};
@@ -45,18 +45,20 @@ fn main() {
                 game_loop();
                 sendStats();
             } catch (error) {
-                // console_error function provided by 'screeps-game-api'
                 console_error("caught exception:", error);
                 if (error.stack) {
                     console_error("stack trace:", error.stack);
                 }
-                console_error("resetting VM next tick.");
+                // console_error("resetting VM next tick.");
+                // TODO test if skipping cleanup affects state
+                // Theory: the VM is reset every so often so it should not be a hude issue
+                //
                 // reset the VM since we don't know if everything was cleaned up and don't
                 // want an inconsistent state.
-                module.exports.loop = function() {
-                    __initialize(new WebAssembly.Module(require("xenos_bg")), false);
-                    module.exports.loop();
-                }
+                // module.exports.loop = function() {
+                //     __initialize(new WebAssembly.Module(require("xenos_bg")), false);
+                //     module.exports.loop();
+                // }
             }
         }
     }

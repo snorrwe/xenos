@@ -44,7 +44,7 @@ fn unload<'a>(state: &'a mut GameState, creep: &'a Creep) -> ExecutionResult {
     let target = find_unload_target(state, creep).ok_or_else(|| {
         creep.memory().del("target");
         let error = String::from("could not find unload target");
-        trace!("{}", error);
+        debug!("{}", error);
         error
     })?;
 
@@ -56,6 +56,7 @@ fn unload<'a>(state: &'a mut GameState, creep: &'a Creep) -> ExecutionResult {
     let tree = Control::Sequence(tasks);
     tree.tick(state).map_err(|error| {
         creep.memory().del("target");
+        debug!("failed to unload {:?}", error);
         error
     })
 }
@@ -104,7 +105,6 @@ where
 
 fn find_container<'a>(creep: &'a Creep) -> ExecutionResult {
     trace!("Finding new unload target");
-    // screeps api is bugged at the moment and FIND_STRUCTURES panics
     let result = js! {
         let creep = @{creep};
         const container = creep.pos.findClosestByRange(FIND_STRUCTURES, {
@@ -181,8 +181,8 @@ pub fn attempt_harvest<'a>(creep: &'a Creep, target_memory: Option<&'a str>) -> 
         move_to(creep, &source)?;
     }
 
-    creep.memory().del("target"); // Can't find the code that 'leaks' "target"
     trace!("Harvest finished");
+    creep.memory().del("target");
     Ok(())
 }
 
@@ -197,41 +197,53 @@ fn harvest_target<'a>(creep: &'a Creep, target_memory: &'a str) -> Option<Source
         })
         .ok()?;
 
-    if let Some(target) = target {
-        unwrap_harvest_target(creep, target)
+    let source = if let Some(target) = target {
+        trace!("Validating existing target");
+        let target = get_object_erased(target.as_str())?;
+        Source::try_from(target.as_ref())
+            .map_err(|e| {
+                debug!("Failed to convert target to Source {:?}", e);
+                creep.memory().del(target_memory);
+            })
+            .ok()?
     } else {
-        trace!("Finding new harvest target");
-        let room = creep.room();
-        let harvester_count = harvester_count();
-        let sources = room.find(find::SOURCES);
-        let mut sources = sources.into_iter();
-        let first_source = sources.next()?;
-        let first_dist = first_source.pos().get_range_to(&creep.pos());
-        let first_count = harvester_count.get(&first_source.id());
-        let (source, _, _) =
-            sources.fold((first_source, first_dist, first_count), |result, source| {
-                let dist = source.pos().get_range_to(&creep.pos());
-                let count = harvester_count.get(&source.id());
-                if count < result.2 || (count == result.2 && dist < result.1) {
-                    (source, dist, count)
-                } else {
-                    result
-                }
-            });
-        creep.memory().set(HARVEST_TARGET, source.id());
-        Some(source)
-    }
+        find_harvest_target(creep).map(|source| {
+            creep.memory().set(target_memory, source.id());
+            source
+        })?
+    };
+
+    Some(source)
 }
 
-fn unwrap_harvest_target(creep: &Creep, target: String) -> Option<Source> {
-    trace!("Validating existing target");
-    let target = get_object_erased(target.as_str())?;
-    let source = Source::try_from(target.as_ref())
-        .map_err(|e| {
-            debug!("Failed to convert target to Source {:?}", e);
-            creep.memory().del("target");
-        })
-        .ok()?;
+fn find_harvest_target<'a>(creep: &'a Creep) -> Option<Source> {
+    trace!("Finding harvest target");
+    let room = creep.room();
+    let harvester_count = harvester_count();
+
+    debug!(
+        "harvester count in room {:?} {:#?}",
+        room.name(),
+        harvester_count
+    );
+
+    let sources = room.find(find::SOURCES);
+    let mut sources = sources.into_iter();
+    let first_source = sources.next()?;
+    let first_dist = first_source.pos().get_range_to(&creep.pos());
+    let first_count = harvester_count
+        .get(&first_source.id())
+        .map(|x| *x)
+        .unwrap_or(0);
+    let (source, _, _) = sources.fold((first_source, first_dist, first_count), |result, source| {
+        let dist = source.pos().get_range_to(&creep.pos());
+        let count = harvester_count.get(&source.id()).map(|x| *x).unwrap_or(0);
+        if count < result.2 || (count == result.2 && dist < result.1) {
+            (source, dist, count)
+        } else {
+            result
+        }
+    });
     Some(source)
 }
 
@@ -247,3 +259,4 @@ fn harvester_count() -> HashMap<String, i32> {
     });
     result
 }
+

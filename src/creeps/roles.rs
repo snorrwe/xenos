@@ -119,7 +119,7 @@ fn basic_role_parts<'a>(role: &'a str) -> Vec<Part> {
     match role {
         "harvester" => vec![Part::Move, Part::Work, Part::Carry, Part::Work],
         "conqueror" => vec![Part::Move, Part::Work, Part::Carry, Part::Claim, Part::Move],
-        "gofer" => vec![Part::Move, Part::Move, Part::Carry, Part::Carry],
+        "gofer" => vec![Part::Move, Part::Carry],
         "upgrader" | "builder" | "repairer" => {
             vec![Part::Move, Part::Move, Part::Carry, Part::Work]
         }

@@ -175,7 +175,7 @@ fn find_available_energy<'a>(creep: &'a Creep) -> Option<Reference> {
 /// ## Contracts:
 /// - Should not interfere with the harvester::harvest functionality
 pub fn harvest<'a>(creep: &'a Creep) -> ExecutionResult {
-    trace!("Harvesting");
+    trace!("Worker harvesting");
 
     let loading: bool = creep.memory().bool("loading");
     if !loading {
