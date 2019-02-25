@@ -259,4 +259,3 @@ fn harvester_count() -> HashMap<String, i32> {
     });
     result
 }
-

@@ -57,9 +57,11 @@ pub fn run_role<'a>(role: &'a str, creep: &'a Creep) -> Task<'a> {
     })
 }
 
+/// The higher the more important
 pub fn role_priority<'a>(_room: &'a Room, role: &'a str) -> i8 {
     match role {
-        "harvester" => 2,
+        "harvester" => 3,
+        "gofer" => 2,
         "builder" => 1,
         _ => 0,
     }
@@ -89,6 +91,7 @@ pub fn count_roles_in_room<'a>(room: &'a Room) -> HashMap<String, i8> {
     result
 }
 
+/// Max number of creeps of a given role in the given room
 pub fn target_number_of_role_in_room<'a>(role: &'a str, room: &'a Room) -> i8 {
     let n_flags = game::flags::keys().len() as i8;
     let n_sources = room.find(find::SOURCES).len() as i8;
@@ -115,6 +118,7 @@ pub fn spawn_config_by_role(role: &str) -> SpawnConfig {
     }
 }
 
+/// The minimum parts required by the role
 fn basic_role_parts<'a>(role: &'a str) -> Vec<Part> {
     match role {
         "harvester" => vec![Part::Move, Part::Work, Part::Carry, Part::Work],
