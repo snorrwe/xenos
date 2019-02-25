@@ -4,7 +4,7 @@ use super::super::bt::*;
 use super::{builder, get_energy, upgrader};
 use screeps::{objects::Creep, prelude::*, ReturnCode};
 use stdweb::{
-    unstable::{TryFrom, TryInto},
+    unstable::{TryFrom},
     Reference,
 };
 
@@ -44,18 +44,6 @@ pub fn attempt_repair<'a>(creep: &'a Creep) -> ExecutionResult {
     }
 }
 
-fn validate_creep_target_as_repair_target<'a>(creep: &'a Creep) -> Option<Reference> {
-    let id = creep.memory().string("target").ok()??;
-    let target = js! {
-        const target = @{&id};
-        return Game.getObjectById(target);
-    };
-    target
-        .try_into()
-        .map_err(|e| warn!("Failed to read repair target {} {:?}", id, e))
-        .ok()
-}
-
 fn repair<'a>(creep: &'a Creep, target: &'a Reference) -> ExecutionResult {
     let res = js! {
         const creep = @{creep};
@@ -87,8 +75,12 @@ fn find_repair_target<'a>(creep: &'a Creep) -> Option<Reference> {
         const candidates = room.find(FIND_STRUCTURES, {
             filter: function (s) { return s.hits < s.hitsMax; }
         });
-        return candidates[0];
+        return candidates[0] || null;
     };
+
+    if result.is_null() {
+        return None;
+    }
 
     Reference::try_from(result)
         .map_err(|e| warn!("Failed to convert find repair target {:?}", e))
