@@ -63,6 +63,7 @@ pub fn role_priority<'a>(_room: &'a Room, role: &'a str) -> i8 {
         "harvester" => 3,
         "gofer" => 2,
         "builder" => 1,
+        "conqueror" => -1,
         _ => 0,
     }
 }
@@ -140,3 +141,4 @@ fn role_part_scale<'a>(role: &'a str) -> Vec<Part> {
         _ => vec![Part::Move, Part::Carry, Part::Work],
     }
 }
+

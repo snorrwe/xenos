@@ -1,6 +1,6 @@
 //! Takes Rooms
 //!
-use super::{super::bt::*, builder, harvest, move_to};
+use super::{super::bt::*, builder, harvest, move_to, get_energy};
 use screeps::{game, objects::Creep, prelude::*, ReturnCode};
 use stdweb::unstable::TryInto;
 
@@ -12,6 +12,7 @@ pub fn run<'a>(creep: &'a Creep) -> Task<'a> {
         Task::new(move |_| claim_target(creep)),
         Task::new(move |_| set_target(creep)),
         Task::new(move |_| builder::attempt_build(creep)),
+        Task::new(move |state| get_energy(state, creep)),
         Task::new(move |_| harvest(creep)),
     ];
 
