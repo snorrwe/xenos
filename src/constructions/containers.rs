@@ -4,7 +4,7 @@ use screeps::{
     find,
     game::get_object_typed,
     memory,
-    objects::{HasId, HasPosition, Room, Source},
+    objects::{HasId, HasPosition, Room, Source, StructureProperties},
     ReturnCode,
 };
 
@@ -12,6 +12,17 @@ const MEMORY_KEY: &'static str = "spawn_containers";
 
 pub fn build_containers<'a>(room: &'a Room) -> ExecutionResult {
     trace!("Building containers in room {}", room.name());
+
+    let spawn = room
+        .find(find::MY_STRUCTURES)
+        .into_iter()
+        .find(|structure| structure.structure_type() == StructureType::Spawn);
+    if spawn.is_none() {
+        return Err(format!(
+            "Skipping container build until a spawn is built in room {}",
+            room.name()
+        ));
+    }
 
     let memory = memory::root();
     let sources = room
@@ -35,3 +46,4 @@ pub fn build_containers<'a>(room: &'a Room) -> ExecutionResult {
 
     Ok(())
 }
+
