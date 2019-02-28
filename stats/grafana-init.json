@@ -24,10 +24,10 @@
       "dashLength": 10,
       "dashes": false,
       "decimals": 1,
-      "fill": 8,
+      "fill": 2,
       "gridPos": {
         "h": 9,
-        "w": 15,
+        "w": 11,
         "x": 0,
         "y": 0
       },
@@ -37,8 +37,8 @@
         "alignAsTable": true,
         "avg": true,
         "current": true,
-        "hideEmpty": true,
-        "hideZero": true,
+        "hideEmpty": false,
+        "hideZero": false,
         "max": true,
         "min": true,
         "rightSide": true,
@@ -47,9 +47,9 @@
         "values": true
       },
       "lines": true,
-      "linewidth": 0,
+      "linewidth": 1,
       "links": [],
-      "nullPointMode": "connected",
+      "nullPointMode": "null",
       "paceLength": 10,
       "percentage": false,
       "pointradius": 2,
@@ -64,7 +64,7 @@
         }
       ],
       "stack": false,
-      "steppedLine": false,
+      "steppedLine": true,
       "targets": [
         {
           "format": "time_series",
@@ -113,7 +113,7 @@
           "format": "short",
           "label": "",
           "logBase": 1,
-          "max": null,
+          "max": "40",
           "min": null,
           "show": true
         },
@@ -140,9 +140,9 @@
       "fill": 2,
       "gridPos": {
         "h": 9,
-        "w": 15,
-        "x": 0,
-        "y": 9
+        "w": 11,
+        "x": 11,
+        "y": 0
       },
       "hideTimeOverride": false,
       "id": 5,
@@ -162,7 +162,7 @@
       "lines": true,
       "linewidth": 2,
       "links": [],
-      "nullPointMode": "connected",
+      "nullPointMode": "null",
       "paceLength": 10,
       "percentage": false,
       "pointradius": 2,
@@ -242,16 +242,15 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "decimals": 1,
       "fill": 1,
       "gridPos": {
         "h": 9,
-        "w": 15,
+        "w": 11,
         "x": 0,
-        "y": 18
+        "y": 9
       },
       "hideTimeOverride": false,
-      "id": 6,
+      "id": 8,
       "legend": {
         "alignAsTable": true,
         "avg": true,
@@ -266,9 +265,9 @@
         "values": true
       },
       "lines": true,
-      "linewidth": 2,
+      "linewidth": 1,
       "links": [],
-      "nullPointMode": "connected",
+      "nullPointMode": "null",
       "paceLength": 10,
       "percentage": false,
       "pointradius": 2,
@@ -276,14 +275,14 @@
       "renderer": "flot",
       "seriesOverrides": [],
       "stack": false,
-      "steppedLine": false,
+      "steppedLine": true,
       "targets": [
         {
           "format": "time_series",
           "group": [],
           "metricColumn": "none",
           "rawQuery": true,
-          "rawSql": "SELECT\n  (\n  NOW() - (\n    (SELECT MAX(time) FROM screeps_data) - time\n    )\n    * 3\n    * interval '1 seconds'\n  ) AS \"time\",\n  (bucket / 100.0) as bucket\nFROM screeps_data\nORDER BY 1",
+          "rawSql": "SELECT\n  (\n  NOW() - (\n    (SELECT MAX(time) FROM screeps_data) - a.time\n    )\n    * 3\n    * interval '1 seconds'\n  ) AS \"time\",\n  a.gcl_progress - b.gcl_progress as \"progress\"\nFROM screeps_data a\nLEFT JOIN screeps_data b\nON a.time = b.time + 1\nORDER BY 1",
           "refId": "A",
           "select": [
             [
@@ -305,11 +304,11 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "CPU Bucket",
+      "title": "GCL Delta",
       "tooltip": {
         "shared": true,
         "sort": 0,
-        "value_type": "cumulative"
+        "value_type": "individual"
       },
       "type": "graph",
       "xaxis": {
@@ -321,9 +320,8 @@
       },
       "yaxes": [
         {
-          "decimals": null,
-          "format": "percent",
-          "label": "",
+          "format": "short",
+          "label": null,
           "logBase": 1,
           "max": null,
           "min": null,
@@ -342,6 +340,66 @@
         "align": false,
         "alignLevel": null
       }
+    },
+    {
+      "gridPos": {
+        "h": 9,
+        "w": 11,
+        "x": 11,
+        "y": 9
+      },
+      "hideTimeOverride": false,
+      "id": 7,
+      "links": [],
+      "options": {
+        "maxValue": 100,
+        "minValue": 0,
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true,
+        "thresholds": [
+          {
+            "color": "#7EB26D",
+            "index": 0,
+            "value": null
+          }
+        ],
+        "valueMappings": [],
+        "valueOptions": {
+          "decimals": 2,
+          "prefix": "",
+          "stat": "current",
+          "suffix": "",
+          "unit": "percent"
+        }
+      },
+      "targets": [
+        {
+          "format": "time_series",
+          "group": [],
+          "metricColumn": "none",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  (\n  NOW() - (\n    (SELECT MAX(time) FROM screeps_data) - time\n    )\n    * 3\n    * interval '1 seconds'\n  ) AS \"time\",\n  gcl_progress / gcl_total * 100 as value\nFROM screeps_data\nORDER BY 1",
+          "refId": "A",
+          "select": [
+            [
+              {
+                "params": [
+                  "cpu"
+                ],
+                "type": "column"
+              }
+            ]
+          ],
+          "table": "screeps_data",
+          "timeColumn": "\"time\"",
+          "timeColumnType": "int4",
+          "where": []
+        }
+      ],
+      "timeFrom": null,
+      "timeShift": null,
+      "title": "GCL Progress",
+      "type": "gauge"
     }
   ],
   "refresh": false,
@@ -352,8 +410,8 @@
     "list": []
   },
   "time": {
-    "from": "2019-02-28T08:06:19.718Z",
-    "to": "2019-02-28T09:10:44.212Z"
+    "from": "2019-02-28T06:42:35.114Z",
+    "to": "2019-02-28T10:55:45.190Z"
   },
   "timepicker": {
     "refresh_intervals": [
@@ -383,5 +441,5 @@
   "timezone": "",
   "title": "screeps",
   "uid": "FbHNF9rmz",
-  "version": 15
+  "version": 22
 }

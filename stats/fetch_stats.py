@@ -7,6 +7,7 @@ import os.path
 from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
+import progressbar
 import psycopg2
 
 SCOPES = ['https://www.googleapis.com/auth/gmail.readonly']
@@ -21,6 +22,10 @@ PG_PW = "screepsbois"
 def load_data(messages, service):
 
     data = []
+
+    pb = progressbar.ProgressBar(max_value=len(messages), redirect_stdout=True)
+
+    print("Processing messages")
 
     for i, message in enumerate(messages):
         message = service.users().messages().get(
@@ -43,6 +48,8 @@ def load_data(messages, service):
             except Exception:
                 pass
 
+        pb.update(i)
+
     connection = psycopg2.connect(
         user=PG_USER,
         password=PG_PW,
@@ -60,25 +67,37 @@ def load_data(messages, service):
             (
                 time INTEGER PRIMARY KEY
                 , bucket INTEGER NOT NULL
-                , cpu INTEGER NOT NULL
+                , cpu FLOAT NOT NULL
                 , population INTEGER NOT NULL
+                , gcl INTEGER NOT NULL
+                , gcl_progress FLOAT NOT NULL
+                , gcl_total FLOAT NOT NULL
 
             );
             """)
     except Exception as e:
         print('!!', e)
+    connection.commit()
 
     command = f"""
-    INSERT INTO {table_name} (time, bucket, cpu, population)
-    VALUES (%(time)s, %(bucket)s, %(cpu)s, %(population)s)
+    INSERT INTO {table_name} (time, bucket, cpu, population, gcl, gcl_progress, gcl_total)
+    VALUES (%(time)s, %(bucket)s, %(cpu)s, %(population)s, %(level)s, %(gcl_progress)s, %(gcl_total)s)
 """
 
-    for row in data:
+    print("Inserting rows")
+    pb = progressbar.ProgressBar(max_value=len(data), redirect_stdout=True)
+
+    for i, row in enumerate(data):
         try:
+            row["gcl_total"] = row["gcl"]["progressTotal"]
+            row["gcl_progress"] = row["gcl"]["progress"]
+            row["level"] = row["gcl"]["level"]
             cursor.execute(command, row)
         except Exception:
             pass
-    connection.commit()
+        else:
+            connection.commit()
+        pb.update(i)
 
     return data[::-1]
 
