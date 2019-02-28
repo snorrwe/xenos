@@ -2,7 +2,13 @@
 //!
 use super::super::bt::*;
 use super::{get_energy, harvest, move_to, repairer, upgrader};
-use screeps::{constants::find, objects::Creep, prelude::*, ReturnCode};
+use screeps::{
+    constants::find,
+    game::get_object_typed,
+    objects::{ConstructionSite, Creep},
+    prelude::*,
+    ReturnCode,
+};
 
 pub fn run<'a>(creep: &'a Creep) -> Task<'a> {
     trace!("Running builder {}", creep.name());
@@ -31,10 +37,8 @@ pub fn attempt_build<'a>(creep: &'a Creep) -> ExecutionResult {
         creep.memory().set("loading", true);
         Err("empty".into())
     } else {
-        let target = creep
-            .pos()
-            .find_closest_by_range(find::MY_CONSTRUCTION_SITES)
-            .ok_or_else(|| String::from("Could not find a build target"))?;
+        let target =
+            get_build_target(creep).ok_or_else(|| format!("Failed to find build target"))?;
         let res = creep.build(&target);
         match res {
             ReturnCode::Ok => Ok(()),
@@ -47,3 +51,29 @@ pub fn attempt_build<'a>(creep: &'a Creep) -> ExecutionResult {
         }
     }
 }
+
+fn get_build_target(creep: &Creep) -> Option<ConstructionSite> {
+    let target = creep
+        .memory()
+        .string("target")
+        .map_err(|e| {
+            error!("Failed to read creep target {:?}", e);
+            creep.memory().del("target");
+        })
+        .ok()?
+        .map(|id| get_object_typed(id.as_str()))
+        .ok_or_else(|| {
+            creep.memory().del("target");
+            creep
+                .pos()
+                .find_closest_by_range(find::MY_CONSTRUCTION_SITES)
+                .ok_or_else(|| debug!("Could not find a build target"))
+                .map(|site| {
+                    creep.memory().set("target", site.id());
+                    site
+                })
+        })
+        .ok()?;
+    target.ok()?
+}
+
