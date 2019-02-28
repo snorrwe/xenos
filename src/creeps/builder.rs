@@ -46,6 +46,7 @@ pub fn attempt_build<'a>(creep: &'a Creep) -> ExecutionResult {
             _ => {
                 let error = format!("Failed to build target {:?} {:?}", res, target.id());
                 error!("{}", error);
+                creep.memory().del("target");
                 Err(error)
             }
         }
@@ -76,4 +77,3 @@ fn get_build_target(creep: &Creep) -> Option<ConstructionSite> {
         .ok()?;
     target.ok()?
 }
-

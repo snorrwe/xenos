@@ -1,6 +1,6 @@
 //! Takes Rooms
 //!
-use super::{super::bt::*, builder, harvest, move_to, get_energy};
+use super::{super::bt::*, builder, get_energy, harvest, move_to};
 use screeps::{game, objects::Creep, prelude::*, ReturnCode};
 use stdweb::unstable::TryInto;
 

@@ -1,4 +1,5 @@
 import pickle
+import datetime
 import json
 import base64
 from bs4 import BeautifulSoup
@@ -40,10 +41,13 @@ def load_data(messages, service):
         soup = BeautifulSoup(str(mime_msg), 'html.parser')
         rows = soup.find_all("pre")
 
+        date = datetime.datetime.utcfromtimestamp(int(message['internalDate']) // 1000)
+
         for row in rows[::-1]:
             try:
                 row = row.contents
                 stats = json.loads(row[0])
+                stats['mail_received'] = date
                 data.append(stats)
             except Exception:
                 pass
@@ -72,6 +76,7 @@ def load_data(messages, service):
                 , gcl INTEGER NOT NULL
                 , gcl_progress FLOAT NOT NULL
                 , gcl_total FLOAT NOT NULL
+                , mail_received TIMESTAMP WITH TIME ZONE NOT NULL
 
             );
             """)
@@ -80,8 +85,8 @@ def load_data(messages, service):
     connection.commit()
 
     command = f"""
-    INSERT INTO {table_name} (time, bucket, cpu, population, gcl, gcl_progress, gcl_total)
-    VALUES (%(time)s, %(bucket)s, %(cpu)s, %(population)s, %(level)s, %(gcl_progress)s, %(gcl_total)s)
+    INSERT INTO {table_name} (time, bucket, cpu, population, gcl, gcl_progress, gcl_total, mail_received)
+    VALUES (%(time)s, %(bucket)s, %(cpu)s, %(population)s, %(level)s, %(gcl_progress)s, %(gcl_total)s, %(mail_received)s)
 """
 
     print("Inserting rows")
@@ -131,7 +136,8 @@ def main():
     result = service.users().messages().list(
         # TODO: find label by name "Screeps"
         userId='me',
-        labelIds="Label_5").execute()
+        labelIds="Label_5",
+    ).execute()
     messages = result["messages"]
 
     result = load_data(messages, service)

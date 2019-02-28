@@ -3,10 +3,7 @@
 use super::super::bt::*;
 use super::{builder, get_energy, upgrader};
 use screeps::{objects::Creep, prelude::*, ReturnCode};
-use stdweb::{
-    unstable::{TryFrom},
-    Reference,
-};
+use stdweb::{unstable::TryFrom, Reference};
 
 pub fn run<'a>(creep: &'a Creep) -> Task<'a> {
     trace!("Running repairer {}", creep.name());
@@ -86,4 +83,3 @@ fn find_repair_target<'a>(creep: &'a Creep) -> Option<Reference> {
         .map_err(|e| warn!("Failed to convert find repair target {:?}", e))
         .ok()
 }
-
