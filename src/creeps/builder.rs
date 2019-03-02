@@ -18,6 +18,10 @@ pub fn run<'a>(creep: &'a Creep) -> Task<'a> {
         Task::new(move |_| harvest(creep)),
         Task::new(move |_| attempt_build(creep)),
         // If nothing can be built
+        Task::new(move |_| {
+            creep.memory().del("target");
+            Ok(())
+        }),
         Task::new(move |_| repairer::attempt_repair(creep)),
         Task::new(move |_| upgrader::attempt_upgrade(creep)),
     ];
@@ -64,7 +68,6 @@ fn get_build_target(creep: &Creep) -> Option<ConstructionSite> {
         .ok()?
         .map(|id| get_object_typed(id.as_str()))
         .ok_or_else(|| {
-            creep.memory().del("target");
             creep
                 .pos()
                 .find_closest_by_range(find::MY_CONSTRUCTION_SITES)
@@ -77,3 +80,4 @@ fn get_build_target(creep: &Creep) -> Option<ConstructionSite> {
         .ok()?;
     target.ok()?
 }
+
