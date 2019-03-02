@@ -1,7 +1,7 @@
 //! Move resources
 //!
 use super::super::bt::*;
-use super::{move_to, repairer, upgrader};
+use super::move_to;
 use screeps::{
     constants::ResourceType,
     game::get_object_erased,
@@ -23,9 +23,6 @@ pub fn run<'a>(creep: &'a Creep) -> Task<'a> {
         Task::new(move |state| attempt_unload(state, creep)),
         Task::new(move |_| get_energy(creep)),
         Task::new(move |state| attempt_unload(state, creep)),
-        // Fallback
-        Task::new(move |_| repairer::attempt_repair(creep)),
-        Task::new(move |_| upgrader::attempt_upgrade(creep)),
     ];
 
     let tree = Control::Sequence(tasks);
@@ -203,3 +200,4 @@ fn find_container<'a>(creep: &'a Creep) -> Option<Reference> {
     let result = result.try_into().unwrap_or_else(|_| None);
     result
 }
+
