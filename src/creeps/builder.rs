@@ -18,11 +18,11 @@ pub fn run<'a>(creep: &'a Creep) -> Task<'a> {
         Task::new(move |_| harvest(creep)),
         Task::new(move |_| attempt_build(creep)),
         // If nothing can be built
+        Task::new(move |_| repairer::attempt_repair(creep)),
         Task::new(move |_| {
             creep.memory().del("target");
-            Ok(())
+            Err("continue".into())
         }),
-        Task::new(move |_| repairer::attempt_repair(creep)),
         Task::new(move |_| upgrader::attempt_upgrade(creep)),
     ];
 
