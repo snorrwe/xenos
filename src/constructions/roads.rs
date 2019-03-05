@@ -1,7 +1,7 @@
 use super::*;
 use screeps::{
-    constants::StructureType,
-    objects::{Room, RoomPosition},
+    constants::{find, StructureType},
+    objects::{Room, RoomPosition, StructureProperties},
     ReturnCode,
 };
 use stdweb::unstable::TryFrom;
@@ -9,13 +9,7 @@ use stdweb::unstable::TryFrom;
 pub fn build_roads<'a>(room: &'a Room) -> ExecutionResult {
     trace!("Building roads in room {}", room.name());
 
-    let rcl = room.controller().map(|c| c.level()).unwrap_or(0);
-    if rcl < 3 {
-        return Err(format!(
-            "controller is not advanced enough to warrant road construction in room {}",
-            room.name()
-        ));
-    }
+    can_continue_building(room)?;
 
     let targets = js! {
         const room = @{room};
@@ -40,6 +34,24 @@ pub fn build_roads<'a>(room: &'a Room) -> ExecutionResult {
     let mut targets = targets.into_iter();
     let center = targets.next().expect("oops");
     targets.try_for_each(|pos| connect(&center, &pos, room))
+}
+
+fn can_continue_building(room: &Room) -> ExecutionResult {
+    let rcl = room.controller().map(|c| c.level()).unwrap_or(0);
+    if rcl < 3 {
+        return Err(format!(
+            "controller is not advanced enough to warrant road construction in room {}",
+            room.name()
+        ));
+    }
+    let has_tower = room
+        .find(find::STRUCTURES)
+        .into_iter()
+        .any(|s| s.structure_type() == StructureType::Tower);
+    if !has_tower {
+        return Err(format!("Room {} does not have a Tower yet", room.name()));
+    };
+    Ok(())
 }
 
 fn connect(pos0: &RoomPosition, pos1: &RoomPosition, room: &Room) -> ExecutionResult {
@@ -81,3 +93,4 @@ fn connect(pos0: &RoomPosition, pos1: &RoomPosition, room: &Room) -> ExecutionRe
         }
     })
 }
+

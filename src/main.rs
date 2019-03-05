@@ -49,17 +49,16 @@ fn main() {
                 if (error.stack) {
                     console_error("stack trace:", error.stack);
                 }
-                // console_error("resetting VM next tick.");
-                // TODO test if skipping cleanup affects state
-                // Theory: the VM is reset every so often so it should not be a hude issue
-                //
+                console_error("resetting VM next tick.");
+
                 // reset the VM since we don't know if everything was cleaned up and don't
                 // want an inconsistent state.
-                // module.exports.loop = function() {
-                //     __initialize(new WebAssembly.Module(require("xenos_bg")), false);
-                //     module.exports.loop();
-                // }
+                module.exports.loop = function() {
+                    __initialize(new WebAssembly.Module(require("xenos_bg")), false);
+                    module.exports.loop();
+                }
             }
         }
     }
 }
+
