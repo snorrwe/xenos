@@ -106,7 +106,9 @@ fn find_repair_target<'a>(tower: &'a StructureTower) -> Option<String> {
     let result = js! {
         const room = @{room};
         const candidates = room.find(FIND_STRUCTURES, {
-            filter: (s) => s.structureType != STRUCTURE_ROAD && s.hits < s.hitsMax
+            filter: (s) => s.structureType != STRUCTURE_ROAD
+                        && s.structureType != STRUCTURE_WALL
+                        && s.hits < s.hitsMax
         });
         return candidates[0] && candidates[0].id;
     };
