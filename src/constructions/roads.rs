@@ -16,8 +16,10 @@ pub fn build_roads<'a>(room: &'a Room) -> ExecutionResult {
         const targets = [
             ...room.find(FIND_MY_SPAWNS),
             ...room.find(FIND_MY_STRUCTURES, {
-                filter: (s) => s.structureType != STRUCTURE_ROAD
+                filter: (s) => s
+                            && s.structureType != STRUCTURE_ROAD
                             && s.structureType != STRUCTURE_WALL
+                            && s.structureType != STRUCTURE_RAMPART
             }),
             ...room.find(FIND_SOURCES)
         ];
@@ -65,10 +67,8 @@ fn connect(pos0: &RoomPosition, pos1: &RoomPosition, room: &Room) -> ExecutionRe
     );
 
     let path = js! {
-        const pos0 = @{pos0};
-        const pos1 = @{pos1};
         const room = @{room};
-        const path = room.findPath(pos0, pos1, {
+        const path = room.findPath(@{pos0}, @{pos1}, {
             ignoreCreeps: true,
             plainCost: 1,
             swampCost: 2,
