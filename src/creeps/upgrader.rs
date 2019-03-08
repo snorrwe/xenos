@@ -25,22 +25,22 @@ pub fn attempt_upgrade<'a>(creep: &'a Creep) -> ExecutionResult {
     }
     if creep.carry_total() == 0 {
         creep.memory().set("loading", true);
-        Err("empty".into())
-    } else {
-        let controller = creep.room().controller().ok_or_else(|| {
-            let error = format!("Creep has no access to a controller in the room!");
+        Err("empty".to_string())?;
+    }
+    let controller = creep.room().controller().ok_or_else(|| {
+        let error = format!("Creep has no access to a controller in the room!");
+        error!("{}", error);
+        error
+    })?;
+    let res = creep.upgrade_controller(&controller);
+    match res {
+        ReturnCode::Ok => Ok(()),
+        ReturnCode::NotInRange => move_to(creep, &controller),
+        _ => {
+            let error = format!("Failed to upgrade controller {:?}", res);
             error!("{}", error);
-            error
-        })?;
-        let res = creep.upgrade_controller(&controller);
-        match res {
-            ReturnCode::Ok => Ok(()),
-            ReturnCode::NotInRange => move_to(creep, &controller),
-            _ => {
-                let error = format!("Failed to upgrade controller {:?}", res);
-                error!("{}", error);
-                Err(error)
-            }
+            Err(error)
         }
     }
 }
+

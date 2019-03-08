@@ -116,41 +116,44 @@ pub fn get_energy<'a>(state: &'a mut GameState, creep: &'a Creep) -> ExecutionRe
     if creep.carry_total() == creep.carry_capacity() {
         creep.memory().set("loading", false);
         creep.memory().del("target");
-        Err("full".into())
-    } else {
-        let target = creep
-            .memory()
-            .string("target")
-            .map_err(|e| {
-                error!("Failed to read target {:?}", e);
-                "error in reading target".to_string()
-            })?
-            .map(|id| get_object_erased(id.as_str()))
-            .unwrap_or_else(|| {
-                find_available_energy(creep).map(|o| {
-                    js! {
-                        @{creep}.memory.target = @{&o}.id;
-                    };
-                    o
-                })
-            })
-            .ok_or_else(|| "Can't find energy source".to_string())?;
-
-        let tasks = vec![
-            Task::new(|_| try_withdraw::<Tombstone>(creep, &target)),
-            Task::new(|_| try_withdraw::<StructureStorage>(creep, &target)),
-            Task::new(|_| try_withdraw::<StructureContainer>(creep, &target)),
-            Task::new(|_| {
-                creep.memory().del("target");
-                Ok(())
-            }),
-        ];
-        let tree = Control::Sequence(tasks);
-        tree.tick(state).map_err(|_| {
-            creep.memory().del("target");
-            "can't withdraw".into()
-        })
+        Err("full".to_string())?;
     }
+
+    let target = creep
+        .memory()
+        .string("target")
+        .map_err(|e| {
+            error!("Failed to read target {:?}", e);
+            "error in reading target".to_string()
+        })?
+        .map(|id| get_object_erased(id.as_str()))
+        .unwrap_or_else(|| {
+            find_available_energy(creep).map(|o| {
+                js! {
+                    @{creep}.memory.target = @{&o}.id;
+                };
+                o
+            })
+        })
+        .ok_or_else(|| {
+            creep.memory().del("target");
+            "Can't find energy source".to_string()
+        })?;
+
+    let tasks = vec![
+        Task::new(|_| try_withdraw::<Tombstone>(creep, &target)),
+        Task::new(|_| try_withdraw::<StructureStorage>(creep, &target)),
+        Task::new(|_| try_withdraw::<StructureContainer>(creep, &target)),
+        Task::new(|_| {
+            creep.memory().del("target");
+            Ok(())
+        }),
+    ];
+    let tree = Control::Sequence(tasks);
+    tree.tick(state).map_err(|_| {
+        creep.memory().del("target");
+        "can't withdraw".into()
+    })
 }
 
 fn try_withdraw<'a, T>(creep: &'a Creep, target: &'a RoomObject) -> ExecutionResult
