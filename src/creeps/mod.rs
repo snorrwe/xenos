@@ -10,7 +10,11 @@ mod upgrader;
 use super::bt::*;
 use screeps::{
     constants::ResourceType,
-    objects::{Creep, StructureContainer, StructureStorage, Tombstone, Withdrawable},
+    game::get_object_erased,
+    objects::{
+        Creep, RoomObject, RoomObjectProperties, StructureContainer, StructureStorage, Tombstone,
+        Withdrawable,
+    },
     prelude::*,
     ReturnCode,
 };
@@ -113,12 +117,32 @@ pub fn get_energy<'a>(state: &'a mut GameState, creep: &'a Creep) -> ExecutionRe
         creep.memory().set("loading", false);
         Err("full".into())
     } else {
-        let target = find_available_energy(creep).ok_or_else(|| String::new())?;
+        let target = creep
+            .memory()
+            .string("target")
+            .map_err(|e| {
+                error!("Failed to read target {:?}", e);
+                "error in reading target".to_string()
+            })?
+            .map(|id| get_object_erased(id.as_str()))
+            .unwrap_or_else(|| {
+                find_available_energy(creep).map(|o| {
+                    js! {
+                        @{creep}.memory.target = @{&o}.id;
+                    };
+                    o
+                })
+            })
+            .ok_or_else(|| "Can't find energy source".to_string())?;
 
         let tasks = vec![
             Task::new(|_| try_withdraw::<Tombstone>(creep, &target)),
             Task::new(|_| try_withdraw::<StructureStorage>(creep, &target)),
             Task::new(|_| try_withdraw::<StructureContainer>(creep, &target)),
+            Task::new(|_| {
+                creep.memory().del("target");
+                Ok(())
+            }),
         ];
         let tree = Control::Sequence(tasks);
         tree.tick(state).map_err(|_| {
@@ -128,7 +152,7 @@ pub fn get_energy<'a>(state: &'a mut GameState, creep: &'a Creep) -> ExecutionRe
     }
 }
 
-fn try_withdraw<'a, T>(creep: &'a Creep, target: &'a Reference) -> ExecutionResult
+fn try_withdraw<'a, T>(creep: &'a Creep, target: &'a RoomObject) -> ExecutionResult
 where
     T: Withdrawable + screeps::traits::TryFrom<&'a Reference>,
 {
@@ -143,7 +167,8 @@ where
     if creep.pos().is_near_to(target) {
         let r = creep.withdraw_all(target, ResourceType::Energy);
         if r != ReturnCode::Ok {
-            debug!("couldn't unload: {:?}", r);
+            debug!("couldn't withdraw: {:?}", r);
+            return Err("couldn't withdraw".into());
         }
     } else {
         move_to(creep, target)?;
@@ -151,9 +176,8 @@ where
     Ok(())
 }
 
-fn find_available_energy<'a>(creep: &'a Creep) -> Option<Reference> {
+fn find_available_energy<'a>(creep: &'a Creep) -> Option<RoomObject> {
     trace!("Finding new withdraw target");
-    // screeps api is bugged at the moment and FIND_STRUCTURES panics
     let result = js! {
         const creep = @{creep};
         const energy = creep.pos.findClosestByRange(FIND_TOMBSTONES, {
@@ -189,3 +213,4 @@ pub fn harvest<'a>(creep: &'a Creep) -> ExecutionResult {
         harvester::attempt_harvest(creep, Some("target"))
     }
 }
+
