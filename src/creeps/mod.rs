@@ -115,6 +115,7 @@ pub fn get_energy<'a>(state: &'a mut GameState, creep: &'a Creep) -> ExecutionRe
 
     if creep.carry_total() == creep.carry_capacity() {
         creep.memory().set("loading", false);
+        creep.memory().del("target");
         Err("full".into())
     } else {
         let target = creep
