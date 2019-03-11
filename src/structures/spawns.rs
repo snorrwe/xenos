@@ -44,11 +44,15 @@ fn spawn_creep(spawn: &StructureSpawn, role: &str) -> ExecutionResult {
     let spawn_config = spawn_config_by_role(role);
 
     let mut body = spawn_config.basic_body;
+    let max_len = spawn_config.body_max;
 
     if !spawn_config.body_extension.is_empty() {
         // Limit number of tries
         for _ in 0..10 {
             let spawn_options = SpawnOptions::new().dry_run(true);
+            if body.len() >= max_len.unwrap_or(body.len() + 1) {
+                break;
+            }
             let mut b = body.clone();
             b.extend(spawn_config.body_extension.iter());
             let result = spawn.spawn_creep_with_options(&b, "___test_name", &spawn_options);
@@ -85,3 +89,4 @@ fn spawn_creep(spawn: &StructureSpawn, role: &str) -> ExecutionResult {
     }
     Ok(())
 }
+

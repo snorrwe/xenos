@@ -10,6 +10,7 @@ use std::collections::HashMap;
 pub struct SpawnConfig {
     pub basic_body: Vec<Part>,
     pub body_extension: Vec<Part>,
+    pub body_max: Option<usize>,
 }
 
 /// Get the next target role in the given room
@@ -116,6 +117,7 @@ pub fn spawn_config_by_role(role: &str) -> SpawnConfig {
     SpawnConfig {
         basic_body: basic_role_parts(role),
         body_extension: role_part_scale(role),
+        body_max: role_part_max(role),
     }
 }
 
@@ -123,7 +125,14 @@ pub fn spawn_config_by_role(role: &str) -> SpawnConfig {
 fn basic_role_parts<'a>(role: &'a str) -> Vec<Part> {
     match role {
         "harvester" => vec![Part::Move, Part::Work, Part::Carry, Part::Work],
-        "conqueror" => vec![Part::Move, Part::Work, Part::Carry, Part::Claim, Part::Move],
+        "conqueror" => vec![
+            Part::Move,
+            Part::Work,
+            Part::Carry,
+            Part::Claim,
+            Part::Move,
+            Part::Move,
+        ],
         "gofer" => vec![Part::Move, Part::Carry],
         "upgrader" | "builder" | "repairer" => {
             vec![Part::Move, Part::Move, Part::Carry, Part::Work]
@@ -135,9 +144,19 @@ fn basic_role_parts<'a>(role: &'a str) -> Vec<Part> {
 /// Intended parts to be appended to 'role_parts'
 fn role_part_scale<'a>(role: &'a str) -> Vec<Part> {
     match role {
-        "harvester" => vec![Part::Work, Part::Work, Part::Work, Part::Work, Part::Move],
+        "harvester" => vec![Part::Work],
         "conqueror" => vec![],
         "gofer" => vec![Part::Move, Part::Carry],
         _ => vec![Part::Move, Part::Carry, Part::Work],
     }
 }
+
+/// The largest a creep of role `role` may be
+fn role_part_max(role: &str) -> Option<usize> {
+    match role {
+        "harvester" => Some(8),
+        "gofer" | "builder" | "repairer" | "upgrader" => Some(18),
+        _ => None,
+    }
+}
+
