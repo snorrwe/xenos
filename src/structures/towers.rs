@@ -1,6 +1,6 @@
 use super::bt::*;
 use screeps::{
-    objects::{CanStoreEnergy, HasId, Room, RoomObjectProperties, StructureTower},
+    objects::{CanStoreEnergy, HasId, Room, RoomObjectProperties, StructureTower, Structure},
     ReturnCode,
 };
 use stdweb::{
@@ -76,19 +76,12 @@ pub fn attempt_repair<'a>(tower: &'a StructureTower) -> ExecutionResult {
         debug!("{}", error);
         error
     })?;
-    trace!("Got repair target {:?}", target);
+    trace!("Got repair target {:?}", target.id());
     repair(tower, &target)
 }
 
-fn repair<'a>(tower: &'a StructureTower, target: &'a String) -> ExecutionResult {
-    let res = js! {
-        const tower = @{tower};
-        let target = @{target};
-        target = Game.getObjectById(target);
-        let result = tower.repair(target);
-        return result;
-    };
-    let res = ReturnCode::try_from(res).map_err(|e| format!("Expected ReturnCode {:?}", e))?;
+fn repair<'a>(tower: &'a StructureTower, target: &'a Structure) -> ExecutionResult {
+    let res = tower.repair(target);
     if res == ReturnCode::Ok {
         Ok(())
     } else {
@@ -97,7 +90,7 @@ fn repair<'a>(tower: &'a StructureTower, target: &'a String) -> ExecutionResult 
     }
 }
 
-fn find_repair_target<'a>(tower: &'a StructureTower) -> Option<String> {
+fn find_repair_target<'a>(tower: &'a StructureTower) -> Option<Structure> {
     trace!("Finding repair target");
 
     let room = tower.room();
@@ -106,9 +99,9 @@ fn find_repair_target<'a>(tower: &'a StructureTower) -> Option<String> {
         const candidates = room.find(FIND_STRUCTURES, {
             filter: (s) => s.hits < s.hitsMax
         });
-        return candidates[0] && candidates[0].id;
+        return candidates[0];
     };
 
-    String::try_from(result).ok()
+    Structure::try_from(result).ok()
 }
 
