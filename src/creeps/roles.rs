@@ -156,7 +156,7 @@ fn role_part_max(role: &str) -> Option<usize> {
     match role {
         "harvester" => Some(8),
         "gofer" => Some(18),
-        "builder" | "repairer" | "upgrader" => Some(32),
+        "builder" | "repairer" | "upgrader" => Some(24),
         _ => None,
     }
 }

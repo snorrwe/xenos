@@ -80,7 +80,6 @@ pub fn attempt_repair<'a>(tower: &'a StructureTower) -> ExecutionResult {
     repair(tower, &target)
 }
 
-// TODO: return Structure once the Structure bug has been fixed in screeps api
 fn repair<'a>(tower: &'a StructureTower, target: &'a String) -> ExecutionResult {
     let res = js! {
         const tower = @{tower};
@@ -98,7 +97,6 @@ fn repair<'a>(tower: &'a StructureTower, target: &'a String) -> ExecutionResult 
     }
 }
 
-// TODO: return Structure once the Structure bug has been fixed in screeps api
 fn find_repair_target<'a>(tower: &'a StructureTower) -> Option<String> {
     trace!("Finding repair target");
 
@@ -106,12 +104,11 @@ fn find_repair_target<'a>(tower: &'a StructureTower) -> Option<String> {
     let result = js! {
         const room = @{room};
         const candidates = room.find(FIND_STRUCTURES, {
-            filter: (s) => s.structureType != STRUCTURE_ROAD
-                        && s.structureType != STRUCTURE_WALL
-                        && s.hits < s.hitsMax
+            filter: (s) => s.hits < s.hitsMax
         });
         return candidates[0] && candidates[0].id;
     };
 
     String::try_from(result).ok()
 }
+
