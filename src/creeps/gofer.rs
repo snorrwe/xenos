@@ -213,10 +213,10 @@ fn find_container<'a>(creep: &'a Creep) -> Option<StructureContainer> {
 }
 
 fn read_target_container(creep: &Creep) -> Option<StructureContainer> {
-    let id = creep.memory().string("target").ok()?;
-    if let Some(id) = id {
-        return get_object_typed(id.as_str()).ok().unwrap_or(None);
-    }
-    None
+    creep
+        .memory()
+        .string("target")
+        .ok()?
+        .and_then(|id| get_object_typed(id.as_str()).ok().unwrap_or(None))
 }
 
