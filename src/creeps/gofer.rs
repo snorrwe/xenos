@@ -178,8 +178,12 @@ fn withdraw<'a>(creep: &'a Creep, target: &'a StructureContainer) -> ExecutionRe
     if creep.pos().is_near_to(target) {
         let r = creep.withdraw_all(target, ResourceType::Energy);
         if r != ReturnCode::Ok {
-            debug!("couldn't unload: {:?}", r);
+            debug!("couldn't withdraw: {:?}", r);
+            Err("can't withdraw")?;
         }
+    } else if target.store_total() == 0 {
+        creep.memory().del("target");
+        Err("Target is empty")?;
     } else {
         move_to(creep, target)?;
     }
@@ -187,26 +191,32 @@ fn withdraw<'a>(creep: &'a Creep, target: &'a StructureContainer) -> ExecutionRe
 }
 
 fn find_container<'a>(creep: &'a Creep) -> Option<StructureContainer> {
-    trace!("Finding new withdraw target");
+    read_target_container(creep).or_else(|| {
+        trace!("Finding new withdraw target");
+        creep.memory().del("target");
+        let result = js! {
+            let creep = @{creep};
+            const container = creep.pos.findClosestByRange(FIND_STRUCTURES, {
+                filter: (i) => i.structureType == STRUCTURE_CONTAINER
+                            && i.store[RESOURCE_ENERGY] > 0
+            });
+            return container;
+        };
+        result
+            .try_into()
+            .unwrap_or(None)
+            .map(|container: StructureContainer| {
+                creep.memory().set("target", container.id());
+                container
+            })
+    })
+}
+
+fn read_target_container(creep: &Creep) -> Option<StructureContainer> {
     let id = creep.memory().string("target").ok()?;
     if let Some(id) = id {
         return get_object_typed(id.as_str()).ok().unwrap_or(None);
     }
-    let result = js! {
-        let creep = @{creep};
-        const container = creep.pos.findClosestByRange(FIND_STRUCTURES, {
-            filter: (i) => i.structureType == STRUCTURE_CONTAINER &&
-                i.store[RESOURCE_ENERGY] > 0
-        });
-        return container;
-    };
-    let result = result
-        .try_into()
-        .unwrap_or(None)
-        .map(|container: StructureContainer| {
-            creep.memory().set("target", container.id());
-            container
-        });
-    result
+    None
 }
 
