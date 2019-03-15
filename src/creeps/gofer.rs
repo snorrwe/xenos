@@ -4,7 +4,7 @@ use super::super::bt::*;
 use super::move_to;
 use screeps::{
     constants::ResourceType,
-    game::get_object_erased,
+    game::{get_object_erased, get_object_typed},
     objects::{
         Creep, StructureContainer, StructureExtension, StructureSpawn, StructureStorage,
         StructureTower, Transferable,
@@ -167,10 +167,10 @@ pub fn get_energy<'a>(creep: &'a Creep) -> ExecutionResult {
         Err("full".into())
     } else {
         let target = find_container(creep).ok_or_else(|| String::new())?;
-
-        let target = StructureContainer::try_from(target.as_ref())
-            .map_err(|e| format!("Failed to convert target to container {:?}", e))?;
-        withdraw(creep, &target)
+        withdraw(creep, &target).map_err(|e| {
+            creep.memory().del("target");
+            e
+        })
     }
 }
 
@@ -186,9 +186,12 @@ fn withdraw<'a>(creep: &'a Creep, target: &'a StructureContainer) -> ExecutionRe
     Ok(())
 }
 
-fn find_container<'a>(creep: &'a Creep) -> Option<Reference> {
+fn find_container<'a>(creep: &'a Creep) -> Option<StructureContainer> {
     trace!("Finding new withdraw target");
-    // screeps api is bugged at the moment and FIND_STRUCTURES panics
+    let id = creep.memory().string("target").ok()?;
+    if let Some(id) = id {
+        return get_object_typed(id.as_str()).ok().unwrap_or(None);
+    }
     let result = js! {
         let creep = @{creep};
         const container = creep.pos.findClosestByRange(FIND_STRUCTURES, {
@@ -197,7 +200,13 @@ fn find_container<'a>(creep: &'a Creep) -> Option<Reference> {
         });
         return container;
     };
-    let result = result.try_into().unwrap_or_else(|_| None);
+    let result = result
+        .try_into()
+        .unwrap_or(None)
+        .map(|container: StructureContainer| {
+            creep.memory().set("target", container.id());
+            container
+        });
     result
 }
 
