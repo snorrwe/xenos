@@ -103,9 +103,9 @@ pub fn target_number_of_role_in_room<'a>(role: &'a str, room: &'a Room) -> i8 {
         .filter(|s| s.structure_type() == StructureType::Container)
         .count() as i8;
     match role {
-        "upgrader" => 2,
+        "upgrader" => 1,
         "harvester" => n_sources,
-        "builder" => 2,
+        "builder" => 1,
         "repairer" => 0, // Disable repairers for now
         "conqueror" => n_flags,
         "gofer" => n_sources.min(n_containers),
