@@ -1,6 +1,6 @@
 //! Takes Rooms
 //!
-use super::{super::bt::*, builder, get_energy, harvester::attempt_harvest, move_to};
+use super::{super::bt::*, builder, harvester::attempt_harvest, move_to};
 use screeps::{game, objects::Creep, prelude::*, ReturnCode};
 use stdweb::unstable::TryInto;
 
@@ -12,12 +12,26 @@ pub fn run<'a>(creep: &'a Creep) -> Task<'a> {
         Task::new(move |_| claim_target(creep)),
         Task::new(move |_| set_target(creep)),
         Task::new(move |_| builder::attempt_build(creep)),
-        Task::new(move |state| get_energy(state, creep)),
         Task::new(move |_| attempt_harvest(creep, None)),
+        Task::new(move |_| reset_target(creep)),
     ];
 
     let tree = Control::Sequence(tasks);
     Task::new(move |state| tree.tick(state))
+}
+
+fn reset_target<'a>(creep: &'a Creep) -> ExecutionResult {
+    trace!("Resetting conqueror target");
+    if !creep.memory().bool("loading") {
+        Err("not loading")?;
+    }
+
+    if creep.carry_total() == creep.carry_capacity() {
+        creep.memory().set("loading", false);
+        creep.memory().del("target");
+        Err("full")?;
+    }
+    Ok(())
 }
 
 fn claim_target<'a>(creep: &'a Creep) -> ExecutionResult {
