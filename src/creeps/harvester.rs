@@ -146,7 +146,7 @@ where
         let r = creep.transfer_all(target, ResourceType::Energy);
         if r != ReturnCode::Ok {
             debug!("couldn't unload: {:?}", r);
-            return Err(String::new());
+            Err("")?;
         }
     } else {
         move_to(creep, target)?;
@@ -165,7 +165,7 @@ pub fn attempt_harvest<'a>(creep: &'a Creep, target_memory: Option<&'a str>) -> 
     if carry_total == carry_cap {
         trace!("Full");
         creep.memory().del(target_memory);
-        return Err(String::new());
+        Err("")?;
     }
 
     let source =

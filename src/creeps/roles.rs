@@ -76,7 +76,6 @@ pub fn count_roles_in_room<'a>(room: &'a Room) -> HashMap<String, i8> {
         ("builder".into(), 0),
         ("repairer".into(), 0),
         ("gofer".into(), 0),
-        ("conqueror".into(), 0),
     ]
     .into_iter()
     .cloned()
@@ -87,9 +86,18 @@ pub fn count_roles_in_room<'a>(room: &'a Room) -> HashMap<String, i8> {
         .for_each(|c| {
             let role = c.memory().string("role").unwrap_or(None);
             if let Some(role) = role {
-                *result.entry(role).or_insert(0) += 1;
+                result.entry(role).and_modify(|c| *c += 1).or_insert(1);
             }
         });
+    // Global conqueror count
+    let conqueror_count = game::creeps::values()
+        .into_iter()
+        .filter(|c| c.memory().string("role").unwrap_or(None) == Some("conqueror".into()))
+        .count() as i8;
+    result
+        .entry("conqueror".into())
+        .and_modify(|c| *c = conqueror_count)
+        .or_insert(conqueror_count);
     result
 }
 
@@ -107,7 +115,7 @@ pub fn target_number_of_role_in_room<'a>(role: &'a str, room: &'a Room) -> i8 {
         "harvester" => n_sources,
         "builder" => 1,
         "repairer" => 0, // Disable repairers for now
-        "conqueror" => n_flags,
+        "conqueror" => n_flags * 2, // TODO: make the closest room spawn it
         "gofer" => n_sources.min(n_containers),
         _ => unimplemented!(),
     }
@@ -155,7 +163,7 @@ fn role_part_scale<'a>(role: &'a str) -> Vec<Part> {
 fn role_part_max(role: &str) -> Option<usize> {
     match role {
         "harvester" => Some(8),
-        "gofer" => Some(18),
+        "gofer" => Some(24),
         "builder" | "repairer" | "upgrader" => Some(24),
         _ => None,
     }
