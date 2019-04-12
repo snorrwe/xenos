@@ -219,4 +219,3 @@ fn read_target_container(creep: &Creep) -> Option<StructureContainer> {
         .ok()?
         .and_then(|id| get_object_typed(id.as_str()).ok().unwrap_or(None))
 }
-

@@ -80,4 +80,3 @@ fn get_build_target(creep: &Creep) -> Option<ConstructionSite> {
         .ok()?;
     target.ok()?
 }
-

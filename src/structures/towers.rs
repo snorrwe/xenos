@@ -94,4 +94,3 @@ fn find_repair_target<'a>(tower: &'a StructureTower) -> Option<Structure> {
             .unwrap_or(false)
     })
 }
-

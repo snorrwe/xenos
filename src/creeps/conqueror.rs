@@ -101,4 +101,3 @@ fn set_target<'a>(creep: &'a Creep) -> ExecutionResult {
 
     Ok(())
 }
-

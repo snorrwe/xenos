@@ -89,4 +89,3 @@ fn spawn_creep(spawn: &StructureSpawn, role: &str) -> ExecutionResult {
     }
     Ok(())
 }
-

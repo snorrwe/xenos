@@ -114,7 +114,7 @@ pub fn target_number_of_role_in_room<'a>(role: &'a str, room: &'a Room) -> i8 {
         "upgrader" => 1,
         "harvester" => n_sources,
         "builder" => 1,
-        "repairer" => 0, // Disable repairers for now
+        "repairer" => 0,            // Disable repairers for now
         "conqueror" => n_flags * 2, // TODO: make the closest room spawn it
         "gofer" => n_sources.min(n_containers),
         _ => unimplemented!(),
@@ -168,4 +168,3 @@ fn role_part_max(role: &str) -> Option<usize> {
         _ => None,
     }
 }
-
