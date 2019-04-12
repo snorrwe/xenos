@@ -19,10 +19,8 @@ impl<'a> Task<'a> {
         self.required_bucket = Some(bucket);
         self
     }
-}
 
-impl<'a> BtNode for Task<'a> {
-    fn tick(&self, state: &mut GameState) -> ExecutionResult {
+    fn assert_pre_requisites(&self, state: &mut GameState) -> ExecutionResult {
         if self
             .required_bucket
             .map(|rb| state.cpu_bucket.map(|cb| cb < rb).unwrap_or(false))
@@ -34,6 +32,13 @@ impl<'a> BtNode for Task<'a> {
             );
             Err("Task bucket requirement not met")?;
         }
+        Ok(())
+    }
+}
+
+impl<'a> BtNode for Task<'a> {
+    fn tick(&self, state: &mut GameState) -> ExecutionResult {
+        self.assert_pre_requisites(state)?;
         (*self.task)(state)
     }
 }
