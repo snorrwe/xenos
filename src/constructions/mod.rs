@@ -31,16 +31,18 @@ pub fn task<'a>() -> Task<'a> {
     let time = screeps::game::time();
 
     Task::new(move |_| {
-        screeps::game::rooms::values()
+        let rooms = screeps::game::rooms::values();
+        let len = rooms.len() as u32;
+        rooms
             .into_iter()
             .enumerate()
             // Do not update all rooms in the same tick to hopefully reduce cpu load of contructions in
             // a single tick
-            .filter(|(i, _)| (time + *i as u32) % 16 == 0)
+            .filter(|(i, _)| (time + *i as u32) % (len * 2) == 0)
             .for_each(|(_, room)| manage_room(&room).unwrap_or(()));
         Ok(())
     })
-    .with_required_bucket(1000)
+    .with_required_bucket(3000)
 }
 
 fn manage_room<'a>(room: &'a Room) -> ExecutionResult {
@@ -182,3 +184,4 @@ pub fn place_construction_sites<'a>(
 
     Ok(())
 }
+
