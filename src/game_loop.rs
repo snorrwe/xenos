@@ -12,13 +12,15 @@ pub fn game_loop() {
 
     // screeps api `bucket` method panics in simulation
     let bucket = js! {
-        let bucket = Game.cpu.bucket;
-        return bucket != null ? bucket : -1;
+        return Game.cpu.bucket;
     };
 
-    let bucket = i32::try_from(bucket).expect("Expected bucket to be a number");
+    let bucket = Option::<i32>::try_from(bucket).expect("Expected bucket to be a number");
 
-    let mut state = GameState { cpu_bucket: bucket };
+    let mut state = GameState {
+        cpu_bucket: bucket,
+        conqueror_count: None,
+    };
 
     creeps::task()
         .tick(&mut state)
@@ -45,7 +47,7 @@ pub fn game_loop() {
     info!(
         "---------------- Done! CPU: {:.4} Bucket: {} ----------------",
         screeps::game::cpu::get_used(),
-        bucket
+        bucket.unwrap_or(-1)
     );
 }
 
@@ -73,3 +75,4 @@ fn cleanup_memory() -> Result<(), Box<::std::error::Error>> {
 
     Ok(())
 }
+

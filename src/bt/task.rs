@@ -25,7 +25,7 @@ impl<'a> BtNode for Task<'a> {
     fn tick(&self, state: &mut GameState) -> ExecutionResult {
         if self
             .required_bucket
-            .map(|rb| state.cpu_bucket < rb)
+            .map(|rb| state.cpu_bucket.map(|cb| cb < rb).unwrap_or(false))
             .unwrap_or(false)
         {
             debug!(
@@ -49,3 +49,4 @@ impl<'a> TaskNew<'a> for Task<'a> {
         }
     }
 }
+

@@ -36,8 +36,8 @@ fn run_creep<'a>(state: &mut GameState, creep: Creep) -> ExecutionResult {
     }
     let tasks = vec![
         Task::new(|state| run_role(state, &creep)),
-        Task::new(|_| {
-            assign_role(&creep)
+        Task::new(|state| {
+            assign_role(state, &creep)
                 .map(|_| {})
                 .ok_or_else(|| "Failed to find a role for creep".into())
         }),
@@ -46,7 +46,7 @@ fn run_creep<'a>(state: &mut GameState, creep: Creep) -> ExecutionResult {
     tree.tick(state)
 }
 
-fn assign_role<'a>(creep: &'a Creep) -> Option<String> {
+fn assign_role<'a>(state: &'a mut GameState, creep: &'a Creep) -> Option<String> {
     trace!("Assigning role to {}", creep.name());
 
     if creep.memory().string("role").ok().is_some() {
@@ -54,7 +54,7 @@ fn assign_role<'a>(creep: &'a Creep) -> Option<String> {
         return None;
     }
 
-    let result = roles::next_role(&creep.room()).or_else(|| {
+    let result = roles::next_role(state, &creep.room()).or_else(|| {
         debug!("Room is full");
         None
     })?;
@@ -214,3 +214,4 @@ pub fn harvest<'a>(creep: &'a Creep) -> ExecutionResult {
         harvester::attempt_harvest(creep, Some("target"))
     }
 }
+

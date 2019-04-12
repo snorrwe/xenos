@@ -9,7 +9,10 @@ pub use self::task::*;
 
 #[derive(Debug, Clone)]
 pub struct GameState {
-    pub cpu_bucket: i32,
+    /// CPU bucket available this tick
+    pub cpu_bucket: Option<i32>,
+    /// Lazily countable global conqueror creep count
+    pub conqueror_count: Option<i8>,
 }
 
 /// Result of a task

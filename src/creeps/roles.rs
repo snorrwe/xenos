@@ -14,8 +14,16 @@ pub struct SpawnConfig {
 }
 
 /// Get the next target role in the given room
-pub fn next_role<'a>(room: &'a Room) -> Option<String> {
-    let counts = count_roles_in_room(room);
+pub fn next_role<'a>(state: &'a mut GameState, room: &'a Room) -> Option<String> {
+    let mut counts = count_roles_in_room(room);
+    counts.entry("conqueror".into()).or_insert_with(|| {
+        state.conqueror_count.unwrap_or_else(|| {
+            // Lazily count conquerors
+            let count = count_conquerors();
+            state.conqueror_count = Some(count);
+            count
+        })
+    });
     counts.into_iter().fold(None, |result, (role, actual)| {
         let expected = target_number_of_role_in_room(role.as_str(), room);
         if expected <= actual {
@@ -86,16 +94,14 @@ pub fn count_roles_in_room<'a>(room: &'a Room) -> HashMap<String, i8> {
             result.entry(role).and_modify(|c| *c += 1).or_insert(1);
         }
     });
-    // Global conqueror count
-    let conqueror_count = game::creeps::values()
+    result
+}
+
+pub fn count_conquerors() -> i8 {
+    game::creeps::values()
         .into_iter()
         .filter(|c| c.memory().string("role").unwrap_or(None) == Some("conqueror".into()))
-        .count() as i8;
-    result
-        .entry("conqueror".into())
-        .and_modify(|c| *c = conqueror_count)
-        .or_insert(conqueror_count);
-    result
+        .count() as i8
 }
 
 /// Max number of creeps of a given role in the given room

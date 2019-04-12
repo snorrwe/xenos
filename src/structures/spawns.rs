@@ -10,23 +10,23 @@ use screeps::{
 
 /// Return the BehaviourTree that runs the spawns
 pub fn task<'a>() -> Task<'a> {
-    Task::new(move |_| {
+    Task::new(move |state| {
         screeps::game::spawns::values()
             .into_iter()
-            .for_each(|spawn| run_spawn(&spawn).unwrap_or(()));
+            .for_each(|spawn| run_spawn(state, &spawn).unwrap_or(()));
         Ok(())
     })
     .with_required_bucket(500)
 }
 
-fn run_spawn(spawn: &StructureSpawn) -> ExecutionResult {
+fn run_spawn(state: &mut GameState, spawn: &StructureSpawn) -> ExecutionResult {
     if game::time() % 8 != 0 {
         trace!("Waiting with spawn");
         return Ok(());
     }
     debug!("Running spawn {}", spawn.name());
 
-    let next_role = next_role(&spawn.room());
+    let next_role = next_role(state, &spawn.room());
 
     if next_role.is_none() {
         debug!("Skipping spawn due to overpopulation");
