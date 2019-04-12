@@ -57,6 +57,7 @@ fn find_enemy<'a>(room: &'a Room) -> Option<screeps::Creep> {
     room.find(find::HOSTILE_CREEPS).into_iter().next()
 }
 
+#[allow(dead_code)]
 pub fn attempt_repair<'a>(tower: &'a StructureTower) -> ExecutionResult {
     trace!("Repairing");
 
