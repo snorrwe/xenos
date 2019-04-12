@@ -2,7 +2,7 @@ use super::{super::bt::*, builder, conqueror, gofer, harvester, repairer, upgrad
 use screeps::{
     constants::{find, StructureType},
     game,
-    objects::{Creep, Room, RoomObjectProperties, StructureProperties},
+    objects::{Creep, Room, StructureProperties},
     Part,
 };
 use std::collections::HashMap;
@@ -80,15 +80,12 @@ pub fn count_roles_in_room<'a>(room: &'a Room) -> HashMap<String, i8> {
     .into_iter()
     .cloned()
     .collect();
-    game::creeps::values()
-        .into_iter()
-        .filter(|c| c.room().name() == room.name())
-        .for_each(|c| {
-            let role = c.memory().string("role").unwrap_or(None);
-            if let Some(role) = role {
-                result.entry(role).and_modify(|c| *c += 1).or_insert(1);
-            }
-        });
+    room.find(find::MY_CREEPS).into_iter().for_each(|c| {
+        let role = c.memory().string("role").unwrap_or(None);
+        if let Some(role) = role {
+            result.entry(role).and_modify(|c| *c += 1).or_insert(1);
+        }
+    });
     // Global conqueror count
     let conqueror_count = game::creeps::values()
         .into_iter()
@@ -168,3 +165,4 @@ fn role_part_max(role: &str) -> Option<usize> {
         _ => None,
     }
 }
+

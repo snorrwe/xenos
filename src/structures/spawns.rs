@@ -27,6 +27,7 @@ fn run_spawn(spawn: &StructureSpawn) -> ExecutionResult {
     debug!("Running spawn {}", spawn.name());
 
     let next_role = next_role(&spawn.room());
+
     if next_role.is_none() {
         debug!("Skipping spawn due to overpopulation");
         return Ok(());
@@ -90,3 +91,4 @@ fn spawn_creep(spawn: &StructureSpawn, role: &str) -> ExecutionResult {
     }
     Ok(())
 }
+
