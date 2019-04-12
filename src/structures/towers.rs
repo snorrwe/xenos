@@ -1,24 +1,23 @@
 use super::bt::*;
 use screeps::{
     constants::find,
+    game,
     objects::{CanStoreEnergy, HasId, Room, RoomObjectProperties, Structure, StructureTower},
     ReturnCode,
 };
-use stdweb::{unstable::TryInto, Value};
 
 /// Return the BehaviourTree that runs the spawns
 pub fn task<'a>() -> Task<'a> {
-    let structures = js! {
-        return Object.values(Game.structures).filter((s) => s.structureType == STRUCTURE_TOWER) || [];
-    };
-    let towers: Vec<Value> = structures.try_into().expect("brah");
-    let tasks = towers
-        .into_iter()
-        .map(move |t| t.try_into().expect("bro"))
-        .map(move |tower: StructureTower| Task::new(move |state| run_tower(state, &tower)))
-        .collect();
-    let tree = Control::All(tasks);
-    Task::new(move |state| tree.tick(state))
+    Task::new(move |state| {
+        game::structures::values()
+            .into_iter()
+            .filter_map(|s| match s {
+                Structure::Tower(t) => Some(t),
+                _ => None,
+            })
+            .for_each(move |tower| run_tower(state, &tower).unwrap_or(()));
+        Ok(())
+    })
 }
 
 fn run_tower<'a>(state: &'a mut GameState, tower: &'a StructureTower) -> ExecutionResult {
@@ -26,7 +25,8 @@ fn run_tower<'a>(state: &'a mut GameState, tower: &'a StructureTower) -> Executi
 
     let tasks = [
         Task::new(move |_| attempt_attack(tower)),
-        Task::new(move |_| attempt_repair(tower)),
+        // Disable repairing for now because of the high cpu cost
+        // Task::new(move |_| attempt_repair(tower)),
     ]
     .into_iter()
     .cloned()
@@ -54,9 +54,7 @@ fn attempt_attack<'a>(tower: &'a StructureTower) -> ExecutionResult {
 }
 
 fn find_enemy<'a>(room: &'a Room) -> Option<screeps::Creep> {
-    room.find(find::CREEPS)
-        .into_iter()
-        .find(|creep| !creep.my())
+    room.find(find::HOSTILE_CREEPS).into_iter().next()
 }
 
 pub fn attempt_repair<'a>(tower: &'a StructureTower) -> ExecutionResult {
@@ -94,3 +92,4 @@ fn find_repair_target<'a>(tower: &'a StructureTower) -> Option<Structure> {
             .unwrap_or(false)
     })
 }
+

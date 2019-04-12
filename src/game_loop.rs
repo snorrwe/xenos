@@ -12,16 +12,20 @@ pub fn game_loop() {
 
     let mut state = GameState {};
 
-    let tasks = vec![
-        spawns::task(),
-        creeps::task(),
-        towers::task(),
-        constructions::task(),
-    ];
-    let tree = Control::All(tasks);
-    let result = tree.tick(&mut state);
+    creeps::task()
+        .tick(&mut state)
+        .unwrap_or_else(|e| warn!("Failed to run creeps {:?}", e));
 
-    trace!("Run result {:?}", result);
+    towers::task()
+        .tick(&mut state)
+        .unwrap_or_else(|e| warn!("Failed to run towers {:?}", e));
+
+    spawns::task()
+        .tick(&mut state)
+        .unwrap_or_else(|e| warn!("Failed to run spawns {:?}", e));
+    constructions::task()
+        .tick(&mut state)
+        .unwrap_or_else(|e| warn!("Failed to run constructions {:?}", e));
 
     if screeps::game::time() % 32 == 0 {
         cleanup_memory().unwrap_or_else(|e| {
@@ -68,3 +72,4 @@ fn cleanup_memory() -> Result<(), Box<::std::error::Error>> {
 
     Ok(())
 }
+

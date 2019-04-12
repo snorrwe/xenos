@@ -10,12 +10,12 @@ use screeps::{
 
 /// Return the BehaviourTree that runs the spawns
 pub fn task<'a>() -> Task<'a> {
-    let tasks = screeps::game::spawns::values()
-        .into_iter()
-        .map(|spawn| Task::new(move |_| run_spawn(&spawn)))
-        .collect();
-    let tree = Control::All(tasks);
-    Task::new(move |state| tree.tick(state))
+    Task::new(move |_| {
+        screeps::game::spawns::values()
+            .into_iter()
+            .for_each(|spawn| run_spawn(&spawn).unwrap_or(()));
+        Ok(())
+    })
 }
 
 fn run_spawn(spawn: &StructureSpawn) -> ExecutionResult {
@@ -89,3 +89,4 @@ fn spawn_creep(spawn: &StructureSpawn, role: &str) -> ExecutionResult {
     }
     Ok(())
 }
+

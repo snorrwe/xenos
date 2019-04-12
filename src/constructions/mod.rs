@@ -29,32 +29,27 @@ pub fn task<'a>() -> Task<'a> {
     trace!("Init construction task");
 
     let time = screeps::game::time();
-    let tasks = screeps::game::rooms::values()
-        .into_iter()
-        .enumerate()
-        // Do not update all rooms in the same tick to hopefully reduce cpu load of contructions in
-        // a single tick
-        .filter(|(i, _)| (time + *i as u32) % 16 == 0)
-        .map(|(_, room)| Task::new(move |state| manage_room(state, &room)))
-        .collect();
 
-    let task = Control::All(tasks);
-
-    Task::new(move |state| {
-        task.tick(state)
-            .map_err(|_| "Failed all building subtasks".into())
+    Task::new(move |_| {
+        screeps::game::rooms::values()
+            .into_iter()
+            .enumerate()
+            // Do not update all rooms in the same tick to hopefully reduce cpu load of contructions in
+            // a single tick
+            .filter(|(i, _)| (time + *i as u32) % 16 == 0)
+            .for_each(|(_, room)| manage_room(&room).unwrap_or(()));
+        Ok(())
     })
 }
 
-fn manage_room<'a>(state: &'a mut GameState, room: &'a Room) -> ExecutionResult {
+fn manage_room<'a>(room: &'a Room) -> ExecutionResult {
     debug!("Manage constructionSites of room {:?}", room.name());
-    let tasks = vec![
-        Task::new(move |_| build_structures(room)),
-        Task::new(move |_| containers::build_containers(room)),
-        Task::new(move |_| roads::build_roads(room)),
-    ];
-    let tree = Control::All(tasks);
-    tree.tick(state)
+
+    build_structures(room).unwrap_or_else(|e| warn!("Failed build_structures {:?}", e));
+    containers::build_containers(room).unwrap_or_else(|e| warn!("Failed containers {:?}", e));
+    roads::build_roads(room).unwrap_or_else(|e| warn!("Failed roads {:?}", e));
+
+    Ok(())
 }
 
 fn build_structures<'a>(room: &'a Room) -> ExecutionResult {
@@ -145,7 +140,11 @@ pub fn place_construction_sites<'a>(
         .cloned()
         .collect::<VecDeque<_>>();
 
-    while !todo.is_empty() && !structures.is_empty() {
+    let mut limit: i8 = 100;
+
+    while !todo.is_empty() && !structures.is_empty() && limit > 0 {
+        limit -= 1;
+
         let pos = todo.pop_front().unwrap();
         let pp = Pos::new(pos.x(), pos.y());
         if visited.contains(&pp) {
@@ -182,3 +181,4 @@ pub fn place_construction_sites<'a>(
 
     Ok(())
 }
+

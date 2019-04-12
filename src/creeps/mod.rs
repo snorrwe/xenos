@@ -21,32 +21,29 @@ use screeps::{
 use stdweb::{unstable::TryInto, Reference};
 
 pub fn task<'a>() -> Task<'a> {
-    let tasks = screeps::game::creeps::values()
-        .into_iter()
-        .map(|creep| run_creep(creep))
-        .collect();
-
-    let tree = Control::All(tasks);
-    Task::new(move |state| tree.tick(state))
+    Task::new(move |state| {
+        screeps::game::creeps::values()
+            .into_iter()
+            .for_each(|creep| run_creep(state, creep).unwrap_or(()));
+        Ok(())
+    })
 }
 
-fn run_creep<'a>(creep: Creep) -> Task<'a> {
-    Task::new(move |state| {
-        debug!("Running creep {}", creep.name());
-        if creep.spawning() {
-            return Ok(());
-        }
-        let tasks = vec![
-            Task::new(|state| run_role(state, &creep)),
-            Task::new(|_| {
-                assign_role(&creep)
-                    .map(|_| {})
-                    .ok_or_else(|| "Failed to find a role for creep".into())
-            }),
-        ];
-        let tree = Control::Sequence(tasks);
-        tree.tick(state)
-    })
+fn run_creep<'a>(state: &mut GameState, creep: Creep) -> ExecutionResult {
+    debug!("Running creep {}", creep.name());
+    if creep.spawning() {
+        return Ok(());
+    }
+    let tasks = vec![
+        Task::new(|state| run_role(state, &creep)),
+        Task::new(|_| {
+            assign_role(&creep)
+                .map(|_| {})
+                .ok_or_else(|| "Failed to find a role for creep".into())
+        }),
+    ];
+    let tree = Control::Sequence(tasks);
+    tree.tick(state)
 }
 
 fn assign_role<'a>(creep: &'a Creep) -> Option<String> {
@@ -217,3 +214,4 @@ pub fn harvest<'a>(creep: &'a Creep) -> ExecutionResult {
         harvester::attempt_harvest(creep, Some("target"))
     }
 }
+

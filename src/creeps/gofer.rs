@@ -3,10 +3,10 @@
 use super::super::bt::*;
 use super::move_to;
 use screeps::{
-    constants::ResourceType,
+    constants::{find, ResourceType},
     game::{get_object_erased, get_object_typed},
     objects::{
-        Creep, StructureContainer, StructureExtension, StructureSpawn, StructureStorage,
+        Creep, Structure, StructureContainer, StructureExtension, StructureSpawn, StructureStorage,
         StructureTower, Transferable,
     },
     prelude::*,
@@ -49,7 +49,7 @@ fn attempt_unload<'a>(state: &'a mut GameState, creep: &'a Creep) -> ExecutionRe
         return Err("empty".into());
     }
 
-    let target = find_unload_target(state, creep).ok_or_else(|| String::new())?;
+    let target = find_unload_target(state, creep).ok_or_else(|| "")?;
 
     let tasks = vec![
         Task::new(|_| try_transfer::<StructureSpawn>(creep, &target)),
@@ -100,23 +100,21 @@ fn try_transfer<'a, T>(creep: &'a Creep, target: &'a Reference) -> ExecutionResu
 where
     T: Transferable + screeps::traits::TryFrom<&'a Reference>,
 {
-    let target = T::try_from(target.as_ref())
-        .map_err(|_| String::from("failed to convert transfer target"))?;
+    let target = T::try_from(target).map_err(|_| "failed to convert transfer target")?;
     transfer(creep, &target)
 }
 
 fn find_storage<'a>(creep: &'a Creep) -> ExecutionResult {
-    let res = js! {
-        const creep = @{creep};
-        const exts = creep.room.find(FIND_STRUCTURES, {
-            filter: function (s) {
-                return s.structureType == STRUCTURE_STORAGE && s.store[RESOURCE_ENERGY] < s.storeCapacity;
-            }
-        });
-        return exts[0] && exts[0].id;
-    };
-    let target = String::try_from(res).map_err(|_| String::from("expected string"))?;
-    creep.memory().set("target", target);
+    let res = creep.room().find(find::STRUCTURES).into_iter().find(|s| {
+        if let Structure::Storage(s) = s {
+            s.store_total() < s.store_capacity()
+        } else {
+            false
+        }
+    });
+    if let Some(res) = res {
+        creep.memory().set("target", res.id());
+    }
     Ok(())
 }
 
@@ -130,7 +128,7 @@ fn find_unload_target_by_type<'a>(creep: &'a Creep, struct_type: &'a str) -> Exe
         });
         return ext && ext.id;
     };
-    let target = String::try_from(res).map_err(|_| String::from("expected string"))?;
+    let target = String::try_from(res).map_err(|_| "expected string")?;
     creep.memory().set("target", target);
     Ok(())
 }
@@ -219,3 +217,4 @@ fn read_target_container(creep: &Creep) -> Option<StructureContainer> {
         .ok()?
         .and_then(|id| get_object_typed(id.as_str()).ok().unwrap_or(None))
 }
+

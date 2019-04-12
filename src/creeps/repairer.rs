@@ -1,9 +1,13 @@
 //! Repair structures
 //!
 use super::super::bt::*;
-use super::{builder, get_energy, upgrader};
-use screeps::{objects::Creep, prelude::*, ReturnCode};
-use stdweb::{unstable::TryFrom, Reference};
+use super::{builder, get_energy, move_to, upgrader};
+use screeps::{
+    constants::find,
+    objects::{Creep, Structure},
+    prelude::*,
+    ReturnCode,
+};
 
 pub fn run<'a>(creep: &'a Creep) -> Task<'a> {
     trace!("Running repairer {}", creep.name());
@@ -41,45 +45,23 @@ pub fn attempt_repair<'a>(creep: &'a Creep) -> ExecutionResult {
     }
 }
 
-fn repair<'a>(creep: &'a Creep, target: &'a Reference) -> ExecutionResult {
-    let res = js! {
-        const creep = @{creep};
-        let target = @{target};
-        let result = creep.repair(target);
-        if (result == ERR_NOT_IN_RANGE) {
-            result = creep.moveTo(target);
-        }
-        return result;
-    };
-    let res = ReturnCode::try_from(res).map_err(|e| {
-        let error = format!("Expected ReturnCode {:?}", e);
-        error!("{}", error);
-        error
-    })?;
-    if res == ReturnCode::Ok {
-        Ok(())
-    } else {
-        Err(format!("Unexpected ReturnCode {:?}", res))
+fn repair<'a>(creep: &'a Creep, target: &'a Structure) -> ExecutionResult {
+    let res = creep.repair(target);
+    match res {
+        ReturnCode::Ok => Ok(()),
+        ReturnCode::NotInRange => move_to(creep, target),
+        _ => Err(format!("Unexpected ReturnCode {:?}", res)),
     }
 }
 
-fn find_repair_target<'a>(creep: &'a Creep) -> Option<Reference> {
+fn find_repair_target<'a>(creep: &'a Creep) -> Option<Structure> {
     trace!("Finding repair target");
 
     let room = creep.room();
-    let result = js! {
-        const room = @{room};
-        const candidates = room.find(FIND_STRUCTURES, {
-            filter: function (s) { return s.hits < s.hitsMax; }
-        });
-        return candidates[0] || null;
-    };
-
-    if result.is_null() {
-        return None;
-    }
-
-    Reference::try_from(result)
-        .map_err(|e| warn!("Failed to convert find repair target {:?}", e))
-        .ok()
+    room.find(find::STRUCTURES).into_iter().find(|s| {
+        s.as_attackable()
+            .map(|s| s.hits() < s.hits_max())
+            .unwrap_or(false)
+    })
 }
+

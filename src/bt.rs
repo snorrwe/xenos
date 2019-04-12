@@ -49,13 +49,11 @@ impl<'a> TaskNew<'a> for Task<'a> {
 /// Control node in the Behaviour Tree
 /// - Selector runs its child tasks until the first failure
 /// - Sequence runs its child tasks until the first success
-/// - All runs all its child tasks regardless of their result
 #[derive(Clone)]
 pub enum Control<'a> {
     #[allow(dead_code)]
     Selector(Vec<Task<'a>>),
     Sequence(Vec<Task<'a>>),
-    All(Vec<Task<'a>>),
 }
 
 impl<'a> BtNode for Control<'a> {
@@ -81,14 +79,6 @@ impl<'a> BtNode for Control<'a> {
                 } else {
                     Err("All tasks failed in sequence".into())
                 }
-            }
-            Control::All(nodes) => {
-                nodes.iter().for_each(|node| {
-                    node.tick(state).unwrap_or_else(|e| {
-                        debug!("node failure in an All control {:?}", e);
-                    });
-                });
-                Ok(())
             }
         }
     }
