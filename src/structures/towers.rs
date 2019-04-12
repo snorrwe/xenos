@@ -1,12 +1,10 @@
 use super::bt::*;
 use screeps::{
-    objects::{CanStoreEnergy, HasId, Room, RoomObjectProperties, StructureTower, Structure},
+    constants::find,
+    objects::{CanStoreEnergy, HasId, Room, RoomObjectProperties, Structure, StructureTower},
     ReturnCode,
 };
-use stdweb::{
-    unstable::{TryFrom, TryInto},
-    Value,
-};
+use stdweb::{unstable::TryInto, Value};
 
 /// Return the BehaviourTree that runs the spawns
 pub fn task<'a>() -> Task<'a> {
@@ -56,13 +54,9 @@ fn attempt_attack<'a>(tower: &'a StructureTower) -> ExecutionResult {
 }
 
 fn find_enemy<'a>(room: &'a Room) -> Option<screeps::Creep> {
-    let result = js! {
-        const room = @{room};
-        return room.find(FIND_CREEPS, {
-            filter: (c) => !c.my,
-        })[0];
-    };
-    result.try_into().ok()
+    room.find(find::CREEPS)
+        .into_iter()
+        .find(|creep| !creep.my())
 }
 
 pub fn attempt_repair<'a>(tower: &'a StructureTower) -> ExecutionResult {
@@ -94,14 +88,10 @@ fn find_repair_target<'a>(tower: &'a StructureTower) -> Option<Structure> {
     trace!("Finding repair target");
 
     let room = tower.room();
-    let result = js! {
-        const room = @{room};
-        const candidates = room.find(FIND_STRUCTURES, {
-            filter: (s) => s.hits < s.hitsMax
-        });
-        return candidates[0];
-    };
-
-    Structure::try_from(result).ok()
+    room.find(find::STRUCTURES).into_iter().find(|s| {
+        s.as_attackable()
+            .map(|s| s.hits() < s.hits_max())
+            .unwrap_or(false)
+    })
 }
 
