@@ -16,6 +16,7 @@ pub fn task<'a>() -> Task<'a> {
             .for_each(|spawn| run_spawn(&spawn).unwrap_or(()));
         Ok(())
     })
+    .with_required_bucket(500)
 }
 
 fn run_spawn(spawn: &StructureSpawn) -> ExecutionResult {
@@ -89,4 +90,3 @@ fn spawn_creep(spawn: &StructureSpawn, role: &str) -> ExecutionResult {
     }
     Ok(())
 }
-

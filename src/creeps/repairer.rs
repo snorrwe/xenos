@@ -64,4 +64,3 @@ fn find_repair_target<'a>(creep: &'a Creep) -> Option<Structure> {
             .unwrap_or(false)
     })
 }
-

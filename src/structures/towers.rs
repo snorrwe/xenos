@@ -23,14 +23,10 @@ pub fn task<'a>() -> Task<'a> {
 fn run_tower<'a>(state: &'a mut GameState, tower: &'a StructureTower) -> ExecutionResult {
     debug!("Running tower {:?}", tower.id());
 
-    let tasks = [
+    let tasks = vec![
         Task::new(move |_| attempt_attack(tower)),
-        // Disable repairing for now because of the high cpu cost
-        // Task::new(move |_| attempt_repair(tower)),
-    ]
-    .into_iter()
-    .cloned()
-    .collect();
+        Task::new(move |_| attempt_repair(tower)).with_required_bucket(1000),
+    ];
 
     let tree = Control::Sequence(tasks);
     tree.tick(state)
@@ -57,7 +53,6 @@ fn find_enemy<'a>(room: &'a Room) -> Option<screeps::Creep> {
     room.find(find::HOSTILE_CREEPS).into_iter().next()
 }
 
-#[allow(dead_code)]
 pub fn attempt_repair<'a>(tower: &'a StructureTower) -> ExecutionResult {
     trace!("Repairing");
 
@@ -93,4 +88,3 @@ fn find_repair_target<'a>(tower: &'a StructureTower) -> Option<Structure> {
             .unwrap_or(false)
     })
 }
-

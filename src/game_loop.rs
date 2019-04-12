@@ -10,7 +10,15 @@ pub fn game_loop() {
 
     trace!("Running");
 
-    let mut state = GameState {};
+    // screeps api `bucket` method panics in simulation
+    let bucket = js! {
+        let bucket = Game.cpu.bucket;
+        return bucket != null ? bucket : -1;
+    };
+
+    let bucket = i32::try_from(bucket).expect("Expected bucket to be a number");
+
+    let mut state = GameState { cpu_bucket: bucket };
 
     creeps::task()
         .tick(&mut state)
@@ -23,6 +31,7 @@ pub fn game_loop() {
     spawns::task()
         .tick(&mut state)
         .unwrap_or_else(|e| warn!("Failed to run spawns {:?}", e));
+
     constructions::task()
         .tick(&mut state)
         .unwrap_or_else(|e| warn!("Failed to run constructions {:?}", e));
@@ -32,14 +41,6 @@ pub fn game_loop() {
             error!("Failed to clean up memory {:?}", e);
         });
     }
-
-    // screeps api `bucket` method panics in simulation
-    let bucket = js! {
-        let bucket = Game.cpu.bucket;
-        return bucket != null ? bucket : -1;
-    };
-
-    let bucket = i32::try_from(bucket).expect("Expected bucket to be a number");
 
     info!(
         "---------------- Done! CPU: {:.4} Bucket: {} ----------------",
@@ -72,4 +73,3 @@ fn cleanup_memory() -> Result<(), Box<::std::error::Error>> {
 
     Ok(())
 }
-

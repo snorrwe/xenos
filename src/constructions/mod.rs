@@ -40,6 +40,7 @@ pub fn task<'a>() -> Task<'a> {
             .for_each(|(_, room)| manage_room(&room).unwrap_or(()));
         Ok(())
     })
+    .with_required_bucket(1000)
 }
 
 fn manage_room<'a>(room: &'a Room) -> ExecutionResult {
@@ -59,7 +60,7 @@ fn build_structures<'a>(room: &'a Room) -> ExecutionResult {
         StructureType::Tower,
     ]
     .into_iter()
-    .cloned()
+    .map(|x| *x)
     .collect();
     place_construction_sites(room, structures)
 }
@@ -156,7 +157,7 @@ pub fn place_construction_sites<'a>(
 
         todo.extend(
             neighbour_pos
-                .iter()
+                .into_iter()
                 .filter(|p| !visited.contains(&Pos::new(p.x(), p.y())))
                 .cloned(),
         );
@@ -181,4 +182,3 @@ pub fn place_construction_sites<'a>(
 
     Ok(())
 }
-

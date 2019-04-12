@@ -214,4 +214,3 @@ pub fn harvest<'a>(creep: &'a Creep) -> ExecutionResult {
         harvester::attempt_harvest(creep, Some("target"))
     }
 }
-

@@ -38,7 +38,7 @@ fn attempt_unload<'a>(state: &'a mut GameState, creep: &'a Creep) -> ExecutionRe
     trace!("Unloading");
     let loading: bool = creep.memory().bool("loading");
     if loading {
-        return Err("loading".into());
+        Err("loading")?;
     }
 
     let carry_total = creep.carry_total();
@@ -46,7 +46,7 @@ fn attempt_unload<'a>(state: &'a mut GameState, creep: &'a Creep) -> ExecutionRe
     if carry_total == 0 {
         trace!("Empty");
         creep.memory().set("loading", true);
-        return Err("empty".into());
+        Err("empty")?;
     }
 
     let target = find_unload_target(state, creep).ok_or_else(|| "")?;
@@ -217,4 +217,3 @@ fn read_target_container(creep: &Creep) -> Option<StructureContainer> {
         .ok()?
         .and_then(|id| get_object_typed(id.as_str()).ok().unwrap_or(None))
 }
-

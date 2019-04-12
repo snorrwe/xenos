@@ -4,15 +4,13 @@
 //!     - There is no 'Running' state normally found in BT's
 //!     - There is no explicit Task cancellation
 //!
-use std::ops::Fn;
-use std::rc::Rc;
-
-/// Represents a single task in the behaviour tree
-/// An executable that will be called by a Task
-pub type Task<'a> = Rc<Fn(&mut GameState) -> ExecutionResult + 'a>;
+pub mod task;
+pub use self::task::*;
 
 #[derive(Debug, Clone)]
-pub struct GameState {}
+pub struct GameState {
+    pub cpu_bucket: i32,
+}
 
 /// Result of a task
 pub type ExecutionResult = Result<(), String>;
@@ -29,21 +27,6 @@ pub trait TaskNew<'a> {
     fn new<F>(task: F) -> Self
     where
         F: Fn(&mut GameState) -> ExecutionResult + 'a;
-}
-
-impl<'a> BtNode for Task<'a> {
-    fn tick(&self, state: &mut GameState) -> ExecutionResult {
-        self(state)
-    }
-}
-
-impl<'a> TaskNew<'a> for Task<'a> {
-    fn new<F>(task: F) -> Self
-    where
-        F: Fn(&mut GameState) -> ExecutionResult + 'a,
-    {
-        Rc::new(task)
-    }
 }
 
 /// Control node in the Behaviour Tree
