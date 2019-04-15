@@ -1,7 +1,9 @@
 use super::bt::*;
 use creeps::roles::{next_role, spawn_config_by_role};
 use screeps::{
-    self, game,
+    self,
+    constants::find,
+    game,
     memory::MemoryReference,
     objects::{SpawnOptions, StructureSpawn},
     prelude::*,
@@ -11,18 +13,20 @@ use screeps::{
 /// Return the BehaviourTree that runs the spawns
 pub fn task<'a>() -> Task<'a> {
     Task::new(move |state| {
-        let time = screeps::game::time();
-        let spawns = screeps::game::spawns::values();
-        let len = spawns.len() as u32;
-
-        if time % (len * 2) < len {
-            // Take a break for as many ticks as we ran the updates
-            Err("Skipping spawn task")?;
+            let time = screeps::game::time();
+        if  time % 4 < 3 {
+            Err("Skip spawns this tick")?;
         }
+        let rooms = screeps::game::rooms::values();
+        rooms.into_iter().for_each(|room| {
+            let spawns = room.find(find::MY_SPAWNS);
+            let len = spawns.len() as u32;
 
-        let index = (time % len) as usize;
-        let spawn = &spawns[index];
-        run_spawn(state, &spawn)
+            let index = (time % len) as usize;
+            let spawn = &spawns[index];
+            run_spawn(state, spawn).unwrap_or(())
+        });
+        Ok(())
     })
     .with_required_bucket(500)
 }
