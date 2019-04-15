@@ -25,8 +25,7 @@ fn run_tower<'a>(state: &'a mut GameState, tower: &'a StructureTower) -> Executi
 
     let tasks = vec![
         Task::new(move |_| attempt_attack(tower)),
-        // Disable repairing because of performance issues
-        // Task::new(move |_| attempt_repair(tower)).with_required_bucket(1000),
+        Task::new(move |_| attempt_repair(tower)).with_required_bucket(10_000),
     ];
 
     let tree = Control::Sequence(tasks);

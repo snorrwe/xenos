@@ -11,9 +11,17 @@ use screeps::{
 /// Return the BehaviourTree that runs the spawns
 pub fn task<'a>() -> Task<'a> {
     Task::new(move |state| {
-        screeps::game::spawns::values()
+        let time = screeps::game::time();
+        let spawns = screeps::game::spawns::keys();
+        let len = spawns.len() as u32;
+        spawns
             .into_iter()
-            .for_each(|spawn| run_spawn(state, &spawn).unwrap_or(()));
+            .enumerate()
+            .filter(|(_i, _)| time % len == 0)
+            .for_each(|(_, spawn)| {
+                let spawn = screeps::game::spawns::get(spawn.as_str()).unwrap();
+                run_spawn(state, &spawn).unwrap_or(())
+            });
         Ok(())
     })
     .with_required_bucket(500)

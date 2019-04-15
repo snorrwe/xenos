@@ -7,7 +7,7 @@
 pub mod task;
 pub use self::task::*;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct GameState {
     /// CPU bucket available this tick
     pub cpu_bucket: Option<i32>,

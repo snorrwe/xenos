@@ -31,22 +31,25 @@ pub fn task<'a>() -> Task<'a> {
     let time = screeps::game::time();
 
     Task::new(move |_| {
-        let rooms = screeps::game::rooms::values();
+        let rooms = screeps::game::rooms::keys();
         let len = rooms.len() as u32;
         rooms
             .into_iter()
             .enumerate()
             // Do not update all rooms in the same tick to hopefully reduce cpu load of contructions in
             // a single tick
-            .filter(|(i, _)| (time + *i as u32) % (len * 2) == 0)
-            .for_each(|(_, room)| manage_room(&room).unwrap_or(()));
+            .filter(|(i, _)| (time + *i as u32) % len == 0)
+            .for_each(|(_, room)| {
+                let room = screeps::game::rooms::get(room.as_str()).unwrap();
+                manage_room(&room).unwrap_or(())
+            });
         Ok(())
     })
     .with_required_bucket(3000)
 }
 
 fn manage_room<'a>(room: &'a Room) -> ExecutionResult {
-    debug!("Manage constructionSites of room {:?}", room.name());
+    info!("Manage constructionSites of room {:?}", room.name());
 
     build_structures(room).unwrap_or_else(|e| warn!("Failed build_structures {:?}", e));
     containers::build_containers(room).unwrap_or_else(|e| warn!("Failed containers {:?}", e));
@@ -57,9 +60,9 @@ fn manage_room<'a>(room: &'a Room) -> ExecutionResult {
 
 fn build_structures<'a>(room: &'a Room) -> ExecutionResult {
     let structures = [
-        StructureType::Extension,
-        StructureType::Extension,
         StructureType::Tower,
+        StructureType::Extension,
+        StructureType::Spawn,
     ]
     .into_iter()
     .map(|x| *x)
@@ -67,7 +70,7 @@ fn build_structures<'a>(room: &'a Room) -> ExecutionResult {
     place_construction_sites(room, structures)
 }
 
-fn valid_construction_pos(room: &Room, pos: &RoomPosition, taken: &HashSet<Pos>) -> bool {
+fn valid_construction_pos(room: &Room, pos: &RoomPosition, taken: &mut HashSet<Pos>) -> bool {
     let pp = Pos::new(pos.x(), pos.y());
     if taken.contains(&pp) {
         return false;
@@ -75,6 +78,12 @@ fn valid_construction_pos(room: &Room, pos: &RoomPosition, taken: &HashSet<Pos>)
 
     let x = pos.x();
     let y = pos.y();
+
+    if x < 2 || y < 2 || x > 48 || y > 48 {
+        // Out of bounds
+        return false;
+    }
+
     let name = pos.room_name();
     [
         RoomPosition::new(x - 1, y, name.as_str()),
@@ -83,7 +92,18 @@ fn valid_construction_pos(room: &Room, pos: &RoomPosition, taken: &HashSet<Pos>)
         RoomPosition::new(x, y + 1, name.as_str()),
     ]
     .into_iter()
-    .all(|p| is_free(room, p) && !taken.contains(&Pos::new(p.x(), p.y())))
+    .all(|p| {
+        let pos =Pos::new(p.x(), p.y());
+        if taken.contains(&pos) {
+            false
+        } else {
+            let result = is_free(room, p);
+            if !result {
+                taken.insert(pos);
+            }
+            result
+        }
+    })
 }
 
 fn is_free(room: &Room, pos: &RoomPosition) -> bool {
@@ -120,9 +140,9 @@ pub fn place_construction_sites<'a>(
     };
 
     if spawn.is_null() {
-        let e = Err("No spawn in the room".into());
+        let e = Err("No spawn in the room");
         trace!("{:?}", e);
-        return e;
+        e?;
     }
 
     let pos = StructureSpawn::try_from(spawn)
@@ -133,9 +153,9 @@ pub fn place_construction_sites<'a>(
         })?
         .pos();
 
-    let mut visited = HashSet::with_capacity(100);
+    let mut visited = HashSet::with_capacity(1000);
     visited.insert(Pos::new(pos.x(), pos.y()));
-    let mut construction = HashSet::with_capacity(5);
+    let mut construction = HashSet::with_capacity(500);
 
     let mut todo = pos
         .neighbours()
@@ -143,7 +163,7 @@ pub fn place_construction_sites<'a>(
         .cloned()
         .collect::<VecDeque<_>>();
 
-    let mut limit: i8 = 100;
+    let mut limit = 1000;
 
     while !todo.is_empty() && !structures.is_empty() && limit > 0 {
         limit -= 1;
@@ -164,7 +184,7 @@ pub fn place_construction_sites<'a>(
                 .cloned(),
         );
 
-        if !valid_construction_pos(room, &pos, &construction) {
+        if !valid_construction_pos(room, &pos, &mut construction) {
             continue;
         }
 
@@ -174,8 +194,8 @@ pub fn place_construction_sites<'a>(
             ReturnCode::Ok => {
                 construction.insert(pp);
             }
-            ReturnCode::RclNotEnough => {}
-            ReturnCode::Full => return Err(format!("cant place extension {:?}", result)),
+            ReturnCode::RclNotEnough => break,
+            ReturnCode::Full => Err(format!("cant place extension {:?}", result))?,
             _ => {
                 structures.push_back(structure);
             }
