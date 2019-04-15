@@ -167,7 +167,7 @@ pub fn place_construction_sites<'a>(
 
     let mut limit = 1000;
 
-    while !todo.is_empty() && !structures.is_empty() && limit > 0 {
+    'building: while !todo.is_empty() && !structures.is_empty() && limit > 0 {
         limit -= 1;
 
         let pos = todo.pop_front().unwrap();
@@ -198,7 +198,7 @@ pub fn place_construction_sites<'a>(
             ReturnCode::Ok => {
                 construction.insert(pp);
             }
-            ReturnCode::RclNotEnough => break,
+            ReturnCode::RclNotEnough => continue 'building,
             ReturnCode::Full => Err(format!("cant place extension {:?}", result))?,
             _ => {
                 structures.push_back(structure);
