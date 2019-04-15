@@ -28,22 +28,15 @@ impl Pos {
 pub fn task<'a>() -> Task<'a> {
     trace!("Init construction task");
 
-    let time = screeps::game::time();
-
     Task::new(move |_| {
-        let rooms = screeps::game::rooms::keys();
+        let time = screeps::game::time();
+        let rooms = screeps::game::rooms::values();
         let len = rooms.len() as u32;
-        rooms
-            .into_iter()
-            .enumerate()
-            // Do not update all rooms in the same tick to hopefully reduce cpu load of contructions in
-            // a single tick
-            .filter(|(i, _)| (time + *i as u32) % len == 0)
-            .for_each(|(_, room)| {
-                let room = screeps::game::rooms::get(room.as_str()).unwrap();
-                manage_room(&room).unwrap_or(())
-            });
-        Ok(())
+
+        let index = time % len;
+        let room = &rooms[index as usize];
+
+        manage_room(room)
     })
     .with_required_bucket(3000)
 }
@@ -62,6 +55,10 @@ fn build_structures<'a>(room: &'a Room) -> ExecutionResult {
     let structures = [
         StructureType::Tower,
         StructureType::Extension,
+        StructureType::Extension,
+        StructureType::Extension,
+        StructureType::Extension,
+        StructureType::Extension,
         StructureType::Spawn,
     ]
     .into_iter()
@@ -79,7 +76,7 @@ fn valid_construction_pos(room: &Room, pos: &RoomPosition, taken: &mut HashSet<P
     let x = pos.x();
     let y = pos.y();
 
-    if x < 2 || y < 2 || x > 48 || y > 48 {
+    if x <= 2 || y <= 2 || x >= 48 || y >= 48 {
         // Out of bounds
         return false;
     }
@@ -93,7 +90,7 @@ fn valid_construction_pos(room: &Room, pos: &RoomPosition, taken: &mut HashSet<P
     ]
     .into_iter()
     .all(|p| {
-        let pos =Pos::new(p.x(), p.y());
+        let pos = Pos::new(p.x(), p.y());
         if taken.contains(&pos) {
             false
         } else {
@@ -169,8 +166,10 @@ pub fn place_construction_sites<'a>(
         limit -= 1;
 
         let pos = todo.pop_front().unwrap();
-        let pp = Pos::new(pos.x(), pos.y());
-        if visited.contains(&pp) {
+        let x = pos.x();
+        let y = pos.y();
+        let pp = Pos::new(x, y);
+        if x <= 2 || 48 <= x || y <= 2 || 48 <= y || visited.contains(&pp) {
             continue;
         }
 

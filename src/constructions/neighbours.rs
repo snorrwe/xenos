@@ -11,6 +11,10 @@ impl HasNeighbour for RoomPosition {
     fn neighbours(self: &RoomPosition) -> [RoomPosition; 8] {
         let x = self.x();
         let y = self.y();
+        assert!(x > 0);
+        assert!(y > 0);
+        assert!(x < 50);
+        assert!(y < 50);
         let name = self.room_name();
         let name = name.as_str();
         [

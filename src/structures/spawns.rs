@@ -12,17 +12,17 @@ use screeps::{
 pub fn task<'a>() -> Task<'a> {
     Task::new(move |state| {
         let time = screeps::game::time();
-        let spawns = screeps::game::spawns::keys();
+        let spawns = screeps::game::spawns::values();
         let len = spawns.len() as u32;
-        spawns
-            .into_iter()
-            .enumerate()
-            .filter(|(_i, _)| time % len == 0)
-            .for_each(|(_, spawn)| {
-                let spawn = screeps::game::spawns::get(spawn.as_str()).unwrap();
-                run_spawn(state, &spawn).unwrap_or(())
-            });
-        Ok(())
+
+        if time % (len * 2) < len {
+            // Take a break for as many ticks as we ran the updates
+            Err("Skipping spawn task")?;
+        }
+
+        let index = (time % len) as usize;
+        let spawn = &spawns[index];
+        run_spawn(state, &spawn)
     })
     .with_required_bucket(500)
 }
@@ -89,7 +89,12 @@ fn spawn_creep(spawn: &StructureSpawn, role: &str) -> ExecutionResult {
         if res == ReturnCode::NameExists {
             prefix += 1;
         } else {
-            debug!("Spawning creep: {}, result: {}", name, res as i32);
+            info!(
+                "Spawn {} is spawning creep: {}, result: {}",
+                spawn.name(),
+                name,
+                res as i32
+            );
             break res;
         }
     };
