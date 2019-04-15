@@ -33,6 +33,11 @@ pub fn task<'a>() -> Task<'a> {
         let rooms = screeps::game::rooms::values();
         let len = rooms.len() as u32;
 
+        if time % (len * 2) < len {
+            // Take a break for as many ticks as we ran the updates
+            Err("Skipping constructions task")?;
+        }
+
         let index = time % len;
         let room = &rooms[index as usize];
 
