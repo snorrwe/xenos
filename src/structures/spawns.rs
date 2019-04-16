@@ -1,7 +1,6 @@
 use super::bt::*;
 use creeps::roles::{next_role, spawn_config_by_role};
 use screeps::{
-    self,
     constants::find,
     game,
     memory::MemoryReference,
@@ -13,14 +12,20 @@ use screeps::{
 /// Return the BehaviourTree that runs the spawns
 pub fn task<'a>() -> Task<'a> {
     Task::new(move |state| {
-            let time = screeps::game::time();
-        if  time % 4 < 3 {
+        let time = game::time();
+        let len = game::spawns::keys().len() as u32;
+        if time % (len * 2) < len {
+            // Take a break for as many ticks as we ran the updates
             Err("Skip spawns this tick")?;
         }
-        let rooms = screeps::game::rooms::values();
+        let rooms = game::rooms::values();
         rooms.into_iter().for_each(|room| {
             let spawns = room.find(find::MY_SPAWNS);
             let len = spawns.len() as u32;
+
+            if len < 1 {
+                return;
+            }
 
             let index = (time % len) as usize;
             let spawn = &spawns[index];
@@ -32,10 +37,6 @@ pub fn task<'a>() -> Task<'a> {
 }
 
 fn run_spawn(state: &mut GameState, spawn: &StructureSpawn) -> ExecutionResult {
-    if game::time() % 8 != 0 {
-        trace!("Waiting with spawn");
-        return Ok(());
-    }
     debug!("Running spawn {}", spawn.name());
 
     let next_role = next_role(state, &spawn.room());
@@ -48,6 +49,11 @@ fn run_spawn(state: &mut GameState, spawn: &StructureSpawn) -> ExecutionResult {
     let next_role = next_role.unwrap();
 
     spawn_creep(spawn, &next_role.as_str())?;
+
+    match next_role.as_str() {
+        "conqueror" => *state.conqueror_count.as_mut().unwrap() += 1,
+        _ => {}
+    }
 
     Ok(())
 }
@@ -81,7 +87,7 @@ fn spawn_creep(spawn: &StructureSpawn, role: &str) -> ExecutionResult {
         }
     }
 
-    let name = screeps::game::time() % 1_000;
+    let name = game::time() % 1_000;
     let mut prefix = 0;
     let res = loop {
         let name = format!("{}_{:x}", role, name + prefix);
@@ -104,7 +110,7 @@ fn spawn_creep(spawn: &StructureSpawn, role: &str) -> ExecutionResult {
     };
 
     if res != ReturnCode::Ok {
-        warn!("Failed to spawn: {:?}", res);
+        Err(format!("Failed to spawn: {:?}", res))?;
     }
     Ok(())
 }

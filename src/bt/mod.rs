@@ -5,15 +5,9 @@
 //!     - There is no explicit Task cancellation
 //!
 pub mod task;
+pub mod game_state;
 pub use self::task::*;
-
-#[derive(Debug, Clone, Default)]
-pub struct GameState {
-    /// CPU bucket available this tick
-    pub cpu_bucket: Option<i32>,
-    /// Lazily countable global conqueror creep count
-    pub conqueror_count: Option<i8>,
-}
+pub use self::game_state::*;
 
 /// Result of a task
 pub type ExecutionResult = Result<(), String>;

@@ -26,11 +26,15 @@ impl<'a> Task<'a> {
             .map(|rb| state.cpu_bucket.map(|cb| cb < rb).unwrap_or(false))
             .unwrap_or(false)
         {
+            let required_bucket = self.required_bucket.unwrap();
             debug!(
                 "Task bucket requirement not met. Required: {:?}, State: {:?}",
-                self.required_bucket, state
+                required_bucket, state
             );
-            Err("Task bucket requirement not met")?;
+            Err(format!(
+                "Task bucket requirement ({:?}) not met",
+                required_bucket
+            ))?;
         }
         Ok(())
     }

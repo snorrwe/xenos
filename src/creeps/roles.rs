@@ -1,11 +1,12 @@
 use super::{super::bt::*, builder, conqueror, gofer, harvester, repairer, upgrader};
 use screeps::{
-    constants::{find, StructureType},
+    constants::find,
     game,
-    objects::{Creep, Room, StructureProperties},
+    objects::{Creep, Room},
     Part,
 };
 use std::collections::HashMap;
+use stdweb::unstable::TryInto;
 
 pub struct SpawnConfig {
     pub basic_body: Vec<Part>,
@@ -13,6 +14,7 @@ pub struct SpawnConfig {
     pub body_max: Option<usize>,
 }
 
+// TODO: return an array of all roles to spawn in order of priority
 /// Get the next target role in the given room
 pub fn next_role<'a>(state: &'a mut GameState, room: &'a Room) -> Option<String> {
     let mut counts = count_roles_in_room(room);
@@ -24,23 +26,25 @@ pub fn next_role<'a>(state: &'a mut GameState, room: &'a Room) -> Option<String>
             count
         })
     });
-    counts.into_iter().fold(None, |result, (role, actual)| {
-        let expected = target_number_of_role_in_room(role.as_str(), room);
-        if expected <= actual {
-            return result;
-        }
-        result
-            .map(|result| {
-                let result_prio = role_priority(room, result.as_str());
-                let role_prio = role_priority(room, role.as_str());
-                if role_prio > result_prio {
-                    role.clone()
-                } else {
-                    result
-                }
-            })
-            .or_else(|| Some(role))
-    })
+    counts
+        .into_iter()
+        .fold(None, |result: Option<String>, (role, actual)| {
+            let expected = target_number_of_role_in_room(role.as_str(), room);
+            if expected <= actual {
+                return result;
+            }
+            result
+                .map(|result| {
+                    let result_prio = role_priority(room, result.as_str());
+                    let role_prio = role_priority(room, role.as_str());
+                    if role_prio > result_prio {
+                        role.clone()
+                    } else {
+                        result
+                    }
+                })
+                .or_else(|| Some(role))
+        })
 }
 
 /// Run the creep according to the given role
@@ -108,18 +112,20 @@ pub fn count_conquerors() -> i8 {
 pub fn target_number_of_role_in_room<'a>(role: &'a str, room: &'a Room) -> i8 {
     let n_flags = game::flags::keys().len() as i8;
     let n_sources = room.find(find::SOURCES).len() as i8;
-    let n_containers = room
-        .find(find::STRUCTURES)
-        .into_iter()
-        .filter(|s| s.structure_type() == StructureType::Container)
-        .count() as i8;
+    let n_containers = js! {
+        const room = @{room};
+        return room.find(FIND_STRUCTURES, {
+            filter: (s) => s.structureType == STRUCTURE_CONTAINER
+        }).length;
+    };
+    let n_containers: i64 = n_containers.try_into().unwrap();
     match role {
         "upgrader" => 2,
         "harvester" => n_sources,
         "builder" => 1,
         "repairer" => 0,            // Disable repairers for now
         "conqueror" => n_flags * 2, // TODO: make the closest room spawn it
-        "gofer" => n_sources.min(n_containers),
+        "gofer" => n_sources.min(n_containers as i8),
         _ => unimplemented!(),
     }
 }
