@@ -92,6 +92,28 @@ pub fn count_roles_in_room<'a>(room: &'a Room) -> HashMap<String, i8> {
     .into_iter()
     .cloned()
     .collect();
+    // Also count the creeps spawning right now
+    room.find(find::MY_SPAWNS)
+        .into_iter()
+        .filter_map(|s| {
+            let role = js! {
+                let spawn = @{s};
+                let spawning = spawn.spawning;
+                if (!spawning) {
+                    return null;
+                }
+                let name = spawning.name;
+                let role = Memory.creeps && Memory.creeps[name].role;
+                return role;
+
+            };
+            let role = role.try_into();
+            role.ok()
+        })
+        .for_each(|role| {
+            result.entry(role).and_modify(|c| *c += 1).or_insert(1);
+        });
+
     room.find(find::MY_CREEPS).into_iter().for_each(|c| {
         let role = c.memory().string("role").unwrap_or(None);
         if let Some(role) = role {
@@ -124,7 +146,7 @@ pub fn target_number_of_role_in_room<'a>(role: &'a str, room: &'a Room) -> i8 {
         "harvester" => n_sources,
         "builder" => 1,
         "repairer" => 0,            // Disable repairers for now
-        "conqueror" => n_flags * 2, // TODO: make the closest room spawn it
+        "conqueror" => n_flags * 4, // TODO: make the closest room spawn it
         "gofer" => n_sources.min(n_containers as i8),
         _ => unimplemented!(),
     }

@@ -17,7 +17,7 @@ pub fn run<'a>(creep: &'a Creep) -> Task<'a> {
     ];
 
     let tree = Control::Sequence(tasks);
-    Task::new(move |state| tree.tick(state)).with_required_bucket(100)
+    Task::new(move |state| tree.tick(state)).with_required_bucket(300)
 }
 
 fn reset_target<'a>(creep: &'a Creep) -> ExecutionResult {

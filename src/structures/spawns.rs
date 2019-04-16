@@ -12,25 +12,26 @@ use screeps::{
 /// Return the BehaviourTree that runs the spawns
 pub fn task<'a>() -> Task<'a> {
     Task::new(move |state| {
+        const SPAWN_SKIP: u32 = 3;
+
         let time = game::time();
-        let len = game::spawns::keys().len() as u32;
-        if time % (len * 2) < len {
+        // FIXME
+        // Skip every other tick to work around the overpopulation problem
+        if time % SPAWN_SKIP != 0 {
             // Take a break for as many ticks as we ran the updates
             Err("Skip spawns this tick")?;
         }
         let rooms = game::rooms::values();
-        rooms.into_iter().for_each(|room| {
-            let spawns = room.find(find::MY_SPAWNS);
-            let len = spawns.len() as u32;
-
-            if len < 1 {
-                return;
-            }
-
-            let index = (time % len) as usize;
-            let spawn = &spawns[index];
-            run_spawn(state, spawn).unwrap_or(())
-        });
+        rooms
+            .into_iter()
+            .map(|room| room.find(find::MY_SPAWNS))
+            .filter(|spawns| spawns.len() > 0)
+            .for_each(|spawns| {
+                let len = spawns.len() as u32;
+                let index = (time % len * SPAWN_SKIP) / SPAWN_SKIP;
+                let spawn = &spawns[index as usize];
+                run_spawn(state, spawn).unwrap_or(())
+            });
         Ok(())
     })
     .with_required_bucket(500)
