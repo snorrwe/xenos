@@ -22,28 +22,10 @@ fn main() {
     js! {
         const game_loop = @{game_loop};
 
-        function sendStats() {
-            let cpu = Game.cpu.getUsed();
-            let bucket = Game.cpu.bucket;
-            let gcl = Game.gcl;
-            let population = Object.keys(Game.creeps).length;
-            let time = Game.time;
-            let stats = {
-                time,
-                cpu,
-                bucket,
-                gcl,
-                population
-            };
-            stats = JSON.stringify(stats);
-            Game.notify(stats, 0);
-        }
-
         module.exports.loop = function() {
             // Provide actual error traces.
             try {
                 game_loop();
-                sendStats();
             } catch (error) {
                 console_error("caught exception:", error);
                 if (error.stack) {
