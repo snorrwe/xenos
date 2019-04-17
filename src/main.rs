@@ -12,6 +12,7 @@ mod creeps;
 mod game_loop;
 mod logging;
 mod structures;
+mod game_state;
 
 use game_loop::game_loop;
 

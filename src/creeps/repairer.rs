@@ -1,11 +1,9 @@
 //! Repair structures
 //!
 use super::super::bt::*;
-use super::{builder, get_energy, move_to, upgrader};
+use super::{builder, find_repair_target, get_energy, move_to, upgrader};
 use screeps::{
-    constants::find,
-    objects::{Creep, Structure},
-    prelude::*,
+    objects::{Creep, RoomObjectProperties, Structure},
     ReturnCode,
 };
 
@@ -36,7 +34,7 @@ pub fn attempt_repair<'a>(creep: &'a Creep) -> ExecutionResult {
         Err("empty".into())
     } else {
         trace!("Repairing");
-        let target = find_repair_target(creep).ok_or_else(|| {
+        let target = find_repair_target(&creep.room()).ok_or_else(|| {
             let error = format!("Could not find a repair target");
             debug!("{}", error);
             error
@@ -54,13 +52,3 @@ fn repair<'a>(creep: &'a Creep, target: &'a Structure) -> ExecutionResult {
     }
 }
 
-fn find_repair_target<'a>(creep: &'a Creep) -> Option<Structure> {
-    trace!("Finding repair target");
-
-    let room = creep.room();
-    room.find(find::STRUCTURES).into_iter().find(|s| {
-        s.as_attackable()
-            .map(|s| s.hits() < s.hits_max())
-            .unwrap_or(false)
-    })
-}

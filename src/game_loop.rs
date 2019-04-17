@@ -4,6 +4,7 @@ use super::creeps;
 use super::structures::{spawns, towers};
 use std::collections::HashSet;
 use stdweb::unstable::TryFrom;
+use crate::game_state::GameState;
 
 pub fn game_loop() {
     debug!("Loop starting! CPU: {}", screeps::game::cpu::get_used());
@@ -17,10 +18,8 @@ pub fn game_loop() {
 
     let bucket = Option::<i32>::try_from(bucket).expect("Expected bucket to be a number");
 
-    let mut state = GameState {
-        cpu_bucket: bucket,
-        conqueror_count: None,
-    };
+    let mut state = GameState::default(); 
+    state.cpu_bucket = bucket;
 
     creeps::task()
         .tick(&mut state)

@@ -26,7 +26,7 @@ pub fn task<'a>() -> Task<'a> {
             .into_iter()
             .map(|room| room.find(find::MY_SPAWNS))
             .filter(|spawns| spawns.len() > 0)
-            .for_each(|spawns| {
+            .for_each(move |spawns| {
                 let len = spawns.len() as u32;
                 let index = (time % len * SPAWN_SKIP) / SPAWN_SKIP;
                 let spawn = &spawns[index as usize];
@@ -37,7 +37,7 @@ pub fn task<'a>() -> Task<'a> {
     .with_required_bucket(500)
 }
 
-fn run_spawn(state: &mut GameState, spawn: &StructureSpawn) -> ExecutionResult {
+fn run_spawn<'a>(state: &'a mut GameState, spawn: &'a StructureSpawn) -> ExecutionResult {
     debug!("Running spawn {}", spawn.name());
 
     let next_role = next_role(state, &spawn.room());
@@ -49,9 +49,9 @@ fn run_spawn(state: &mut GameState, spawn: &StructureSpawn) -> ExecutionResult {
 
     let next_role = next_role.unwrap();
 
-    spawn_creep(spawn, &next_role.as_str())?;
+    spawn_creep(&spawn, &next_role)?;
 
-    match next_role.as_str() {
+    match next_role {
         "conqueror" => *state.conqueror_count.as_mut().unwrap() += 1,
         _ => {}
     }

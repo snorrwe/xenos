@@ -12,11 +12,11 @@ use screeps::{
     constants::ResourceType,
     game::get_object_erased,
     objects::{
-        Creep, RoomObject, RoomObjectProperties, StructureContainer, StructureStorage, Tombstone,
-        Withdrawable,
+        Creep, RoomObject, RoomObjectProperties, Structure, StructureContainer, StructureStorage,
+        Tombstone, Withdrawable,
     },
     prelude::*,
-    ReturnCode,
+    ReturnCode, Room,
 };
 use stdweb::{unstable::TryInto, Reference};
 
@@ -46,7 +46,7 @@ fn run_creep<'a>(state: &mut GameState, creep: Creep) -> ExecutionResult {
     tree.tick(state)
 }
 
-fn assign_role<'a>(state: &'a mut GameState, creep: &'a Creep) -> Option<String> {
+fn assign_role<'a>(state: &'a mut GameState, creep: &'a Creep) -> Option<&'static str> {
     trace!("Assigning role to {}", creep.name());
 
     if creep.memory().string("role").ok().is_some() {
@@ -213,5 +213,17 @@ pub fn harvest<'a>(creep: &'a Creep) -> ExecutionResult {
     } else {
         harvester::attempt_harvest(creep, Some("target"))
     }
+}
+
+pub fn find_repair_target<'a>(room: &'a Room) -> Option<Structure> {
+    trace!("Finding repair target in room {:?}", room.name());
+
+    let result = js! {
+        const room = @{room};
+        return room.find(FIND_STRUCTURES, {
+            filter: s => s.hits < s.hitsMax
+        })[0];
+    };
+    result.try_into().ok()
 }
 

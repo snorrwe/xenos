@@ -5,7 +5,6 @@ use screeps::{
     objects::{Creep, Room},
     Part,
 };
-use std::collections::HashMap;
 use stdweb::unstable::TryInto;
 
 pub struct SpawnConfig {
@@ -16,27 +15,22 @@ pub struct SpawnConfig {
 
 // TODO: return an array of all roles to spawn in order of priority
 /// Get the next target role in the given room
-pub fn next_role<'a>(state: &'a mut GameState, room: &'a Room) -> Option<String> {
-    let mut counts = count_roles_in_room(room);
-    counts.entry("conqueror".into()).or_insert_with(|| {
-        state.conqueror_count.unwrap_or_else(|| {
-            // Lazily count conquerors
-            let count = count_conquerors();
-            state.conqueror_count = Some(count);
-            count
-        })
-    });
+pub fn next_role<'a>(state: &'a mut GameState, room: &'a Room) -> Option<&'static str> {
+    let conqueror_count = state.global_conqueror_count();
+    let counts = state.count_creeps_in_room(room);
+    counts.insert("conqueror", conqueror_count);
+
     counts
         .into_iter()
-        .fold(None, |result: Option<String>, (role, actual)| {
-            let expected = target_number_of_role_in_room(role.as_str(), room);
-            if expected <= actual {
+        .fold(None, |result: Option<&'static str>, (role, actual)| {
+            let expected = target_number_of_role_in_room(role, room);
+            if expected <= *actual {
                 return result;
             }
             result
                 .map(|result| {
-                    let result_prio = role_priority(room, result.as_str());
-                    let role_prio = role_priority(room, role.as_str());
+                    let result_prio = role_priority(room, result);
+                    let role_prio = role_priority(room, role);
                     if role_prio > result_prio {
                         role.clone()
                     } else {
@@ -81,53 +75,16 @@ pub fn role_priority<'a>(_room: &'a Room, role: &'a str) -> i8 {
     }
 }
 
-pub fn count_roles_in_room<'a>(room: &'a Room) -> HashMap<String, i8> {
-    let mut result: HashMap<String, i8> = [
-        ("upgrader".into(), 0),
-        ("harvester".into(), 0),
-        ("builder".into(), 0),
-        ("repairer".into(), 0),
-        ("gofer".into(), 0),
-    ]
-    .into_iter()
-    .cloned()
-    .collect();
-    // Also count the creeps spawning right now
-    room.find(find::MY_SPAWNS)
-        .into_iter()
-        .filter_map(|s| {
-            let role = js! {
-                let spawn = @{s};
-                let spawning = spawn.spawning;
-                if (!spawning) {
-                    return null;
-                }
-                let name = spawning.name;
-                let role = Memory.creeps && Memory.creeps[name].role;
-                return role;
-
-            };
-            let role = role.try_into();
-            role.ok()
-        })
-        .for_each(|role| {
-            result.entry(role).and_modify(|c| *c += 1).or_insert(1);
-        });
-
-    room.find(find::MY_CREEPS).into_iter().for_each(|c| {
-        let role = c.memory().string("role").unwrap_or(None);
-        if let Some(role) = role {
-            result.entry(role).and_modify(|c| *c += 1).or_insert(1);
-        }
-    });
-    result
-}
-
-pub fn count_conquerors() -> i8 {
-    game::creeps::values()
-        .into_iter()
-        .filter(|c| c.memory().string("role").unwrap_or(None) == Some("conqueror".into()))
-        .count() as i8
+pub fn string_to_role(role: String) -> &'static str {
+    match role.as_str() {
+        "upgrader" => "upgrader",
+        "harvester" => "harvester",
+        "builder" => "builder",
+        "repairer" => "repairer",
+        "gofer" => "gofer",
+        "conqueror" => "conqueror",
+        _ => unimplemented!(),
+    }
 }
 
 /// Max number of creeps of a given role in the given room

@@ -1,4 +1,5 @@
 use super::bt::*;
+use crate::creeps::find_repair_target;
 use screeps::{
     constants::find,
     game,
@@ -15,7 +16,14 @@ pub fn task<'a>() -> Task<'a> {
                 Structure::Tower(t) => Some(t),
                 _ => None,
             })
-            .for_each(move |tower| run_tower(state, &tower).unwrap_or(()));
+            .for_each(move |tower| {
+                run_tower(state, &tower)
+                    .map_err(|e| {
+                        warn!("Tower in room {:?} is idle, {:?}", tower.room().name(), e);
+                        e
+                    })
+                    .unwrap_or(())
+            });
         Ok(())
     })
 }
@@ -25,7 +33,7 @@ fn run_tower<'a>(state: &'a mut GameState, tower: &'a StructureTower) -> Executi
 
     let tasks = vec![
         Task::new(move |_| attempt_attack(tower)),
-        Task::new(move |_| attempt_repair(tower)).with_required_bucket(10_000),
+        Task::new(move |_| attempt_repair(tower)).with_required_bucket(1000),
     ];
 
     let tree = Control::Sequence(tasks);
@@ -39,7 +47,7 @@ fn attempt_attack<'a>(tower: &'a StructureTower) -> ExecutionResult {
         match res {
             ReturnCode::Ok | ReturnCode::RclNotEnough => Ok(()),
             _ => {
-                let error = format!("failed ta attack enemy {:?}", res);
+                let error = format!("Failed to attack enemy {:?}", res);
                 error!("{}", error);
                 Err(error)
             }
@@ -53,14 +61,13 @@ fn find_enemy<'a>(room: &'a Room) -> Option<screeps::Creep> {
     room.find(find::HOSTILE_CREEPS).into_iter().next()
 }
 
-#[allow(dead_code)]
 pub fn attempt_repair<'a>(tower: &'a StructureTower) -> ExecutionResult {
     trace!("Repairing");
 
     if tower.energy() < tower.energy_capacity() * 3 / 4 {
         return Err("loading".into());
     }
-    let target = find_repair_target(tower).ok_or_else(|| {
+    let target = find_repair_target(&tower.room()).ok_or_else(|| {
         let error = format!("Could not find a repair target");
         debug!("{}", error);
         error
@@ -79,13 +86,3 @@ fn repair<'a>(tower: &'a StructureTower, target: &'a Structure) -> ExecutionResu
     }
 }
 
-fn find_repair_target<'a>(tower: &'a StructureTower) -> Option<Structure> {
-    trace!("Finding repair target");
-
-    let room = tower.room();
-    room.find(find::STRUCTURES).into_iter().find(|s| {
-        s.as_attackable()
-            .map(|s| s.hits() < s.hits_max())
-            .unwrap_or(false)
-    })
-}

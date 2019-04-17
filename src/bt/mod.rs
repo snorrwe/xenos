@@ -5,9 +5,8 @@
 //!     - There is no explicit Task cancellation
 //!
 pub mod task;
-pub mod game_state;
 pub use self::task::*;
-pub use self::game_state::*;
+pub use crate::game_state::*;
 
 /// Result of a task
 pub type ExecutionResult = Result<(), String>;
