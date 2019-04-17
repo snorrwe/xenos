@@ -141,12 +141,21 @@ pub fn target_number_of_role_in_room<'a>(role: &'a str, room: &'a Room) -> i8 {
         }).length;
     };
     let n_containers: i64 = n_containers.try_into().unwrap();
+    let n_containers: i8 = n_containers as i8;
+    const UPGRADER_COUNT: i8 = 2;
+    const WORKER_COUNT: i8 = 2;
     match role {
-        "upgrader" => 2,
+        "upgrader" => n_containers.min(UPGRADER_COUNT),
         "harvester" => n_sources,
-        "builder" => 1,
+        "builder" => {
+            if n_containers > 0 {
+                WORKER_COUNT
+            } else {
+                WORKER_COUNT + UPGRADER_COUNT
+            }
+        }
         "repairer" => 0,            // Disable repairers for now
-        "conqueror" => n_flags * 4, // TODO: make the closest room spawn it
+        "conqueror" => n_flags * 2, // TODO: make the closest room spawn it
         "gofer" => n_sources.min(n_containers as i8),
         _ => unimplemented!(),
     }
