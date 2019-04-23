@@ -57,7 +57,6 @@ fn count_roles_in_room(room: &Room) -> HashMap<&'static str, i8> {
                 let name = spawning.name;
                 let role = Memory.creeps && Memory.creeps[name].role;
                 return role;
-
             };
             let role = role.try_into();
             role.ok()

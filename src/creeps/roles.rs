@@ -100,7 +100,7 @@ pub fn target_number_of_role_in_room<'a>(role: &'a str, room: &'a Room) -> i8 {
     let n_containers: i64 = n_containers.try_into().unwrap();
     let n_containers: i8 = n_containers as i8;
     const UPGRADER_COUNT: i8 = 2;
-    const WORKER_COUNT: i8 = 2;
+    const WORKER_COUNT: i8 = 1;
     match role {
         "upgrader" => n_containers.min(UPGRADER_COUNT),
         "harvester" => n_sources,
@@ -160,8 +160,8 @@ fn role_part_scale<'a>(role: &'a str) -> Vec<Part> {
 fn role_part_max(role: &str) -> Option<usize> {
     match role {
         "harvester" => Some(8),
-        "gofer" => Some(24),
-        "builder" | "repairer" | "upgrader" => Some(24),
+        "gofer" => Some(58),
+        "builder" | "repairer" | "upgrader" => Some(124),
         _ => None,
     }
 }

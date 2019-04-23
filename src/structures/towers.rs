@@ -19,7 +19,7 @@ pub fn task<'a>() -> Task<'a> {
             .for_each(move |tower| {
                 run_tower(state, &tower)
                     .map_err(|e| {
-                        warn!("Tower in room {:?} is idle, {:?}", tower.room().name(), e);
+                        debug!("Tower in room {:?} is idle, {:?}", tower.room().name(), e);
                         e
                     })
                     .unwrap_or(())
