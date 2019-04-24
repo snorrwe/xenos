@@ -160,8 +160,8 @@ fn role_part_scale<'a>(role: &'a str) -> Vec<Part> {
 fn role_part_max(role: &str) -> Option<usize> {
     match role {
         "harvester" => Some(8),
-        "gofer" => Some(58),
-        "builder" | "repairer" | "upgrader" => Some(124),
+        "gofer" => Some(32),
+        "builder" | "repairer" | "upgrader" => Some(32),
         _ => None,
     }
 }
