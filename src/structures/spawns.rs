@@ -62,7 +62,9 @@ fn run_spawn<'a>(state: &'a mut GameState, spawn: &'a StructureSpawn) -> Executi
 fn spawn_creep(spawn: &StructureSpawn, role: &str) -> ExecutionResult {
     trace!("Spawning creep");
 
-    let spawn_config = spawn_config_by_role(role);
+    let room = spawn.room();
+
+    let spawn_config = spawn_config_by_role(&room, role);
 
     let mut body = spawn_config.basic_body;
     let max_len = spawn_config.body_max;

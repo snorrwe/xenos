@@ -118,16 +118,16 @@ pub fn target_number_of_role_in_room<'a>(role: &'a str, room: &'a Room) -> i8 {
     }
 }
 
-pub fn spawn_config_by_role(role: &str) -> SpawnConfig {
+pub fn spawn_config_by_role(room: &Room, role: &str) -> SpawnConfig {
     SpawnConfig {
-        basic_body: basic_role_parts(role),
-        body_extension: role_part_scale(role),
-        body_max: role_part_max(role),
+        basic_body: basic_role_parts(room, role),
+        body_extension: role_part_scale(room, role),
+        body_max: role_part_max(room, role),
     }
 }
 
 /// The minimum parts required by the role
-fn basic_role_parts<'a>(role: &'a str) -> Vec<Part> {
+fn basic_role_parts<'a>(_room: &Room, role: &'a str) -> Vec<Part> {
     match role {
         "harvester" => vec![Part::Move, Part::Work, Part::Carry, Part::Work],
         "conqueror" => vec![
@@ -147,7 +147,7 @@ fn basic_role_parts<'a>(role: &'a str) -> Vec<Part> {
 }
 
 /// Intended parts to be appended to 'role_parts'
-fn role_part_scale<'a>(role: &'a str) -> Vec<Part> {
+fn role_part_scale<'a>(_room: &Room, role: &'a str) -> Vec<Part> {
     match role {
         "harvester" => vec![Part::Work],
         "conqueror" => vec![],
@@ -157,11 +157,23 @@ fn role_part_scale<'a>(role: &'a str) -> Vec<Part> {
 }
 
 /// The largest a creep of role `role` may be
-fn role_part_max(role: &str) -> Option<usize> {
+fn role_part_max(room: &Room, role: &str) -> Option<usize> {
+    let level = room.controller().map(|c| c.level()).unwrap_or(0);
+
+    let worker_count = || {
+        if level < 6 {
+            16
+        } else if level < 8 {
+            24
+        } else {
+            32
+        }
+    };
+
     match role {
         "harvester" => Some(8),
-        "gofer" => Some(32),
-        "builder" | "repairer" | "upgrader" => Some(32),
+        "gofer" => Some(worker_count()),
+        "builder" | "repairer" | "upgrader" => Some(worker_count()),
         _ => None,
     }
 }

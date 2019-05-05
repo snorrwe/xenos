@@ -43,7 +43,7 @@ pub fn task<'a>() -> Task<'a> {
 
         manage_room(room)
     })
-    .with_required_bucket(3000)
+    .with_required_bucket(5000)
 }
 
 fn manage_room<'a>(room: &'a Room) -> ExecutionResult {
