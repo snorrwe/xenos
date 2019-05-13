@@ -1,6 +1,6 @@
 //! Harvest energy and unload it to the appropriate target
 //!
-use super::super::bt::*;
+use crate::bt::*;
 use super::move_to;
 use screeps::{
     constants::ResourceType,
@@ -31,7 +31,7 @@ pub fn run<'a>(creep: &'a Creep) -> Task<'a> {
     Task::new(move |state| tree.tick(state))
 }
 
-fn unload<'a>(state: &'a mut GameState, creep: &'a Creep) -> ExecutionResult {
+pub fn unload<'a>(state: &'a mut GameState, creep: &'a Creep) -> ExecutionResult {
     trace!("Unloading");
 
     let carry_total = creep.carry_total();

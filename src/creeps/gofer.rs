@@ -34,7 +34,7 @@ pub fn run<'a>(creep: &'a Creep) -> Task<'a> {
     })
 }
 
-fn attempt_unload<'a>(state: &'a mut GameState, creep: &'a Creep) -> ExecutionResult {
+pub fn attempt_unload<'a>(state: &'a mut GameState, creep: &'a Creep) -> ExecutionResult {
     trace!("Unloading");
     let loading: bool = creep.memory().bool("loading");
     if loading {

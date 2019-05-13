@@ -18,7 +18,7 @@ pub fn game_loop() {
 
     let bucket = Option::<i32>::try_from(bucket).expect("Expected bucket to be a number");
 
-    let mut state = GameState::default(); 
+    let mut state = GameState::read_from_memory_or_default(); 
     state.cpu_bucket = bucket;
 
     creeps::task()
