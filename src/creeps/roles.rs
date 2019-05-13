@@ -15,29 +15,29 @@ pub struct SpawnConfig {
 
 // TODO: return an array of all roles to spawn in order of priority
 /// Get the next target role in the given room
-pub fn next_role<'a>(state: &'a mut GameState, room: &'a Room) -> Option<&'static str> {
+pub fn next_role<'a>(state: &'a mut GameState, room: &'a Room) -> Option<String> {
     let conqueror_count = state.global_conqueror_count();
     let counts = state.count_creeps_in_room(room);
-    counts.insert("conqueror", conqueror_count);
+    counts.insert("conqueror".into(), conqueror_count);
 
     counts
         .into_iter()
-        .fold(None, |result: Option<&'static str>, (role, actual)| {
+        .fold(None, |result: Option<String>, (role, actual)| {
             let expected = target_number_of_role_in_room(role, room);
             if expected <= *actual {
                 return result;
             }
             result
                 .map(|result| {
-                    let result_prio = role_priority(room, result);
+                    let result_prio = role_priority(room, result.as_str());
                     let role_prio = role_priority(room, role);
                     if role_prio > result_prio {
                         role.clone()
                     } else {
-                        result
+                        result.into()
                     }
                 })
-                .or_else(|| Some(role))
+                .or_else(|| Some(role.to_string()))
         })
 }
 
@@ -99,16 +99,18 @@ pub fn target_number_of_role_in_room<'a>(role: &'a str, room: &'a Room) -> i8 {
     };
     let n_containers: i64 = n_containers.try_into().unwrap();
     let n_containers: i8 = n_containers as i8;
+    let n_constructions = (room.find(find::CONSTRUCTION_SITES).len() & 255) as i8;
     const UPGRADER_COUNT: i8 = 2;
     const WORKER_COUNT: i8 = 1;
     match role {
         "upgrader" => n_containers.min(UPGRADER_COUNT),
         "harvester" => n_sources,
         "builder" => {
+            let target_builders = n_constructions.min(1) + WORKER_COUNT;
             if n_containers > 0 {
-                WORKER_COUNT
+                target_builders
             } else {
-                WORKER_COUNT + UPGRADER_COUNT
+                target_builders + UPGRADER_COUNT
             }
         }
         "repairer" => 0,            // Disable repairers for now
@@ -172,7 +174,7 @@ fn role_part_max(room: &Room, role: &str) -> Option<usize> {
 
     match role {
         "harvester" => Some(8),
-        "gofer" => Some(worker_count()),
+        "gofer" => Some(worker_count() * 2),
         "builder" | "repairer" | "upgrader" => Some(worker_count()),
         _ => None,
     }

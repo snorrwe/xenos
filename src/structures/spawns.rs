@@ -12,23 +12,19 @@ use screeps::{
 /// Return the BehaviourTree that runs the spawns
 pub fn task<'a>() -> Task<'a> {
     Task::new(move |state| {
-        const SPAWN_SKIP: u32 = 3;
+        const SPAWN_SKIP: u32 = 5;
 
         let time = game::time();
-        // FIXME
-        // Skip every other tick to work around the overpopulation problem
         if time % SPAWN_SKIP != 0 {
-            // Take a break for as many ticks as we ran the updates
             Err("Skip spawns this tick")?;
         }
         let rooms = game::rooms::values();
         rooms
             .into_iter()
             .map(|room| room.find(find::MY_SPAWNS))
-            .filter(|spawns| spawns.len() > 0)
             .for_each(move |spawns| {
                 let len = spawns.len() as u32;
-                let index = (time % len * SPAWN_SKIP) / SPAWN_SKIP;
+                let index = time % len;
                 let spawn = &spawns[index as usize];
                 run_spawn(state, spawn).unwrap_or(())
             });
@@ -51,7 +47,7 @@ fn run_spawn<'a>(state: &'a mut GameState, spawn: &'a StructureSpawn) -> Executi
 
     spawn_creep(&spawn, &next_role)?;
 
-    match next_role {
+    match next_role.as_str() {
         "conqueror" => *state.conqueror_count.as_mut().unwrap() += 1,
         _ => {}
     }

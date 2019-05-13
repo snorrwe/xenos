@@ -4,8 +4,11 @@ mod builder;
 mod conqueror;
 mod gofer;
 mod harvester;
+mod long_range_harvester;
 mod repairer;
 mod upgrader;
+
+use self::long_range_harvester as lrh;
 
 use super::bt::*;
 use screeps::{
@@ -46,7 +49,7 @@ fn run_creep<'a>(state: &mut GameState, creep: Creep) -> ExecutionResult {
     tree.tick(state)
 }
 
-fn assign_role<'a>(state: &'a mut GameState, creep: &'a Creep) -> Option<&'static str> {
+fn assign_role<'a>(state: &'a mut GameState, creep: &'a Creep) -> Option<String> {
     trace!("Assigning role to {}", creep.name());
 
     if creep.memory().string("role").ok().is_some() {

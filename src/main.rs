@@ -5,6 +5,9 @@ extern crate log;
 extern crate screeps;
 #[macro_use]
 extern crate stdweb;
+#[macro_use]
+extern crate serde;
+extern crate serde_json;
 
 mod bt;
 mod constructions;
@@ -13,6 +16,7 @@ mod game_loop;
 mod logging;
 mod structures;
 mod game_state;
+mod rooms;
 
 use game_loop::game_loop;
 

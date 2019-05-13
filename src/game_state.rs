@@ -1,25 +1,78 @@
 use crate::creeps::roles::string_to_role;
-use screeps::{find, game, Room};
+use screeps::{find, game, memory, Room};
+use serde_json;
 use std::collections::HashMap;
 use stdweb::unstable::TryInto;
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct GameState {
     /// CPU bucket available this tick
+    #[serde(skip_serializing)]
+    #[serde(default)]
     pub cpu_bucket: Option<i32>,
+
     /// Lazily countable global conqueror creep count
+    #[serde(skip_serializing)]
+    #[serde(default)]
     pub conqueror_count: Option<i8>,
+
     /// Count creeps in rooms
     /// Structure: room -> role -> n
-    creep_count_by_room: HashMap<String, HashMap<&'static str, i8>>,
+    #[serde(skip_serializing)]
+    #[serde(default)]
+    creep_count_by_room: HashMap<String, HashMap<String, i8>>,
+
+    /// Information about rooms
+    /// Structure: room -> info
+    pub scout_intel: HashMap<String, i32>,
+
+    /// Where to save this state when dropping
+    pub memory_route: Option<String>,
+    pub save_to_memory: Option<bool>,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct ScoutInfo {
+    hostile: bool,
+    player_controlled: bool,
+}
+
+impl Drop for GameState {
+    fn drop(&mut self) {
+        if let Some(false) = self.save_to_memory {
+            return;
+        }
+        debug!("Saving GameState");
+        let route = self
+            .memory_route
+            .as_ref()
+            .map(|x| x.as_str())
+            .unwrap_or("game_state");
+        memory::root().set(
+            route,
+            serde_json::to_string(self).expect("Failed to serialize"),
+        );
+    }
 }
 
 impl GameState {
-    pub fn count_creeps_in_room<'b>(&mut self, room: &'b Room) -> &mut HashMap<&'static str, i8> {
+    pub fn read_from_memory_or_default() -> Self {
+        memory::root()
+            .string("game_state")
+            .map_err(|e| error!("Failed to read game_state from memory {:?}", e))
+            .unwrap_or(None)
+            .and_then(|s| serde_json::from_str(s.as_str()).ok())
+            .unwrap_or_else(|| GameState::default())
+    }
+
+    pub fn count_creeps_in_room<'b>(&mut self, room: &'b Room) -> &mut HashMap<String, i8> {
         let name = room.name();
-        self.creep_count_by_room
-            .entry(name)
-            .or_insert_with(|| count_roles_in_room(room))
+        self.creep_count_by_room.entry(name).or_insert_with(|| {
+            count_roles_in_room(room)
+                .iter()
+                .map(|(k, v)| (k.to_string(), *v))
+                .collect()
+        })
     }
 
     /// Lazily computes the global number of conqueror creeps
