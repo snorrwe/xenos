@@ -3,8 +3,9 @@
 
 use super::{gofer, harvester};
 use crate::bt::*;
+use crate::game_state::{RoomIFF, ScoutInfo};
 use crate::rooms::neighbours;
-use screeps::{objects::Creep, prelude::*, traits::TryFrom, ReturnCode};
+use screeps::{constants::find, objects::Creep, prelude::*, traits::TryFrom, ReturnCode};
 
 pub const HOME_ROOM: &'static str = "home_room";
 
@@ -17,8 +18,6 @@ pub fn run<'a>(creep: &'a Creep) -> Task<'a> {
     let tasks = vec![
         Task::new(move |state| load(state, creep)),
         Task::new(move |state| unload(state, creep)),
-        Task::new(move |state| load(state, creep)),
-        Task::new(move |state| set_target_room(state, creep)),
     ];
 
     let tree = Control::Sequence(tasks);
@@ -34,11 +33,16 @@ fn load<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResult {
     }
     if creep.carry_total() == creep.carry_capacity() {
         creep.memory().set("loading", false);
-        creep.memory().del("target");
+        creep.memory().del(LRH_TARGET);
         Err("full")?;
     }
     let tasks = vec![
-        Task::new(move |state| move_to_room(state, creep, HARVEST_TARGET_ROOM)),
+        Task::new(move |_| approach_target_room(creep, HARVEST_TARGET_ROOM)),
+        Task::new(move |state| set_target_room(state, creep)),
+        Task::new(move |state| {
+            update_scout_info(state, creep).unwrap_or(());
+            Err("continue")?
+        }),
         Task::new(move |_| harvester::attempt_harvest(creep, Some(LRH_TARGET))),
     ];
 
@@ -46,7 +50,31 @@ fn load<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResult {
     tree.tick(state)
 }
 
-fn move_to_room<'a>(_state: &mut GameState, creep: &'a Creep, target_key: &str) -> ExecutionResult {
+fn update_scout_info(state: &mut GameState, creep: &Creep) -> ExecutionResult {
+    let room = creep.room();
+
+    let n_sources = room.find(find::SOURCES).len() as u8;
+
+    let controller = room.controller();
+
+    let iff = match controller.as_ref().map(|c| c.my()) {
+        None => RoomIFF::NoMansLand,
+        Some(true) => RoomIFF::Friendly,
+        Some(false) => match controller.map(|c| c.level()) {
+            Some(0) => RoomIFF::Neutral,
+            Some(_) => RoomIFF::Hostile,
+            None => RoomIFF::Unknown,
+        },
+    };
+
+    let info = ScoutInfo { n_sources, iff };
+
+    state.scout_intel.insert(room.name(), info);
+
+    Ok(())
+}
+
+fn approach_target_room<'a>(creep: &'a Creep, target_key: &str) -> ExecutionResult {
     let target = creep
         .memory()
         .string(target_key)
@@ -54,8 +82,9 @@ fn move_to_room<'a>(_state: &mut GameState, creep: &'a Creep, target_key: &str) 
         .ok_or("Creep has no target")?;
 
     let room = creep.room();
+    let room_name = room.name();
 
-    if room.name() == target {
+    if room_name == target {
         Err("Already in the target room")?;
     }
 
@@ -77,10 +106,7 @@ fn move_to_room<'a>(_state: &mut GameState, creep: &'a Creep, target_key: &str) 
 }
 
 fn set_target_room<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResult {
-    let target = creep
-        .memory()
-        .string(HARVEST_TARGET_ROOM)
-        .map_err(|e| format!("Failed to read target room {:?}", e))?;
+    let target = creep.memory().string(HARVEST_TARGET_ROOM).unwrap_or(None);
 
     if target.is_some() {
         Err("Already has a target")?;
@@ -92,17 +118,35 @@ fn set_target_room<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResu
 
     let neighbours = neighbours(&room);
 
-    let counts = state
+    let counts: &mut _ = state
         .long_range_harvesters
         .entry(room.name())
         .or_insert_with(|| [0; 4]);
 
-    let (i, _, target) = neighbours
+    let scout_intel = &state.scout_intel;
+
+    let (i, target) = neighbours
         .into_iter()
         .enumerate()
-        .map(|(i, name)| (i, counts[i], name))
-        .min_by_key(|(_, c, _)| c.clone())
-        .ok_or("Failed to find a target room")?;
+        .filter(|(_, name)| {
+            info!("??? {:?} {:?}", name, scout_intel.get(name));
+            scout_intel
+                .get(name)
+                .map(|int| match int.iff {
+                    RoomIFF::Unknown | RoomIFF::Neutral => true,
+                    _ => false,
+                })
+                .unwrap_or(true)
+        })
+        .min_by_key(|(i, _)| counts[*i])
+        .ok_or_else(|| {
+            warn!(
+                "Failed to set target room of LRH {:?} in room {:?}",
+                creep.name(),
+                creep.room().name()
+            );
+            "Failed to find a target room"
+        })?;
 
     counts[i] += 1;
 
@@ -124,7 +168,7 @@ fn unload<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResult {
         Err("empty")?;
     }
     let tasks = vec![
-        Task::new(move |state| move_to_room(state, creep, HOME_ROOM)),
+        Task::new(move |_| approach_target_room(creep, HOME_ROOM)),
         Task::new(move |state| gofer::attempt_unload(state, creep)),
     ];
 

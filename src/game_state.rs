@@ -42,8 +42,8 @@ pub struct GameState {
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct ScoutInfo {
-    iff: RoomIFF,
-    n_sources: u8,
+    pub iff: RoomIFF,
+    pub n_sources: u8,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
@@ -52,8 +52,9 @@ pub enum RoomIFF {
     Unknown = 0,
 
     Hostile,
-    PlayerControlled,
     Neutral,
+    Friendly,
+    NoMansLand,
     Keepers,
 }
 
@@ -119,6 +120,7 @@ fn count_roles_in_room(room: &Room) -> HashMap<&'static str, i8> {
         ("builder", 0),
         ("repairer", 0),
         ("gofer", 0),
+        ("lrh", 0),
     ]
     .into_iter()
     .cloned()

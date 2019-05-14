@@ -19,7 +19,15 @@ pub fn neighbours(room: &Room) -> Vec<String> {
     let result = js! {
         const room = @{room};
         const neighbours = @{neighbours};
-
+        // Directions in the same order as in neighbours_in_vectors
+        // TODO: return the directions too?
+        const directions = [
+            FIND_EXIT_TOP,
+            FIND_EXIT_RIGHT,
+            FIND_EXIT_BOTTOM,
+            FIND_EXIT_LEFT,
+        ];
+        return neighbours.filter((r,i) => room.findExitTo(r) == directions[i]);
     };
     result.try_into().unwrap_or_else(|_| vec![])
 }
