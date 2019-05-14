@@ -24,9 +24,14 @@ pub struct GameState {
 
     /// Information about rooms
     /// Structure: room -> info
-    pub scout_intel: HashMap<String, i32>,
+    pub scout_intel: HashMap<String, ScoutInfo>,
+
+    /// Number of LRH per room
+    /// In directions: [N, W, S, E]
+    pub long_range_harvesters: HashMap<String, [u8; 4]>,
 
     /// Where to save this state when dropping
+    /// Defaults to saving to "game_state"
     pub memory_route: Option<String>,
     pub save_to_memory: Option<bool>,
 }
@@ -35,6 +40,7 @@ pub struct GameState {
 pub struct ScoutInfo {
     hostile: bool,
     player_controlled: bool,
+    n_sources: u8,
 }
 
 impl Drop for GameState {
