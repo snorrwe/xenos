@@ -74,8 +74,8 @@ pub fn role_priority<'a>(_room: &'a Room, role: &'a str) -> i8 {
         "harvester" => 3,
         "gofer" => 2,
         "builder" => 1,
-        "conqueror" => -2,
         "lrh" => -1,
+        "conqueror" => -2,
         _ => 0,
     }
 }
@@ -121,9 +121,7 @@ pub fn target_number_of_role_in_room<'a>(role: &'a str, room: &'a Room) -> i8 {
         }
         "repairer" => 0,            // Disable repairers for now
         "conqueror" => n_flags * 2, // TODO: make the closest room spawn it
-        // Disable for now
-        // TODO: add scouting so LRH's are not wasted on hostline rooms
-        "lrh" => 0,
+        "lrh" => 1,
         "gofer" => n_sources.min(n_containers as i8),
         _ => unimplemented!(),
     }
@@ -162,7 +160,8 @@ fn role_part_scale<'a>(_room: &Room, role: &'a str) -> Vec<Part> {
     match role {
         "harvester" => vec![Part::Work],
         "conqueror" => vec![],
-        "gofer" | "lrh" => vec![Part::Move, Part::Carry],
+        "gofer" => vec![Part::Move, Part::Carry],
+        "lrh" => vec![Part::Move, Part::Carry, Part::Work, Part::Move],
         _ => vec![Part::Move, Part::Carry, Part::Work],
     }
 }
