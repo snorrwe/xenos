@@ -32,15 +32,35 @@ pub struct GameState {
 
     /// Where to save this state when dropping
     /// Defaults to saving to "game_state"
+    #[serde(skip_serializing)]
+    #[serde(default)]
     pub memory_route: Option<String>,
+    #[serde(skip_serializing)]
+    #[serde(default)]
     pub save_to_memory: Option<bool>,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct ScoutInfo {
-    hostile: bool,
-    player_controlled: bool,
+    iff: RoomIFF,
     n_sources: u8,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
+#[repr(u8)]
+pub enum RoomIFF {
+    Unknown = 0,
+
+    Hostile,
+    PlayerControlled,
+    Neutral,
+    Keepers,
+}
+
+impl Default for RoomIFF {
+    fn default() -> Self {
+        RoomIFF::Unknown
+    }
 }
 
 impl Drop for GameState {
