@@ -8,7 +8,7 @@ mod long_range_harvester;
 mod repairer;
 mod upgrader;
 
-use self::long_range_harvester as lrh;
+
 
 use super::bt::*;
 use screeps::{
