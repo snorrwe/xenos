@@ -153,7 +153,7 @@ impl GameState {
         for mem_name in to_delete.iter() {
             debug!("cleaning up creep memory of dead creep {}", mem_name);
             self.creep_memory.remove(mem_name);
-            screeps::memory::root().del(&format!("creeps.{}", mem_name));
+            screeps::memory::root().path_del(&format!("creeps.{}", mem_name));
         }
 
         debug!("Cleaned up memory");
