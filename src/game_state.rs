@@ -151,6 +151,12 @@ impl GameState {
             .and_then(|x| x.as_str())
     }
 
+    #[allow(dead_code)]
+    pub fn creep_memory_i64(&self, creep: CreepName, key: &str) -> Option<i64> {
+        self.creep_memory_get(creep)
+            .and_then(|map| map.get(key))
+            .and_then(|x| x.as_i64())
+    }
 
     pub fn cleanup_memory(&mut self) -> Result<(), Box<::std::error::Error>> {
         trace!("Cleaning memory");

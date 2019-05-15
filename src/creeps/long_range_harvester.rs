@@ -21,7 +21,7 @@ pub fn run<'a>(creep: &'a Creep) -> Task<'a> {
     ];
 
     let tree = Control::Sequence(tasks);
-    Task::new(move |state| tree.tick(state)).with_required_bucket(1000)
+    Task::new(move |state| tree.tick(state)).with_required_bucket(2000)
 }
 
 /// Load up on energy from the target room
