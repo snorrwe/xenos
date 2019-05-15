@@ -43,7 +43,10 @@ impl<'a> Task<'a> {
 impl<'a> BtNode for Task<'a> {
     fn tick(&self, state: &mut GameState) -> ExecutionResult {
         self.assert_pre_requisites(state)?;
-        (*self.task)(state)
+        (*self.task)(state).map_err(|e| {
+            debug!("Task Error {:?}", e);
+            e
+        })
     }
 }
 

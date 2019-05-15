@@ -164,10 +164,9 @@ pub fn attempt_harvest<'a>(
     let carry_cap = creep.carry_capacity();
 
     if carry_total == carry_cap {
-        trace!("Full");
         let memory = state.creep_memory_entry(creep.name());
         memory.remove(target_memory);
-        Err("")?;
+        Err("full")?;
     }
 
     let source = harvest_target(state, creep, target_memory)

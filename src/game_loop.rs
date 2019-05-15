@@ -3,7 +3,6 @@ use super::constructions;
 use super::creeps;
 use super::structures::{spawns, towers};
 use crate::game_state::GameState;
-use std::collections::HashSet;
 use stdweb::unstable::TryFrom;
 
 pub fn game_loop() {

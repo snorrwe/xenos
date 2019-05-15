@@ -34,7 +34,7 @@ pub fn attempt_build<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionRe
     trace!("Building");
 
     {
-        let loading = state.creep_memory_bool("loading".to_string(), &creep.name());
+        let loading = state.creep_memory_bool(creep, "loading");
         if loading {
             Err("loading")?;
         }
@@ -63,9 +63,10 @@ pub fn attempt_build<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionRe
 fn get_build_target(state: &mut GameState, creep: &Creep) -> Option<ConstructionSite> {
     let memory = state.creep_memory_entry(creep.name());
     memory
-        .get("target")?
-        .as_str()
+        .get("target")
+        .map(|x| x.as_str())
         .iter()
+        .filter_map(|id| *id)
         .find_map(|id| get_object_typed(id).unwrap_or(None))
         .or_else(|| {
             creep

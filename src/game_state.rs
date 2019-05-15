@@ -1,5 +1,5 @@
 use crate::creeps::roles::{string_to_role, ALL_ROLES};
-use screeps::{find, game, memory, Room};
+use screeps::{find, game, memory, Creep, Room};
 use serde_json::{self, Map, Value};
 use std::collections::HashMap;
 use stdweb::unstable::TryInto;
@@ -125,8 +125,8 @@ impl GameState {
             .or_insert_with(|| serde_json::Map::default())
     }
 
-    pub fn creep_memory_bool(&mut self, name: String, key: &str) -> bool {
-        self.creep_memory_entry(name)
+    pub fn creep_memory_bool(&mut self, creep: &Creep, key: &str) -> bool {
+        self.creep_memory_entry(creep.name())
             .get(key)
             .map(|x| x.as_bool().unwrap_or(false))
             .unwrap_or(false)

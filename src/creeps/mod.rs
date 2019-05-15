@@ -116,36 +116,34 @@ pub fn move_to<'a>(
 pub fn get_energy<'a>(state: &'a mut GameState, creep: &'a Creep) -> ExecutionResult {
     trace!("Getting energy");
     let target = {
-        let memory = state.creep_memory_entry(creep.name());
-
-        if memory
-            .get("loading")
-            .and_then(|l| l.as_bool())
-            .unwrap_or(false)
-        {
-            return Err("not loading".into());
+        if !state.creep_memory_bool(creep, "loading") {
+            Err("not loading")?;
         }
+
+        let memory = state.creep_memory_entry(creep.name());
 
         if creep.carry_total() == creep.carry_capacity() {
             memory.insert("loading".into(), false.into());
             memory.remove("target");
-            Err("full".to_string())?;
+            Err("full")?;
         }
 
         memory
             .get("target")
             .map(|x| x.as_str())
-            .ok_or_else(|| {
-                error!("Failed to read target");
-                "error in reading target"
-            })?
-            .map(|id| get_object_erased(id))
-            .unwrap_or_else(|| {
-                find_available_energy(creep).map(|obj| {
-                    js! {
-                        @{creep}.memory.target = @{&obj}.id;
+            .iter()
+            .filter_map(|id| *id)
+            .find_map(|id| get_object_erased(id))
+            .or_else(|| {
+                find_available_energy(creep).map(|target| {
+                    let id = js! {
+                        return @{&target}.id;
                     };
-                    obj
+
+                    let id: String = id.try_into().unwrap();
+
+                    memory.insert("target".into(), id.into());
+                    target
                 })
             })
             .ok_or_else(|| {
@@ -209,8 +207,8 @@ fn find_available_energy<'a>(creep: &'a Creep) -> Option<RoomObject> {
             return energy;
         }
         const container = creep.pos.findClosestByRange(FIND_STRUCTURES, {
-            filter: (i) => (i.structureType == STRUCTURE_CONTAINER || i.structureType == STRUCTURE_STORAGE) &&
-                           i.store[RESOURCE_ENERGY] > 0
+            filter: (i) => (i.structureType == STRUCTURE_CONTAINER || i.structureType == STRUCTURE_STORAGE)
+                && i.store[RESOURCE_ENERGY] > 0
         });
         return container;
     };
@@ -224,14 +222,11 @@ pub fn harvest<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResult {
     trace!("Worker harvesting");
 
     {
-        let memory = state.creep_memory_entry(creep.name());
-        let loading: bool = memory
-            .get("loading")
-            .map(|x| x.as_bool().unwrap_or(false))
-            .unwrap_or(false);
+        let loading = state.creep_memory_bool(creep, "loading");
         if !loading {
-            return Err("not loading".into());
+            Err("not loading")?;
         }
+        let memory = state.creep_memory_entry(creep.name());
         if creep.carry_total() == creep.carry_capacity() {
             memory.insert("loading".into(), false.into());
             memory.remove("target");

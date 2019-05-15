@@ -38,7 +38,7 @@ pub fn run<'a>(creep: &'a Creep) -> Task<'a> {
 pub fn attempt_unload<'a>(state: &'a mut GameState, creep: &'a Creep) -> ExecutionResult {
     trace!("Unloading");
     {
-        let loading = state.creep_memory_bool(creep.name(), "loading");
+        let loading = state.creep_memory_bool(creep, "loading");
         if loading {
             Err("loading")?;
         }
@@ -53,7 +53,7 @@ pub fn attempt_unload<'a>(state: &'a mut GameState, creep: &'a Creep) -> Executi
         }
     }
 
-    let target = find_unload_target(state, creep).ok_or_else(|| "")?;
+    let target = find_unload_target(state, creep).ok_or_else(|| "no unload target")?;
 
     let tasks = vec![
         Task::new(|state| try_transfer::<StructureSpawn>(state, creep, &target)),
@@ -170,7 +170,7 @@ pub fn get_energy<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResul
     trace!("Getting energy");
 
     {
-        let loading = state.creep_memory_bool(creep.name(), "loading");
+        let loading = state.creep_memory_bool(creep, "loading");
         if !loading {
             Err("not loading")?;
         }
@@ -182,7 +182,7 @@ pub fn get_energy<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResul
         }
     }
 
-    let target = find_container(state, creep).ok_or_else(|| String::new())?;
+    let target = find_container(state, creep).ok_or_else(|| "no container found")?;
     withdraw(state, creep, &target).map_err(|e| {
         let memory = state.creep_memory_entry(creep.name());
         memory.remove("target");
