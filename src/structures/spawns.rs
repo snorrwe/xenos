@@ -22,9 +22,9 @@ pub fn task<'a>() -> Task<'a> {
         rooms
             .into_iter()
             .map(|room| room.find(find::MY_SPAWNS))
+            .filter(|spawns| spawns.len() > 0)
             .for_each(move |spawns| {
-                let len = spawns.len() as u32;
-                let index = time % len;
+                let index = time as usize % spawns.len();
                 let spawn = &spawns[index as usize];
                 run_spawn(state, spawn).unwrap_or(())
             });
