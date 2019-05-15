@@ -43,7 +43,7 @@ fn load<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResult {
             update_scout_info(state, creep).unwrap_or(());
             Err("continue")?
         }),
-        Task::new(move |_| harvester::attempt_harvest(creep, Some(LRH_TARGET))),
+        Task::new(move |state| harvester::attempt_harvest(state, creep, Some(LRH_TARGET))),
     ];
 
     let tree = Control::Sequence(tasks);

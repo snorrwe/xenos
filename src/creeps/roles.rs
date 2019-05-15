@@ -1,6 +1,5 @@
 use super::{
-    super::bt::*, builder, conqueror, gofer, harvester, long_range_harvester as lrh, repairer,
-    upgrader,
+    super::bt::*, builder, conqueror, gofer, harvester, long_range_harvester as lrh, upgrader,
 };
 use screeps::{
     constants::find,
@@ -20,7 +19,6 @@ pub const ALL_ROLES: &'static [&'static str] = &[
     "upgrader",
     "harvester",
     "builder",
-    "repairer",
     "gofer",
     "lrh",
     "conqueror",
@@ -55,14 +53,13 @@ pub fn next_role<'a>(state: &'a mut GameState, room: &'a Room) -> Option<String>
 }
 
 /// Run the creep according to the given role
-pub fn run_role<'a>(role: &'a str, creep: &'a Creep) -> Task<'a> {
+pub fn run_role<'a>(role: &str, creep: &'a Creep) -> Task<'a> {
     trace!("Running creep {} by role {}", creep.name(), role);
 
     let task = match role {
         "upgrader" => upgrader::run(creep),
         "harvester" => harvester::run(creep),
         "builder" => builder::run(creep),
-        "repairer" => repairer::run(creep),
         "gofer" => gofer::run(creep),
         "conqueror" => conqueror::run(creep),
         "lrh" => lrh::run(creep),
@@ -95,7 +92,6 @@ pub fn string_to_role(role: String) -> &'static str {
         "upgrader" => "upgrader",
         "harvester" => "harvester",
         "builder" => "builder",
-        "repairer" => "repairer",
         "gofer" => "gofer",
         "conqueror" => "conqueror",
         "lrh" => "lrh",
@@ -129,7 +125,6 @@ pub fn target_number_of_role_in_room<'a>(role: &'a str, room: &'a Room) -> i8 {
                 target_builders + UPGRADER_COUNT
             }
         }
-        "repairer" => 0,            // Disable repairers for now
         "conqueror" => n_flags * 2, // TODO: make the closest room spawn it
         "lrh" => 1,
         "gofer" => n_sources.min(n_containers as i8),
@@ -158,9 +153,7 @@ fn basic_role_parts<'a>(_room: &Room, role: &'a str) -> Vec<Part> {
             Part::Move,
         ],
         "gofer" => vec![Part::Move, Part::Carry],
-        "lrh" | "upgrader" | "builder" | "repairer" => {
-            vec![Part::Move, Part::Move, Part::Carry, Part::Work]
-        }
+        "lrh" | "upgrader" | "builder" => vec![Part::Move, Part::Move, Part::Carry, Part::Work],
         _ => unimplemented!(),
     }
 }
@@ -193,7 +186,7 @@ fn role_part_max(room: &Room, role: &str) -> Option<usize> {
     match role {
         "harvester" => Some(8),
         "lrh" | "gofer" => Some(worker_count() * 2),
-        "builder" | "repairer" | "upgrader" => Some(worker_count()),
+        "builder" | "upgrader" => Some(worker_count()),
         _ => None,
     }
 }

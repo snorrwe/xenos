@@ -45,7 +45,7 @@ fn run_spawn<'a>(state: &'a mut GameState, spawn: &'a StructureSpawn) -> Executi
 
     let next_role = next_role.unwrap();
 
-    spawn_creep(&spawn, &next_role)?;
+    spawn_creep(state, &spawn, &next_role)?;
 
     match next_role.as_str() {
         "conqueror" => *state.conqueror_count.as_mut().unwrap() += 1,
@@ -55,7 +55,7 @@ fn run_spawn<'a>(state: &'a mut GameState, spawn: &'a StructureSpawn) -> Executi
     Ok(())
 }
 
-fn spawn_creep(spawn: &StructureSpawn, role: &str) -> ExecutionResult {
+fn spawn_creep(state: &mut GameState, spawn: &StructureSpawn, role: &str) -> ExecutionResult {
     trace!("Spawning creep");
 
     let room = spawn.room();
@@ -90,8 +90,9 @@ fn spawn_creep(spawn: &StructureSpawn, role: &str) -> ExecutionResult {
     let mut prefix = 0;
     let res = loop {
         let name = format!("{}_{:x}", role, name + prefix);
+        let memory = state.creep_memory_entry(name.clone());
+        memory.insert("role".into(), role.into());
         let mut memory = MemoryReference::new();
-        memory.set("role", role);
         let spawn_options = SpawnOptions::new().memory(memory);
         let res = spawn.spawn_creep_with_options(&body, &name, &spawn_options);
 

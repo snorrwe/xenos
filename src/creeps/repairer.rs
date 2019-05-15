@@ -1,26 +1,11 @@
 //! Repair structures
 //!
 use super::super::bt::*;
-use super::{builder, find_repair_target, get_energy, move_to, upgrader};
+use super::{find_repair_target, move_to};
 use screeps::{
     objects::{Creep, RoomObjectProperties, Structure},
     ReturnCode,
 };
-
-pub fn run<'a>(creep: &'a Creep) -> Task<'a> {
-    trace!("Running repairer {}", creep.name());
-
-    let tasks = vec![
-        Task::new(move |_| attempt_repair(creep)),
-        Task::new(move |state| get_energy(state, creep)),
-        // Fall back
-        Task::new(move |_| builder::attempt_build(creep)),
-        Task::new(move |_| upgrader::attempt_upgrade(creep)),
-    ];
-
-    let tree = Control::Sequence(tasks);
-    Task::new(move |state| tree.tick(state))
-}
 
 pub fn attempt_repair<'a>(creep: &'a Creep) -> ExecutionResult {
     trace!("Repairing");

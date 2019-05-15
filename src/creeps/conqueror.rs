@@ -11,8 +11,8 @@ pub fn run<'a>(creep: &'a Creep) -> Task<'a> {
     let tasks = vec![
         Task::new(move |_| claim_target(creep)),
         Task::new(move |_| set_target(creep)),
-        Task::new(move |_| builder::attempt_build(creep)),
-        Task::new(move |_| attempt_harvest(creep, None)),
+        Task::new(move |state| builder::attempt_build(state, creep)),
+        Task::new(move |state| attempt_harvest(state, creep, None)),
         Task::new(move |_| reset_target(creep)),
     ];
 
