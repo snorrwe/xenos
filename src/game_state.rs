@@ -70,6 +70,10 @@ impl Default for RoomIFF {
     }
 }
 
+js_deserializable!(GameState);
+js_deserializable!(ScoutInfo);
+js_deserializable!(RoomIFF);
+
 impl Drop for GameState {
     fn drop(&mut self) {
         if let Some(false) = self.save_to_memory {
@@ -81,21 +85,20 @@ impl Drop for GameState {
             .as_ref()
             .map(|x| x.as_str())
             .unwrap_or("game_state");
-        memory::root().set(
-            route,
-            serde_json::to_string(self).expect("Failed to serialize"),
-        );
+        use stdweb::serde::Serde;
+        memory::root().set(route, Serde(&self));
     }
 }
 
 impl GameState {
     pub fn read_from_memory_or_default() -> Self {
-        memory::root()
-            .string("game_state")
-            .map_err(|e| error!("Failed to read game_state from memory {:?}", e))
-            .unwrap_or(None)
-            .and_then(|s| serde_json::from_str(s.as_str()).ok())
-            .unwrap_or_else(|| GameState::default())
+        use stdweb::unstable::TryFrom;
+
+        let result = js! {
+            return Memory.game_state; // TODO pass key
+        };
+
+        Self::try_from(result).unwrap_or_default()
     }
 
     pub fn count_creeps_in_room<'b>(&mut self, room: &'b Room) -> &mut HashMap<String, i8> {
@@ -179,18 +182,20 @@ impl GameState {
         room.find(find::MY_SPAWNS)
             .into_iter()
             .filter_map(|s| {
-                let role = js! {
+                let name = js! {
                     let spawn = @{s};
                     let spawning = spawn.spawning;
                     if (!spawning) {
                         return null;
                     }
-                    let name = spawning.name;
-                    let role = Memory.creeps && Memory.creeps[name].role;
-                    return role;
+                    return spawning.name;
                 };
-                let role = role.try_into();
-                role.ok()
+                let name: String = name.try_into().ok()?;
+                let memory = self.creep_memory_entry(name);
+                memory
+                    .get("role")
+                    .and_then(|x| x.as_str())
+                    .map(|s| s.to_string())
             })
             .map(|role| string_to_role(role))
             .for_each(|role| {
