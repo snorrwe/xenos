@@ -8,7 +8,7 @@ mod long_range_harvester;
 mod repairer;
 mod upgrader;
 
-use super::bt::*;
+use crate::prelude::*;
 use screeps::{
     constants::ResourceType,
     game::get_object_erased,
@@ -50,13 +50,12 @@ fn run_creep<'a>(state: &mut GameState, creep: Creep) -> ExecutionResult {
 fn assign_role<'a>(state: &'a mut GameState, creep: &'a Creep) -> Option<String> {
     trace!("Assigning role to {}", creep.name());
 
+    if state
+        .creep_memory_string(CreepName(&creep.name()), "role")
+        .is_some()
     {
-        let memory = state.creep_memory_entry(creep.name());
-
-        if memory.get("role").is_some() {
-            trace!("Already has a role");
-            return None;
-        }
+        trace!("Already has a role");
+        None?;
     }
 
     let result = roles::next_role(state, &creep.room()).or_else(|| {
@@ -64,7 +63,7 @@ fn assign_role<'a>(state: &'a mut GameState, creep: &'a Creep) -> Option<String>
         None
     })?;
 
-    let memory = state.creep_memory_entry(creep.name());
+    let memory = state.creep_memory_entry(CreepName(&creep.name()));
     memory.insert("role".to_string(), result.clone().into());
     Some(result)
 }
@@ -72,17 +71,14 @@ fn assign_role<'a>(state: &'a mut GameState, creep: &'a Creep) -> Option<String>
 fn run_role<'a>(state: &'a mut GameState, creep: &'a Creep) -> ExecutionResult {
     let task = {
         let role = state
-            .creep_memory_entry(creep.name())
-            .get("role")
-            .and_then(|x| x.as_str())
+            .creep_memory_string(CreepName(&creep.name()), "role")
             .ok_or_else(|| {
                 let error = "failed to read creep role";
                 error!("{}", error);
                 error
-            })?
-            .to_string();
+            })?;
 
-        roles::run_role(role.clone().as_str(), creep)
+        roles::run_role(role, creep)
     };
     task.tick(state)
 }
@@ -116,11 +112,11 @@ pub fn move_to<'a>(
 pub fn get_energy<'a>(state: &'a mut GameState, creep: &'a Creep) -> ExecutionResult {
     trace!("Getting energy");
     let target = {
-        if !state.creep_memory_bool(creep, "loading") {
+        if !state.creep_memory_bool(CreepName(&creep.name()), "loading") {
             Err("not loading")?;
         }
 
-        let memory = state.creep_memory_entry(creep.name());
+        let memory = state.creep_memory_entry(CreepName(&creep.name()));
 
         if creep.carry_total() == creep.carry_capacity() {
             memory.insert("loading".into(), false.into());
@@ -157,7 +153,7 @@ pub fn get_energy<'a>(state: &'a mut GameState, creep: &'a Creep) -> ExecutionRe
         Task::new(|_| try_withdraw::<StructureStorage>(creep, &target)),
         Task::new(|_| try_withdraw::<StructureContainer>(creep, &target)),
         Task::new(|state| {
-            let memory = state.creep_memory_entry(creep.name());
+            let memory = state.creep_memory_entry(CreepName(&creep.name()));
             memory.remove("target");
             Ok(())
         }),
@@ -166,7 +162,7 @@ pub fn get_energy<'a>(state: &'a mut GameState, creep: &'a Creep) -> ExecutionRe
     let tree = Control::Sequence(tasks);
 
     tree.tick(state).map_err(|_| {
-        let memory = state.creep_memory_entry(creep.name());
+        let memory = state.creep_memory_entry(CreepName(&creep.name()));
         memory.remove("target");
         "can't withdraw".into()
     })
@@ -222,11 +218,11 @@ pub fn harvest<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResult {
     trace!("Worker harvesting");
 
     {
-        let loading = state.creep_memory_bool(creep, "loading");
+        let loading = state.creep_memory_bool(CreepName(&creep.name()), "loading");
         if !loading {
             Err("not loading")?;
         }
-        let memory = state.creep_memory_entry(creep.name());
+        let memory = state.creep_memory_entry(CreepName(&creep.name()));
         if creep.carry_total() == creep.carry_capacity() {
             memory.insert("loading".into(), false.into());
             memory.remove("target");

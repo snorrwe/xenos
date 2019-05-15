@@ -17,6 +17,7 @@ mod logging;
 mod structures;
 mod game_state;
 mod rooms;
+mod prelude;
 
 use game_loop::game_loop;
 

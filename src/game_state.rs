@@ -1,5 +1,5 @@
 use crate::creeps::roles::{string_to_role, ALL_ROLES};
-use screeps::{find, game, memory, Creep, Room};
+use screeps::{find, game, memory, Room};
 use serde_json::{self, Map, Value};
 use std::collections::HashMap;
 use stdweb::unstable::TryInto;
@@ -7,6 +7,7 @@ use stdweb::unstable::TryInto;
 pub type CreepMemory = HashMap<String, Map<String, Value>>;
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+/// Holds information about the global state of the game
 pub struct GameState {
     /// CPU bucket available this tick
     #[serde(skip_serializing)]
@@ -63,6 +64,8 @@ pub enum RoomIFF {
     NoMansLand,
     Keepers,
 }
+
+pub struct CreepName<'a>(pub &'a str);
 
 impl Default for RoomIFF {
     fn default() -> Self {
@@ -123,18 +126,31 @@ impl GameState {
         })
     }
 
-    pub fn creep_memory_entry(&mut self, name: String) -> &mut serde_json::Map<String, Value> {
+    /// Get an entry in the creep's memory
+    /// Inserts and empty map in the creep's name if none is found
+    pub fn creep_memory_entry(&mut self, name: CreepName) -> &mut serde_json::Map<String, Value> {
         self.creep_memory
-            .entry(name)
+            .entry(name.0.to_owned())
             .or_insert_with(|| serde_json::Map::default())
     }
 
-    pub fn creep_memory_bool(&mut self, creep: &Creep, key: &str) -> bool {
-        self.creep_memory_entry(creep.name())
-            .get(key)
+    pub fn creep_memory_get(&self, creep: CreepName) -> Option<&serde_json::Map<String, Value>> {
+        self.creep_memory.get(creep.0)
+    }
+
+    pub fn creep_memory_bool(&self, creep: CreepName, key: &str) -> bool {
+        self.creep_memory_get(creep)
+            .and_then(|map| map.get(key))
             .map(|x| x.as_bool().unwrap_or(false))
             .unwrap_or(false)
     }
+
+    pub fn creep_memory_string<'a>(&'a self, creep: CreepName, key: &str) -> Option<&'a str> {
+        self.creep_memory_get(creep)
+            .and_then(|map| map.get(key))
+            .and_then(|x| x.as_str())
+    }
+
 
     pub fn cleanup_memory(&mut self) -> Result<(), Box<::std::error::Error>> {
         trace!("Cleaning memory");
@@ -161,16 +177,10 @@ impl GameState {
         Ok(())
     }
 
-    pub fn count_conquerors(&mut self) -> i8 {
+    pub fn count_conquerors(&self) -> i8 {
         game::creeps::values()
             .into_iter()
-            .filter_map(|creep| {
-                let memory = { self.creep_memory_entry(creep.name()) };
-                memory
-                    .get("role")
-                    .and_then(|x| x.as_str())
-                    .map(|x| x.to_string())
-            })
+            .filter_map(|creep| self.creep_memory_string(CreepName(&creep.name()), "role"))
             .map(|role| role == "conqueror")
             .count() as i8
     }
@@ -191,19 +201,15 @@ impl GameState {
                     return spawning.name;
                 };
                 let name: String = name.try_into().ok()?;
-                let memory = self.creep_memory_entry(name);
-                memory
-                    .get("role")
-                    .and_then(|x| x.as_str())
-                    .map(|s| s.to_string())
+                self.creep_memory_string(CreepName(&name), "role")
             })
-            .map(|role| string_to_role(role))
+            .map(|role| string_to_role(role.to_string()))
             .for_each(|role| {
                 result.entry(role).and_modify(|c| *c += 1).or_insert(1);
             });
 
         room.find(find::MY_CREEPS).into_iter().for_each(|creep| {
-            let memory = self.creep_memory_entry(creep.name());
+            let memory = self.creep_memory_entry(CreepName(&creep.name()));
             let role = memory.get("role").and_then(|r| r.as_str());
             if let Some(role) = role {
                 let role = string_to_role(role.to_string());

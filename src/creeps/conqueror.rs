@@ -1,6 +1,7 @@
 //! Takes Rooms
 //!
-use super::{super::bt::*, builder, harvester::attempt_harvest, move_to};
+use super::{builder, harvester::attempt_harvest, move_to};
+use crate::prelude::*;
 use screeps::{game, objects::Creep, prelude::*, ReturnCode};
 use stdweb::unstable::TryInto;
 
@@ -22,10 +23,10 @@ pub fn run<'a>(creep: &'a Creep) -> Task<'a> {
 
 fn reset_target<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResult {
     trace!("Resetting conqueror target");
-    if !state.creep_memory_bool(creep, "loading") {
+    if !state.creep_memory_bool(CreepName(&creep.name()), "loading") {
         Err("not loading")?;
     }
-    let memory = state.creep_memory_entry(creep.name());
+    let memory = state.creep_memory_entry(CreepName(&creep.name()));
 
     if creep.carry_total() == creep.carry_capacity() {
         memory.insert("loading".into(), false.into());
@@ -38,7 +39,7 @@ fn reset_target<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResult 
 fn claim_target<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResult {
     trace!("claiming room");
 
-    let memory = state.creep_memory_entry(creep.name());
+    let memory = state.creep_memory_entry(CreepName(&creep.name()));
     let flag = {
         let flag = memory
             .get(CONQUEST_TARGET)
@@ -54,6 +55,7 @@ fn claim_target<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResult 
 
     let room = creep.room();
 
+    // The Rust Screeps api may panic here
     let arrived = js! {
         const flag = @{&flag};
         return @{&room}.name == (flag.room && flag.room.name);
@@ -86,11 +88,8 @@ fn claim_target<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResult 
 
 fn set_target<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResult {
     trace!("finding target");
-    let memory = state.creep_memory_entry(creep.name());
-
-    if memory
-        .get(CONQUEST_TARGET)
-        .and_then(|x| x.as_str())
+    if state
+        .creep_memory_string(CreepName(&creep.name()), CONQUEST_TARGET)
         .is_some()
     {
         trace!("has target");
@@ -102,6 +101,7 @@ fn set_target<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResult {
         .next()
         .ok_or_else(|| String::from("can't find a flag"))?;
 
+    let memory = state.creep_memory_entry(CreepName(&creep.name()));
     memory.insert(CONQUEST_TARGET.into(), flag.name().into());
     debug!("set target to {}", flag.name());
 

@@ -1,4 +1,4 @@
-use super::bt::*;
+use crate::prelude::*;
 use creeps::roles::{next_role, spawn_config_by_role};
 use screeps::{
     constants::find,
@@ -90,7 +90,7 @@ fn spawn_creep(state: &mut GameState, spawn: &StructureSpawn, role: &str) -> Exe
     let mut prefix = 0;
     let res = loop {
         let name = format!("{}_{:x}", role, name + prefix);
-        let memory = state.creep_memory_entry(name.clone());
+        let memory = state.creep_memory_entry(CreepName(&name));
         memory.insert("role".into(), role.into());
         let mut memory = MemoryReference::new();
         let spawn_options = SpawnOptions::new().memory(memory);

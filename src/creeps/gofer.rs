@@ -1,7 +1,7 @@
 //! Move resources
 //!
-use super::super::bt::*;
 use super::move_to;
+use crate::prelude::*;
 use screeps::{
     constants::{find, ResourceType},
     game::{get_object_erased, get_object_typed},
@@ -28,7 +28,7 @@ pub fn run<'a>(creep: &'a Creep) -> Task<'a> {
     let tree = Control::Sequence(tasks);
     Task::new(move |state| {
         tree.tick(state).map_err(|err| {
-            let memory = state.creep_memory_entry(creep.name());
+            let memory = state.creep_memory_entry(CreepName(&creep.name()));
             memory.remove("target");
             err
         })
@@ -38,7 +38,7 @@ pub fn run<'a>(creep: &'a Creep) -> Task<'a> {
 pub fn attempt_unload<'a>(state: &'a mut GameState, creep: &'a Creep) -> ExecutionResult {
     trace!("Unloading");
     {
-        let loading = state.creep_memory_bool(creep, "loading");
+        let loading = state.creep_memory_bool(CreepName(&creep.name()), "loading");
         if loading {
             Err("loading")?;
         }
@@ -47,7 +47,7 @@ pub fn attempt_unload<'a>(state: &'a mut GameState, creep: &'a Creep) -> Executi
 
         if carry_total == 0 {
             trace!("Empty");
-            let memory = state.creep_memory_entry(creep.name());
+            let memory = state.creep_memory_entry(CreepName(&creep.name()));
             memory.insert("loading".into(), true.into());
             Err("empty")?;
         }
@@ -64,7 +64,7 @@ pub fn attempt_unload<'a>(state: &'a mut GameState, creep: &'a Creep) -> Executi
 
     let tree = Control::Sequence(tasks);
     tree.tick(state).map_err(|e| {
-        let memory = state.creep_memory_entry(creep.name());
+        let memory = state.creep_memory_entry(CreepName(&creep.name()));
         memory.remove("target");
         e
     })
@@ -73,8 +73,7 @@ pub fn attempt_unload<'a>(state: &'a mut GameState, creep: &'a Creep) -> Executi
 fn find_unload_target<'a>(state: &'a mut GameState, creep: &'a Creep) -> Option<Reference> {
     trace!("Setting unload target");
     {
-        let memory = state.creep_memory_entry(creep.name());
-        let target = memory.get("target").and_then(|x| x.as_str());
+        let target = state.creep_memory_string(CreepName(&creep.name()), "target");
 
         if let Some(target) = target {
             trace!("Validating existing target");
@@ -91,7 +90,7 @@ fn find_unload_target<'a>(state: &'a mut GameState, creep: &'a Creep) -> Option<
     let tree = Control::Sequence(tasks);
     tree.tick(state).unwrap_or_else(|e| {
         debug!("Failed to find unload target {:?}", e);
-        let memory = state.creep_memory_entry(creep.name());
+        let memory = state.creep_memory_entry(CreepName(&creep.name()));
         memory.remove("target");
     });
     None
@@ -119,7 +118,7 @@ fn find_storage<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResult 
     });
     if let Some(res) = res {
         state
-            .creep_memory_entry(creep.name())
+            .creep_memory_entry(CreepName(&creep.name()))
             .insert("target".into(), res.id().into());
     }
     Ok(())
@@ -141,7 +140,7 @@ fn find_unload_target_by_type<'a>(
     };
     let target = String::try_from(res).map_err(|_| "expected string")?;
     state
-        .creep_memory_entry(creep.name())
+        .creep_memory_entry(CreepName(&creep.name()))
         .insert("target".into(), target.into());
     Ok(())
 }
@@ -154,7 +153,9 @@ where
         let r = creep.transfer_all(target, ResourceType::Energy);
         if r != ReturnCode::Ok {
             trace!("couldn't unload: {:?}", r);
-            state.creep_memory_entry(creep.name()).remove("target");
+            state
+                .creep_memory_entry(CreepName(&creep.name()))
+                .remove("target");
         }
     } else {
         move_to(creep, target)?;
@@ -170,11 +171,11 @@ pub fn get_energy<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResul
     trace!("Getting energy");
 
     {
-        let loading = state.creep_memory_bool(creep, "loading");
+        let loading = state.creep_memory_bool(CreepName(&creep.name()), "loading");
         if !loading {
             Err("not loading")?;
         }
-        let memory = state.creep_memory_entry(creep.name());
+        let memory = state.creep_memory_entry(CreepName(&creep.name()));
         if creep.carry_total() == creep.carry_capacity() {
             memory.insert("loading".into(), false.into());
 
@@ -184,7 +185,7 @@ pub fn get_energy<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResul
 
     let target = find_container(state, creep).ok_or_else(|| "no container found")?;
     withdraw(state, creep, &target).map_err(|e| {
-        let memory = state.creep_memory_entry(creep.name());
+        let memory = state.creep_memory_entry(CreepName(&creep.name()));
         memory.remove("target");
         e
     })
@@ -202,7 +203,7 @@ fn withdraw<'a>(
             Err("can't withdraw")?;
         }
     } else if target.store_total() == 0 {
-        let memory = state.creep_memory_entry(creep.name());
+        let memory = state.creep_memory_entry(CreepName(&creep.name()));
         memory.remove("target");
         Err("Target is empty")?;
     } else {
@@ -214,7 +215,7 @@ fn withdraw<'a>(
 fn find_container<'a>(state: &mut GameState, creep: &'a Creep) -> Option<StructureContainer> {
     read_target_container(state, creep).or_else(|| {
         trace!("Finding new withdraw target");
-        let memory = state.creep_memory_entry(creep.name());
+        let memory = state.creep_memory_entry(CreepName(&creep.name()));
         memory.remove("target");
         let result = js! {
             let creep = @{creep};
@@ -234,11 +235,9 @@ fn find_container<'a>(state: &mut GameState, creep: &'a Creep) -> Option<Structu
     })
 }
 
-fn read_target_container(state: &mut GameState, creep: &Creep) -> Option<StructureContainer> {
+fn read_target_container(state: &GameState, creep: &Creep) -> Option<StructureContainer> {
     state
-        .creep_memory_entry(creep.name())
-        .get("target")?
-        .as_str()
+        .creep_memory_string(CreepName(&creep.name()), "target")
         .and_then(|id| get_object_typed(id).ok())?
 }
 

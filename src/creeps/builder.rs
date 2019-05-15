@@ -1,7 +1,7 @@
 //! Build structures
 //!
-use super::super::bt::*;
 use super::{get_energy, harvest, move_to, repairer, upgrader};
+use crate::prelude::*;
 use screeps::{
     constants::find,
     game::get_object_typed,
@@ -20,7 +20,9 @@ pub fn run<'a>(creep: &'a Creep) -> Task<'a> {
         // If nothing can be built
         Task::new(move |state| repairer::attempt_repair(state, creep)).with_required_bucket(500),
         Task::new(move |state| {
-            state.creep_memory_entry(creep.name()).remove("target");
+            state
+                .creep_memory_entry(CreepName(&creep.name()))
+                .remove("target");
             Err("continue")?
         }),
         Task::new(move |state| upgrader::attempt_upgrade(state, creep)),
@@ -33,12 +35,13 @@ pub fn run<'a>(creep: &'a Creep) -> Task<'a> {
 pub fn attempt_build<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResult {
     trace!("Building");
 
+    let name = creep.name();
     {
-        let loading = state.creep_memory_bool(creep, "loading");
+        let loading = state.creep_memory_bool(CreepName(&name), "loading");
         if loading {
             Err("loading")?;
         }
-        let memory = state.creep_memory_entry(creep.name());
+        let memory = state.creep_memory_entry(CreepName(&name));
         if creep.carry_total() == 0 {
             memory.insert("loading".into(), true.into());
             Err("empty")?
@@ -53,7 +56,7 @@ pub fn attempt_build<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionRe
         _ => {
             let error = format!("Failed to build target {:?} {:?}", res, target.id());
             error!("{}", error);
-            let memory = state.creep_memory_entry(creep.name());
+            let memory = state.creep_memory_entry(CreepName(&name));
             memory.remove("target");
             Err(error)
         }
@@ -61,19 +64,16 @@ pub fn attempt_build<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionRe
 }
 
 fn get_build_target(state: &mut GameState, creep: &Creep) -> Option<ConstructionSite> {
-    let memory = state.creep_memory_entry(creep.name());
-    memory
-        .get("target")
-        .map(|x| x.as_str())
-        .iter()
-        .filter_map(|id| *id)
-        .find_map(|id| get_object_typed(id).unwrap_or(None))
+    state
+        .creep_memory_string(CreepName(&creep.name()), "target")
+        .and_then(|id| get_object_typed(id).unwrap_or(None))
         .or_else(|| {
             creep
                 .pos()
                 .find_closest_by_range(find::MY_CONSTRUCTION_SITES)
                 .ok_or_else(|| debug!("Could not find a build target"))
                 .map(|site| {
+                    let memory = state.creep_memory_entry(CreepName(&creep.name()));
                     memory.insert("target".into(), site.id().into());
                     site
                 })

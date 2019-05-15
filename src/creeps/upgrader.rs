@@ -1,8 +1,8 @@
 //! Upgrade Controllers
 //!
-use super::super::bt::*;
 use super::{get_energy, move_to};
 use crate::game_state::GameState;
+use crate::prelude::*;
 use screeps::{objects::Creep, prelude::*, ReturnCode};
 
 pub fn run<'a>(creep: &'a Creep) -> Task<'a> {
@@ -20,14 +20,11 @@ pub fn run<'a>(creep: &'a Creep) -> Task<'a> {
 
 pub fn attempt_upgrade<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResult {
     trace!("Upgrading");
-    let memory = state.creep_memory_entry(creep.name());
-    let loading: bool = memory
-        .get("loading")
-        .and_then(|x| x.as_bool())
-        .unwrap_or(false);
+    let loading = state.creep_memory_bool(CreepName(&creep.name()), "loading");
     if loading {
         return Err("loading".into());
     }
+    let memory = state.creep_memory_entry(CreepName(&creep.name()));
     if creep.carry_total() == 0 {
         memory.insert("loading".into(), true.into());
         Err("empty".to_string())?;

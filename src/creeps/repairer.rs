@@ -1,8 +1,8 @@
 //! Repair structures
 //!
-use super::super::bt::*;
 use super::{find_repair_target, move_to};
 use crate::game_state::GameState;
+use crate::prelude::*;
 use screeps::{
     objects::{Creep, RoomObjectProperties, Structure},
     ReturnCode,
@@ -11,12 +11,12 @@ use screeps::{
 pub fn attempt_repair<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResult {
     trace!("Repairing");
 
-    let loading = state.creep_memory_bool(creep, "loading");
+    let loading = state.creep_memory_bool(CreepName(&creep.name()), "loading");
     if loading {
         return Err("loading".into());
     }
     if creep.carry_total() == 0 {
-        let memory = state.creep_memory_entry(creep.name());
+        let memory = state.creep_memory_entry(CreepName(&creep.name()));
         memory.insert("loading".into(), true.into());
         Err("empty".into())
     } else {
