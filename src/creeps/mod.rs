@@ -8,8 +8,6 @@ mod long_range_harvester;
 mod repairer;
 mod upgrader;
 
-
-
 use super::bt::*;
 use screeps::{
     constants::ResourceType,
@@ -91,7 +89,13 @@ pub fn move_to<'a>(
     creep: &'a Creep,
     target: &'a impl screeps::RoomObjectProperties,
 ) -> ExecutionResult {
-    let res = creep.move_to(target);
+    use screeps::traits::TryFrom;
+    let res = js!{
+        const creep = @{creep};
+        const target = @{target.pos()};
+        return creep.moveTo(target, {reusePath: 7});
+    };
+    let res = ReturnCode::try_from(res).map_err(|e|format!("Failed to convert move result {:?}", e))?;
     match res {
         ReturnCode::Ok | ReturnCode::Tired => Ok(()),
         _ => {
@@ -172,7 +176,7 @@ where
         let r = creep.withdraw_all(target, ResourceType::Energy);
         if r != ReturnCode::Ok {
             debug!("couldn't withdraw: {:?}", r);
-            return Err("couldn't withdraw".into());
+            Err("couldn't withdraw")?;
         }
     } else {
         move_to(creep, target)?;
