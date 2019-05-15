@@ -18,7 +18,7 @@ pub fn run<'a>(creep: &'a Creep) -> Task<'a> {
         Task::new(move |state| harvest(state, creep)),
         Task::new(move |state| attempt_build(state, creep)),
         // If nothing can be built
-        Task::new(move |_| repairer::attempt_repair(creep)).with_required_bucket(500),
+        Task::new(move |state| repairer::attempt_repair(state, creep)).with_required_bucket(500),
         Task::new(move |state| {
             state.creep_memory_entry(creep.name()).remove("target");
             Err("continue")?

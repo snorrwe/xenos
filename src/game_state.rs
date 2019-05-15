@@ -101,7 +101,8 @@ impl GameState {
     pub fn count_creeps_in_room<'b>(&mut self, room: &'b Room) -> &mut HashMap<String, i8> {
         let name = room.name();
         // TODO: use cached value
-        let count = count_roles_in_room(self, room)
+        let count = self
+            .count_roles_in_room(room)
             .iter()
             .map(|(k, v)| (k.to_string(), *v))
             .collect();
@@ -113,7 +114,7 @@ impl GameState {
     pub fn global_conqueror_count(&mut self) -> i8 {
         self.conqueror_count.unwrap_or_else(|| {
             // Lazily count conquerors
-            let count = count_conquerors();
+            let count = self.count_conquerors();
             self.conqueror_count = Some(count);
             count
         })
@@ -156,49 +157,56 @@ impl GameState {
 
         Ok(())
     }
-}
 
-fn count_roles_in_room(state: &mut GameState, room: &Room) -> HashMap<&'static str, i8> {
-    let mut result: HashMap<&'static str, i8> = ALL_ROLES.iter().cloned().map(|x| (x, 0)).collect();
-    // Also count the creeps spawning right now
-    room.find(find::MY_SPAWNS)
-        .into_iter()
-        .filter_map(|s| {
-            let role = js! {
-                let spawn = @{s};
-                let spawning = spawn.spawning;
-                if (!spawning) {
-                    return null;
-                }
-                let name = spawning.name;
-                let role = Memory.creeps && Memory.creeps[name].role;
-                return role;
-            };
-            let role = role.try_into();
-            role.ok()
-        })
-        .map(|role| string_to_role(role))
-        .for_each(|role| {
-            result.entry(role).and_modify(|c| *c += 1).or_insert(1);
+    pub fn count_conquerors(&mut self) -> i8 {
+        game::creeps::values()
+            .into_iter()
+            .filter_map(|creep| {
+                let memory = { self.creep_memory_entry(creep.name()) };
+                memory
+                    .get("role")
+                    .and_then(|x| x.as_str())
+                    .map(|x| x.to_string())
+            })
+            .map(|role| role == "conqueror")
+            .count() as i8
+    }
+
+    fn count_roles_in_room(&mut self, room: &Room) -> HashMap<&'static str, i8> {
+        let mut result: HashMap<&'static str, i8> =
+            ALL_ROLES.iter().cloned().map(|x| (x, 0)).collect();
+        // Also count the creeps spawning right now
+        room.find(find::MY_SPAWNS)
+            .into_iter()
+            .filter_map(|s| {
+                let role = js! {
+                    let spawn = @{s};
+                    let spawning = spawn.spawning;
+                    if (!spawning) {
+                        return null;
+                    }
+                    let name = spawning.name;
+                    let role = Memory.creeps && Memory.creeps[name].role;
+                    return role;
+                };
+                let role = role.try_into();
+                role.ok()
+            })
+            .map(|role| string_to_role(role))
+            .for_each(|role| {
+                result.entry(role).and_modify(|c| *c += 1).or_insert(1);
+            });
+
+        room.find(find::MY_CREEPS).into_iter().for_each(|creep| {
+            let memory = self.creep_memory_entry(creep.name());
+            let role = memory.get("role").and_then(|r| r.as_str());
+            if let Some(role) = role {
+                let role = string_to_role(role.to_string());
+                result.entry(role).and_modify(|c| *c += 1).or_insert(1);
+            }
         });
 
-    room.find(find::MY_CREEPS).into_iter().for_each(|creep| {
-        let memory = state.creep_memory_entry(creep.name());
-        let role = memory.get("role").and_then(|r| r.as_str());
-        if let Some(role) = role {
-            let role = string_to_role(role.to_string());
-            result.entry(role).and_modify(|c| *c += 1).or_insert(1);
-        }
-    });
-
-    result
-}
-
-pub fn count_conquerors() -> i8 {
-    game::creeps::values()
-        .into_iter()
-        .filter_map(|c| c.memory().string("role").unwrap_or(None))
-        .map(|role| role == "conqueror")
-        .count() as i8
+        result
+    }
 }
 

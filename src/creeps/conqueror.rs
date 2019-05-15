@@ -9,41 +9,46 @@ const CONQUEST_TARGET: &'static str = "conquest_target";
 pub fn run<'a>(creep: &'a Creep) -> Task<'a> {
     trace!("Running conqueror {}", creep.name());
     let tasks = vec![
-        Task::new(move |_| claim_target(creep)),
-        Task::new(move |_| set_target(creep)),
+        Task::new(move |state| claim_target(state, creep)),
+        Task::new(move |state| set_target(state, creep)),
         Task::new(move |state| builder::attempt_build(state, creep)),
         Task::new(move |state| attempt_harvest(state, creep, None)),
-        Task::new(move |_| reset_target(creep)),
+        Task::new(move |state| reset_target(state, creep)),
     ];
 
     let tree = Control::Sequence(tasks);
     Task::new(move |state| tree.tick(state)).with_required_bucket(300)
 }
 
-fn reset_target<'a>(creep: &'a Creep) -> ExecutionResult {
+fn reset_target<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResult {
     trace!("Resetting conqueror target");
-    if !creep.memory().bool("loading") {
+    if !state.creep_memory_bool(creep, "loading") {
         Err("not loading")?;
     }
+    let memory = state.creep_memory_entry(creep.name());
 
     if creep.carry_total() == creep.carry_capacity() {
-        creep.memory().set("loading", false);
-        creep.memory().del("target");
+        memory.insert("loading".into(), false.into());
+        memory.remove("target");
         Err("full")?;
     }
     Ok(())
 }
 
-fn claim_target<'a>(creep: &'a Creep) -> ExecutionResult {
+fn claim_target<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResult {
     trace!("claiming room");
-    let flag = creep
-        .memory()
-        .string(CONQUEST_TARGET)
-        .map_err(|e| format!("failed to read 'target' {:?}", e))?
-        .ok_or_else(|| String::from("no target set"))?;
 
-    let flag = game::flags::get(flag.as_str()).ok_or_else(|| {
-        creep.memory().del(CONQUEST_TARGET);
+    let memory = state.creep_memory_entry(creep.name());
+    let flag = {
+        let flag = memory
+            .get(CONQUEST_TARGET)
+            .and_then(|x| x.as_str())
+            .ok_or_else(|| "no target set")?;
+        game::flags::get(flag)
+    };
+
+    let flag = flag.ok_or_else(|| {
+        memory.remove(CONQUEST_TARGET);
         String::from("target flag does not exist")
     })?;
 
@@ -53,6 +58,7 @@ fn claim_target<'a>(creep: &'a Creep) -> ExecutionResult {
         const flag = @{&flag};
         return @{&room}.name == (flag.room && flag.room.name);
     };
+
     let arrived: bool = arrived
         .try_into()
         .map_err(|e| format!("failed to convert result to bool {:?}", e))?;
@@ -78,13 +84,13 @@ fn claim_target<'a>(creep: &'a Creep) -> ExecutionResult {
     }
 }
 
-fn set_target<'a>(creep: &'a Creep) -> ExecutionResult {
+fn set_target<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResult {
     trace!("finding target");
+    let memory = state.creep_memory_entry(creep.name());
 
-    if creep
-        .memory()
-        .string(CONQUEST_TARGET)
-        .map_err(|e| format!("failed to read 'target' {:?}", e))?
+    if memory
+        .get(CONQUEST_TARGET)
+        .and_then(|x| x.as_str())
         .is_some()
     {
         trace!("has target");
@@ -96,7 +102,7 @@ fn set_target<'a>(creep: &'a Creep) -> ExecutionResult {
         .next()
         .ok_or_else(|| String::from("can't find a flag"))?;
 
-    creep.memory().set(CONQUEST_TARGET, flag.name());
+    memory.insert(CONQUEST_TARGET.into(), flag.name().into());
     debug!("set target to {}", flag.name());
 
     Ok(())
