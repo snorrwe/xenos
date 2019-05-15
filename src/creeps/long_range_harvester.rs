@@ -57,7 +57,18 @@ fn update_scout_info(state: &mut GameState, creep: &Creep) -> ExecutionResult {
 
     let controller = room.controller();
 
-    let iff = match controller.as_ref().map(|c| c.my()) {
+    let my_controller = controller
+        .as_ref()
+        .map(|c| {
+            // c.my() can panic
+            let result = js! {
+                return @{c}.my;
+            };
+            result
+        })
+        .map(|my| bool::try_from(my).unwrap_or(false));
+
+    let iff = match my_controller {
         None => RoomIFF::NoMansLand,
         Some(true) => RoomIFF::Friendly,
         Some(false) => match controller.map(|c| c.level()) {
@@ -129,7 +140,6 @@ fn set_target_room<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResu
         .into_iter()
         .enumerate()
         .filter(|(_, name)| {
-            info!("??? {:?} {:?}", name, scout_intel.get(name));
             scout_intel
                 .get(name)
                 .map(|int| match int.iff {
