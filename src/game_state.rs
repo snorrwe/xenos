@@ -1,4 +1,4 @@
-use crate::creeps::roles::string_to_role;
+use crate::creeps::roles::{string_to_role, ALL_ROLES};
 use screeps::{find, game, memory, Room};
 use serde_json;
 use std::collections::HashMap;
@@ -114,17 +114,7 @@ impl GameState {
 }
 
 fn count_roles_in_room(room: &Room) -> HashMap<&'static str, i8> {
-    let mut result: HashMap<&'static str, i8> = [
-        ("upgrader", 0),
-        ("harvester", 0),
-        ("builder", 0),
-        ("repairer", 0),
-        ("gofer", 0),
-        ("lrh", 0),
-    ]
-    .into_iter()
-    .cloned()
-    .collect();
+    let mut result: HashMap<&'static str, i8> = ALL_ROLES.iter().cloned().map(|x| (x, 0)).collect();
     // Also count the creeps spawning right now
     room.find(find::MY_SPAWNS)
         .into_iter()
@@ -161,7 +151,8 @@ fn count_roles_in_room(room: &Room) -> HashMap<&'static str, i8> {
 pub fn count_conquerors() -> i8 {
     game::creeps::values()
         .into_iter()
-        .filter(|c| c.memory().string("role").unwrap_or(None) == Some("conqueror".into()))
+        .filter_map(|c| c.memory().string("role").unwrap_or(None))
+        .map(|role| role == "conqueror")
         .count() as i8
 }
 

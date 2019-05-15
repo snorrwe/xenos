@@ -16,6 +16,16 @@ pub struct SpawnConfig {
     pub body_max: Option<usize>,
 }
 
+pub const ALL_ROLES: &'static [&'static str] = &[
+    "upgrader",
+    "harvester",
+    "builder",
+    "repairer",
+    "gofer",
+    "lrh",
+    "conqueror",
+];
+
 // TODO: return an array of all roles to spawn in order of priority
 /// Get the next target role in the given room
 pub fn next_role<'a>(state: &'a mut GameState, room: &'a Room) -> Option<String> {
