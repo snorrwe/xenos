@@ -85,4 +85,3 @@ fn repair<'a>(tower: &'a StructureTower, target: &'a Structure) -> ExecutionResu
         Err(error)
     }
 }
-

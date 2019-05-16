@@ -1,6 +1,6 @@
 //! Build structures
 //!
-use super::{get_energy, harvest, move_to, repairer, upgrader};
+use super::{get_energy, harvest, move_to, repairer, upgrader, TARGET};
 use crate::prelude::*;
 use screeps::{
     constants::find,
@@ -22,7 +22,7 @@ pub fn run<'a>(creep: &'a Creep) -> Task<'a> {
         Task::new(move |state| {
             state
                 .creep_memory_entry(CreepName(&creep.name()))
-                .remove("target");
+                .remove(TARGET);
             Err("continue")?
         }),
         Task::new(move |state| upgrader::attempt_upgrade(state, creep)),
@@ -57,7 +57,7 @@ pub fn attempt_build<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionRe
             let error = format!("Failed to build target {:?} {:?}", res, target.id());
             error!("{}", error);
             let memory = state.creep_memory_entry(CreepName(&name));
-            memory.remove("target");
+            memory.remove(TARGET);
             Err(error)
         }
     }
@@ -65,7 +65,7 @@ pub fn attempt_build<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionRe
 
 fn get_build_target(state: &mut GameState, creep: &Creep) -> Option<ConstructionSite> {
     state
-        .creep_memory_string(CreepName(&creep.name()), "target")
+        .creep_memory_string(CreepName(&creep.name()), TARGET)
         .and_then(|id| get_object_typed(id).unwrap_or(None))
         .or_else(|| {
             creep
@@ -74,10 +74,9 @@ fn get_build_target(state: &mut GameState, creep: &Creep) -> Option<Construction
                 .ok_or_else(|| debug!("Could not find a build target"))
                 .map(|site| {
                     let memory = state.creep_memory_entry(CreepName(&creep.name()));
-                    memory.insert("target".into(), site.id().into());
+                    memory.insert(TARGET.into(), site.id().into());
                     site
                 })
                 .ok()
         })
 }
-

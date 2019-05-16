@@ -61,4 +61,3 @@ impl<'a> TaskNew<'a> for Task<'a> {
         }
     }
 }
-

@@ -45,4 +45,3 @@ pub fn attempt_upgrade<'a>(state: &mut GameState, creep: &'a Creep) -> Execution
         }
     }
 }
-

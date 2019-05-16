@@ -1,6 +1,6 @@
 //! Takes Rooms
 //!
-use super::{builder, harvester::attempt_harvest, move_to};
+use super::{builder, harvester::attempt_harvest, move_to, TARGET};
 use crate::prelude::*;
 use screeps::{game, objects::Creep, prelude::*, ReturnCode};
 use stdweb::unstable::TryInto;
@@ -30,7 +30,7 @@ fn reset_target<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResult 
 
     if creep.carry_total() == creep.carry_capacity() {
         memory.insert("loading".into(), false.into());
-        memory.remove("target");
+        memory.remove(TARGET);
         Err("full")?;
     }
     Ok(())
@@ -107,4 +107,3 @@ fn set_target<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResult {
 
     Ok(())
 }
-

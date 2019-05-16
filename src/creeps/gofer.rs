@@ -1,6 +1,6 @@
 //! Move resources
 //!
-use super::move_to;
+use super::{move_to, TARGET};
 use crate::prelude::*;
 use screeps::{
     constants::{find, ResourceType},
@@ -29,7 +29,7 @@ pub fn run<'a>(creep: &'a Creep) -> Task<'a> {
     Task::new(move |state| {
         tree.tick(state).map_err(|err| {
             let memory = state.creep_memory_entry(CreepName(&creep.name()));
-            memory.remove("target");
+            memory.remove(TARGET);
             err
         })
     })
@@ -65,7 +65,7 @@ pub fn attempt_unload<'a>(state: &'a mut GameState, creep: &'a Creep) -> Executi
     let tree = Control::Sequence(tasks);
     tree.tick(state).map_err(|e| {
         let memory = state.creep_memory_entry(CreepName(&creep.name()));
-        memory.remove("target");
+        memory.remove(TARGET);
         e
     })
 }
@@ -73,7 +73,7 @@ pub fn attempt_unload<'a>(state: &'a mut GameState, creep: &'a Creep) -> Executi
 fn find_unload_target<'a>(state: &'a mut GameState, creep: &'a Creep) -> Option<Reference> {
     trace!("Setting unload target");
     {
-        let target = state.creep_memory_string(CreepName(&creep.name()), "target");
+        let target = state.creep_memory_string(CreepName(&creep.name()), TARGET);
 
         if let Some(target) = target {
             trace!("Validating existing target");
@@ -91,7 +91,7 @@ fn find_unload_target<'a>(state: &'a mut GameState, creep: &'a Creep) -> Option<
     tree.tick(state).unwrap_or_else(|e| {
         debug!("Failed to find unload target {:?}", e);
         let memory = state.creep_memory_entry(CreepName(&creep.name()));
-        memory.remove("target");
+        memory.remove(TARGET);
     });
     None
 }
@@ -119,7 +119,7 @@ fn find_storage<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResult 
     if let Some(res) = res {
         state
             .creep_memory_entry(CreepName(&creep.name()))
-            .insert("target".into(), res.id().into());
+            .insert(TARGET.into(), res.id().into());
     }
     Ok(())
 }
@@ -141,7 +141,7 @@ fn find_unload_target_by_type<'a>(
     let target = String::try_from(res).map_err(|_| "expected string")?;
     state
         .creep_memory_entry(CreepName(&creep.name()))
-        .insert("target".into(), target.into());
+        .insert(TARGET.into(), target.into());
     Ok(())
 }
 
@@ -155,7 +155,7 @@ where
             trace!("couldn't unload: {:?}", r);
             state
                 .creep_memory_entry(CreepName(&creep.name()))
-                .remove("target");
+                .remove(TARGET);
         }
     } else {
         move_to(creep, target)?;
@@ -186,7 +186,7 @@ pub fn get_energy<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResul
     let target = find_container(state, creep).ok_or_else(|| "no container found")?;
     withdraw(state, creep, &target).map_err(|e| {
         let memory = state.creep_memory_entry(CreepName(&creep.name()));
-        memory.remove("target");
+        memory.remove(TARGET);
         e
     })
 }
@@ -204,7 +204,7 @@ fn withdraw<'a>(
         }
     } else if target.store_total() == 0 {
         let memory = state.creep_memory_entry(CreepName(&creep.name()));
-        memory.remove("target");
+        memory.remove(TARGET);
         Err("Target is empty")?;
     } else {
         move_to(creep, target)?;
@@ -216,7 +216,7 @@ fn find_container<'a>(state: &mut GameState, creep: &'a Creep) -> Option<Structu
     read_target_container(state, creep).or_else(|| {
         trace!("Finding new withdraw target");
         let memory = state.creep_memory_entry(CreepName(&creep.name()));
-        memory.remove("target");
+        memory.remove(TARGET);
         let result = js! {
             let creep = @{creep};
             const container = creep.pos.findClosestByRange(FIND_STRUCTURES, {
@@ -229,7 +229,7 @@ fn find_container<'a>(state: &mut GameState, creep: &'a Creep) -> Option<Structu
             .try_into()
             .unwrap_or(None)
             .map(|container: StructureContainer| {
-                memory.insert("target".into(), container.id().into());
+                memory.insert(TARGET.into(), container.id().into());
                 container
             })
     })
@@ -237,7 +237,6 @@ fn find_container<'a>(state: &mut GameState, creep: &'a Creep) -> Option<Structu
 
 fn read_target_container(state: &GameState, creep: &Creep) -> Option<StructureContainer> {
     state
-        .creep_memory_string(CreepName(&creep.name()), "target")
+        .creep_memory_string(CreepName(&creep.name()), TARGET)
         .and_then(|id| get_object_typed(id).ok())?
 }
-

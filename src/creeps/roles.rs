@@ -126,7 +126,7 @@ pub fn target_number_of_role_in_room<'a>(role: &'a str, room: &'a Room) -> i8 {
             }
         }
         "conqueror" => n_flags * 2, // TODO: make the closest room spawn it
-        "lrh" => 1,
+        "lrh" => 0,                 // TODO: reenable once the cpu budget can afford it
         "gofer" => n_sources.min(n_containers as i8),
         _ => unimplemented!(),
     }
@@ -190,4 +190,3 @@ fn role_part_max(room: &Room, role: &str) -> Option<usize> {
         _ => None,
     }
 }
-

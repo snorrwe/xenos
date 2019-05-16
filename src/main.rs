@@ -13,11 +13,11 @@ mod bt;
 mod constructions;
 mod creeps;
 mod game_loop;
-mod logging;
-mod structures;
 mod game_state;
-mod rooms;
+mod logging;
 mod prelude;
+mod rooms;
+mod structures;
 
 use game_loop::game_loop;
 

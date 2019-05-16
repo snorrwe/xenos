@@ -38,4 +38,3 @@ fn repair<'a>(creep: &'a Creep, target: &'a Structure) -> ExecutionResult {
         _ => Err(format!("Unexpected ReturnCode {:?}", res)),
     }
 }
-

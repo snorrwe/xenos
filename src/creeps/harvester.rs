@@ -1,6 +1,6 @@
 //! Harvest energy and unload it to the appropriate target
 //!
-use super::move_to;
+use super::{move_to, TARGET};
 use crate::prelude::*;
 use screeps::{
     constants::ResourceType,
@@ -38,13 +38,13 @@ pub fn unload<'a>(state: &'a mut GameState, creep: &'a Creep) -> ExecutionResult
     if carry_total == 0 {
         trace!("Empty");
         let memory = state.creep_memory_entry(CreepName(&creep.name()));
-        memory.remove("target");
+        memory.remove(TARGET);
         return Err("empty".into());
     }
 
     let target = find_unload_target(state, creep).ok_or_else(|| {
         let memory = state.creep_memory_entry(CreepName(&creep.name()));
-        memory.remove("target");
+        memory.remove(TARGET);
         let error = String::from("could not find unload target");
         debug!("{}", error);
         error
@@ -58,7 +58,7 @@ pub fn unload<'a>(state: &'a mut GameState, creep: &'a Creep) -> ExecutionResult
     let tree = Control::Sequence(tasks);
     tree.tick(state).map_err(|error| {
         let memory = state.creep_memory_entry(CreepName(&creep.name()));
-        memory.remove("target");
+        memory.remove(TARGET);
         debug!("failed to unload {:?}", error);
         error
     })
@@ -81,7 +81,7 @@ fn find_unload_target<'a>(state: &'a mut GameState, creep: &'a Creep) -> Option<
 }
 
 fn read_unload_target<'a>(state: &mut GameState, creep: &'a Creep) -> Option<Reference> {
-    let target = state.creep_memory_string(CreepName(&creep.name()), "target");
+    let target = state.creep_memory_string(CreepName(&creep.name()), TARGET);
 
     if let Some(target) = target {
         trace!("Validating existing target");
@@ -115,7 +115,7 @@ fn find_container<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResul
     let memory = state.creep_memory_entry(CreepName(&creep.name()));
 
     if let Some(container) = container {
-        memory.insert("target".into(), container.id().into());
+        memory.insert(TARGET.into(), container.id().into());
         Ok(())
     } else {
         let error = format!("No container was found");
@@ -130,7 +130,7 @@ fn find_spawn<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResult {
         .find_closest_by_range(find::MY_SPAWNS)
         .ok_or_else(|| String::new())?;
     let memory = state.creep_memory_entry(CreepName(&creep.name()));
-    memory.insert("target".into(), target.id().into());
+    memory.insert(TARGET.into(), target.id().into());
     Ok(())
 }
 
@@ -184,7 +184,7 @@ pub fn attempt_harvest<'a>(
     }
 
     trace!("Harvest finished");
-    memory.remove("target");
+    memory.remove(TARGET);
     Ok(())
 }
 
@@ -258,4 +258,3 @@ fn harvester_count(state: &mut GameState) -> HashMap<String, i32> {
     });
     result
 }
-

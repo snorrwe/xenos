@@ -70,4 +70,3 @@ fn dump_name([x, y]: &[i32; 2]) -> String {
 fn neighbours_in_vectors([x, y]: [i32; 2]) -> [[i32; 2]; 4] {
     [[x, y + 1], [x + 1, y], [x, y - 1], [x - 1, y]]
 }
-

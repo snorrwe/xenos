@@ -107,6 +107,7 @@ impl GameState {
     pub fn count_creeps_in_room<'b>(&mut self, room: &'b Room) -> &mut HashMap<String, i8> {
         let name = room.name();
         // TODO: use cached value
+        // TODO: use the creep_memory # home entry
         let count = self
             .count_roles_in_room(room)
             .iter()
@@ -226,4 +227,3 @@ impl GameState {
         result
     }
 }
-

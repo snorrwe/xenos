@@ -86,10 +86,10 @@ fn spawn_creep(state: &mut GameState, spawn: &StructureSpawn, role: &str) -> Exe
         }
     }
 
-    let name = game::time() % 1_000;
+    let name = game::time() % 10_000;
     let mut prefix = 0;
     let res = loop {
-        let name = format!("{}_{:x}", role, name + prefix);
+        let name = format!("{}_{:04x}", role, name + prefix);
         let memory = state.creep_memory_entry(CreepName(&name));
         memory.insert("role".into(), role.into());
         let mut memory = MemoryReference::new();
@@ -114,4 +114,3 @@ fn spawn_creep(state: &mut GameState, spawn: &StructureSpawn, role: &str) -> Exe
     }
     Ok(())
 }
-

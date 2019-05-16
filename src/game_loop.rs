@@ -48,4 +48,3 @@ pub fn game_loop() {
         bucket.unwrap_or(-1)
     );
 }
-
