@@ -1,16 +1,13 @@
 //! Harvest energy from foreign rooms and move it back to the owning room
 //!
 
-use super::{gofer, harvester};
+use super::{gofer, harvester, HOME_ROOM, TARGET};
 use crate::game_state::{RoomIFF, ScoutInfo};
 use crate::prelude::*;
 use crate::rooms::neighbours;
 use screeps::{constants::find, objects::Creep, prelude::*, traits::TryFrom, ReturnCode};
 
-pub const HOME_ROOM: &'static str = "home_room";
-
 const HARVEST_TARGET_ROOM: &'static str = "harvest_target_room";
-const LRH_TARGET: &'static str = "target";
 
 pub fn run<'a>(creep: &'a Creep) -> Task<'a> {
     trace!("Running long_range_harvester");
@@ -35,17 +32,17 @@ fn load<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResult {
         let memory = state.creep_memory_entry(CreepName(&creep.name()));
         if creep.carry_total() == creep.carry_capacity() {
             memory.insert("loading".into(), false.into());
-            memory.remove(LRH_TARGET);
+            memory.remove(TARGET);
             Err("full")?;
         }
         let tasks = vec![
             Task::new(move |state| approach_target_room(state, creep, HARVEST_TARGET_ROOM)),
             Task::new(move |state| set_target_room(state, creep)),
             Task::new(move |state| {
-                update_scout_info(state, creep).unwrap_or(());
+                update_scout_info(state, creep)?;
                 Err("continue")?
             }),
-            Task::new(move |state| harvester::attempt_harvest(state, creep, Some(LRH_TARGET))),
+            Task::new(move |state| harvester::attempt_harvest(state, creep, Some(TARGET))),
         ];
 
         Control::Sequence(tasks)
@@ -122,20 +119,14 @@ fn approach_target_room<'a>(
 }
 
 fn set_target_room<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResult {
-    let room = {
-        {
-            let target = state.creep_memory_string(CreepName(&creep.name()), HARVEST_TARGET_ROOM);
-            if target.is_some() {
-                Err("Already has a target")?;
-            }
+    {
+        let target = state.creep_memory_string(CreepName(&creep.name()), HARVEST_TARGET_ROOM);
+        if target.is_some() {
+            Err("Already has a target")?;
         }
+    }
 
-        let room = creep.room();
-
-        let memory = state.creep_memory_entry(CreepName(&creep.name()));
-        memory.insert(HOME_ROOM.into(), room.name().into());
-        room
-    };
+    let room = creep.room();
 
     let neighbours = neighbours(&room);
 
@@ -190,7 +181,7 @@ fn unload<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResult {
         let memory = state.creep_memory_entry(CreepName(&creep.name()));
         if creep.carry_total() == 0 {
             memory.insert("loading".into(), true.into());
-            memory.remove("target");
+            memory.remove(TARGET);
             Err("empty")?;
         }
         let tasks = vec![
@@ -202,4 +193,3 @@ fn unload<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResult {
     };
     tree.tick(state)
 }
-

@@ -21,6 +21,9 @@ use screeps::{
 };
 use stdweb::{unstable::TryInto, Reference};
 
+pub const HOME_ROOM: &'static str = "home";
+pub const TARGET: &'static str = "target";
+
 pub fn task<'a>() -> Task<'a> {
     Task::new(move |state| {
         screeps::game::creeps::values()
@@ -37,14 +40,21 @@ fn run_creep<'a>(state: &mut GameState, creep: Creep) -> ExecutionResult {
     }
     let tasks = vec![
         Task::new(|state| run_role(state, &creep)),
-        Task::new(|state| {
-            assign_role(state, &creep)
-                .map(|_| {})
-                .ok_or_else(|| "Failed to find a role for creep".into())
-        }),
+        Task::new(|state| initialize_creep(state, &creep)),
     ];
     let tree = Control::Sequence(tasks);
     tree.tick(state)
+}
+
+fn initialize_creep<'a>(state: &'a mut GameState, creep: &'a Creep) -> ExecutionResult {
+    {
+        let memory = state.creep_memory_entry(CreepName(&creep.name()));
+        memory.insert("home".into(), creep.room().name().into());
+    }
+    assign_role(state, &creep)
+        .map(|_| {})
+        .ok_or_else(|| "Failed to find a role for creep")?;
+    Ok(())
 }
 
 fn assign_role<'a>(state: &'a mut GameState, creep: &'a Creep) -> Option<String> {
@@ -91,7 +101,7 @@ pub fn move_to<'a>(
     let res = js! {
         const creep = @{creep};
         const target = @{target.pos()};
-        return creep.moveTo(target, {reusePath: 7});
+        return creep.moveTo(target, {reusePath: 10});
     };
     let res =
         ReturnCode::try_from(res).map_err(|e| format!("Failed to convert move result {:?}", e))?;
@@ -120,12 +130,12 @@ pub fn get_energy<'a>(state: &'a mut GameState, creep: &'a Creep) -> ExecutionRe
 
         if creep.carry_total() == creep.carry_capacity() {
             memory.insert("loading".into(), false.into());
-            memory.remove("target");
+            memory.remove(TARGET);
             Err("full")?;
         }
 
         memory
-            .get("target")
+            .get(TARGET)
             .map(|x| x.as_str())
             .iter()
             .filter_map(|id| *id)
@@ -138,12 +148,12 @@ pub fn get_energy<'a>(state: &'a mut GameState, creep: &'a Creep) -> ExecutionRe
 
                     let id: String = id.try_into().unwrap();
 
-                    memory.insert("target".into(), id.into());
+                    memory.insert(TARGET.into(), id.into());
                     target
                 })
             })
             .ok_or_else(|| {
-                memory.remove("target");
+                memory.remove(TARGET);
                 "Can't find energy source"
             })?
     };
@@ -154,7 +164,7 @@ pub fn get_energy<'a>(state: &'a mut GameState, creep: &'a Creep) -> ExecutionRe
         Task::new(|_| try_withdraw::<StructureContainer>(creep, &target)),
         Task::new(|state| {
             let memory = state.creep_memory_entry(CreepName(&creep.name()));
-            memory.remove("target");
+            memory.remove(TARGET);
             Ok(())
         }),
     ];
@@ -163,7 +173,7 @@ pub fn get_energy<'a>(state: &'a mut GameState, creep: &'a Creep) -> ExecutionRe
 
     tree.tick(state).map_err(|_| {
         let memory = state.creep_memory_entry(CreepName(&creep.name()));
-        memory.remove("target");
+        memory.remove(TARGET);
         "can't withdraw".into()
     })
 }
@@ -225,12 +235,12 @@ pub fn harvest<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResult {
         let memory = state.creep_memory_entry(CreepName(&creep.name()));
         if creep.carry_total() == creep.carry_capacity() {
             memory.insert("loading".into(), false.into());
-            memory.remove("target");
+            memory.remove(TARGET);
             return Ok(());
         }
     }
 
-    harvester::attempt_harvest(state, creep, Some("target"))
+    harvester::attempt_harvest(state, creep, Some(TARGET))
 }
 
 pub fn find_repair_target<'a>(room: &'a Room) -> Option<Structure> {
@@ -244,4 +254,3 @@ pub fn find_repair_target<'a>(room: &'a Room) -> Option<Structure> {
     };
     result.try_into().ok()
 }
-
