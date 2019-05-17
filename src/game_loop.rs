@@ -36,7 +36,7 @@ pub fn game_loop() {
         .tick(&mut state)
         .unwrap_or_else(|e| warn!("Failed to run constructions {:?}", e));
 
-    if screeps::game::time() % 32 == 0 {
+    if screeps::game::time() % 16 == 0 {
         state.cleanup_memory().unwrap_or_else(|e| {
             error!("Failed to clean up memory {:?}", e);
         });

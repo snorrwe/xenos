@@ -1,8 +1,8 @@
-use crate::creeps::roles::{string_to_role, ALL_ROLES};
-use screeps::{find, game, memory, Room};
+use crate::creeps::roles::ALL_ROLES;
+use crate::creeps::HOME_ROOM;
+use screeps::{game, memory, Room};
 use serde_json::{self, Map, Value};
 use std::collections::HashMap;
-use stdweb::unstable::TryInto;
 
 pub type CreepMemory = HashMap<String, Map<String, Value>>;
 
@@ -107,7 +107,6 @@ impl GameState {
     pub fn count_creeps_in_room<'b>(&mut self, room: &'b Room) -> &mut HashMap<String, i8> {
         let name = room.name();
         // TODO: use cached value
-        // TODO: use the creep_memory # home entry
         let count = self
             .count_roles_in_room(room)
             .iter()
@@ -179,7 +178,7 @@ impl GameState {
             screeps::memory::root().path_del(&format!("creeps.{}", mem_name));
         }
 
-        debug!("Cleaned up memory");
+        info!("Cleaned up memory");
 
         Ok(())
     }
@@ -192,37 +191,27 @@ impl GameState {
             .count() as i8
     }
 
-    fn count_roles_in_room(&mut self, room: &Room) -> HashMap<&'static str, i8> {
-        let mut result: HashMap<&'static str, i8> =
-            ALL_ROLES.iter().cloned().map(|x| (x, 0)).collect();
-        // Also count the creeps spawning right now
-        room.find(find::MY_SPAWNS)
-            .into_iter()
-            .filter_map(|s| {
-                let name = js! {
-                    let spawn = @{s};
-                    let spawning = spawn.spawning;
-                    if (!spawning) {
-                        return null;
-                    }
-                    return spawning.name;
-                };
-                let name: String = name.try_into().ok()?;
-                self.creep_memory_string(CreepName(&name), "role")
-            })
-            .map(|role| string_to_role(role.to_string()))
-            .for_each(|role| {
-                result.entry(role).and_modify(|c| *c += 1).or_insert(1);
-            });
+    fn count_roles_in_room(&self, room: &Room) -> HashMap<&'static str, i8> {
+        let mut result: HashMap<&'static str, i8> = ALL_ROLES.iter().map(|x| (*x, 0)).collect();
 
-        room.find(find::MY_CREEPS).into_iter().for_each(|creep| {
-            let memory = self.creep_memory_entry(CreepName(&creep.name()));
-            let role = memory.get("role").and_then(|r| r.as_str());
-            if let Some(role) = role {
-                let role = string_to_role(role.to_string());
-                result.entry(role).and_modify(|c| *c += 1).or_insert(1);
-            }
-        });
+        self.creep_memory
+            .iter()
+            .filter(|(k, _v)| {
+                self.creep_memory_string(CreepName(k), HOME_ROOM)
+                    .map(|r| r == room.name())
+                    .unwrap_or(false)
+            })
+            .filter_map(|(k, _v)| self.creep_memory_string(CreepName(k), "role"))
+            .for_each(|role| {
+                if let Some(count) = result.get_mut(role) {
+                    *count += 1
+                } else {
+                    error!(
+                        "Expected {} to be already in count! Skipping counting!",
+                        role
+                    );
+                };
+            });
 
         result
     }

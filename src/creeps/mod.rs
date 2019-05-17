@@ -46,14 +46,12 @@ fn run_creep<'a>(state: &mut GameState, creep: Creep) -> ExecutionResult {
     tree.tick(state)
 }
 
-fn initialize_creep<'a>(state: &'a mut GameState, creep: &'a Creep) -> ExecutionResult {
-    {
-        let memory = state.creep_memory_entry(CreepName(&creep.name()));
-        memory.insert("home".into(), creep.room().name().into());
-    }
+pub fn initialize_creep<'a>(state: &'a mut GameState, creep: &'a Creep) -> ExecutionResult {
     assign_role(state, &creep)
         .map(|_| {})
         .ok_or_else(|| "Failed to find a role for creep")?;
+    let memory = state.creep_memory_entry(CreepName(&creep.name()));
+    memory.insert(HOME_ROOM.into(), creep.room().name().into());
     Ok(())
 }
 
@@ -69,7 +67,7 @@ fn assign_role<'a>(state: &'a mut GameState, creep: &'a Creep) -> Option<String>
     }
 
     let result = roles::next_role(state, &creep.room()).or_else(|| {
-        debug!("Room is full");
+        warn!("Room is full");
         None
     })?;
 

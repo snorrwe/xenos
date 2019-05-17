@@ -87,18 +87,6 @@ pub fn role_priority<'a>(_room: &'a Room, role: &'a str) -> i8 {
     }
 }
 
-pub fn string_to_role(role: String) -> &'static str {
-    match role.as_str() {
-        "upgrader" => "upgrader",
-        "harvester" => "harvester",
-        "builder" => "builder",
-        "gofer" => "gofer",
-        "conqueror" => "conqueror",
-        "lrh" => "lrh",
-        _ => unimplemented!(),
-    }
-}
-
 /// Max number of creeps of a given role in the given room
 pub fn target_number_of_role_in_room<'a>(role: &'a str, room: &'a Room) -> i8 {
     let n_flags = game::flags::keys().len() as i8;

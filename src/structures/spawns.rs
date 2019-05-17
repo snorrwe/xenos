@@ -1,5 +1,6 @@
 use crate::prelude::*;
 use creeps::roles::{next_role, spawn_config_by_role};
+use creeps::HOME_ROOM;
 use screeps::{
     constants::find,
     game,
@@ -90,8 +91,6 @@ fn spawn_creep(state: &mut GameState, spawn: &StructureSpawn, role: &str) -> Exe
     let mut prefix = 0;
     let res = loop {
         let name = format!("{}_{:04x}", role, name + prefix);
-        let memory = state.creep_memory_entry(CreepName(&name));
-        memory.insert("role".into(), role.into());
         let mut memory = MemoryReference::new();
         let spawn_options = SpawnOptions::new().memory(memory);
         let res = spawn.spawn_creep_with_options(&body, &name, &spawn_options);
@@ -99,6 +98,9 @@ fn spawn_creep(state: &mut GameState, spawn: &StructureSpawn, role: &str) -> Exe
         if res == ReturnCode::NameExists {
             prefix += 1;
         } else {
+            let memory = state.creep_memory_entry(CreepName(&name));
+            memory.insert(HOME_ROOM.into(), spawn.room().name().into());
+            memory.insert("role".into(), role.into());
             info!(
                 "Spawn {} is spawning creep: {}, result: {}",
                 spawn.name(),
