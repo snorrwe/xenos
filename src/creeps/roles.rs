@@ -1,6 +1,4 @@
-use super::{
-    super::bt::*, builder, conqueror, gofer, harvester, long_range_harvester as lrh, upgrader,
-};
+use super::{super::bt::*, builder, conqueror, gofer, harvester, lrh, upgrader};
 use screeps::{
     constants::find,
     game,
@@ -99,7 +97,7 @@ pub fn target_number_of_role_in_room<'a>(role: &'a str, room: &'a Room) -> i8 {
     };
     let n_containers: i64 = n_containers.try_into().unwrap();
     let n_containers: i8 = n_containers as i8;
-    let n_constructions = (room.find(find::CONSTRUCTION_SITES).len() & 255) as i8;
+    let n_constructions = (room.find(find::CONSTRUCTION_SITES).len()) as i8;
     const UPGRADER_COUNT: i8 = 2;
     const WORKER_COUNT: i8 = 1;
     match role {
@@ -141,7 +139,14 @@ fn basic_role_parts<'a>(_room: &Room, role: &'a str) -> Vec<Part> {
             Part::Move,
         ],
         "gofer" => vec![Part::Move, Part::Carry],
-        "lrh" | "upgrader" | "builder" => vec![Part::Move, Part::Move, Part::Carry, Part::Work],
+        "lrh" => vec![
+            Part::Move,
+            Part::Move,
+            Part::Carry,
+            Part::Work,
+            Part::Attack,
+        ],
+        "upgrader" | "builder" => vec![Part::Move, Part::Move, Part::Carry, Part::Work],
         _ => unimplemented!(),
     }
 }
@@ -152,7 +157,13 @@ fn role_part_scale<'a>(_room: &Room, role: &'a str) -> Vec<Part> {
         "harvester" => vec![Part::Work],
         "conqueror" => vec![],
         "gofer" => vec![Part::Move, Part::Carry],
-        "lrh" => vec![Part::Move, Part::Carry, Part::Work, Part::Move],
+        "lrh" => vec![
+            Part::Move,
+            Part::Carry,
+            Part::Work,
+            Part::Move,
+            Part::Attack,
+        ],
         _ => vec![Part::Move, Part::Carry, Part::Work],
     }
 }
@@ -178,3 +189,4 @@ fn role_part_max(room: &Room, role: &str) -> Option<usize> {
         _ => None,
     }
 }
+

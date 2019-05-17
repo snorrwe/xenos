@@ -57,7 +57,7 @@ fn update_scout_info(state: &mut GameState, creep: &Creep) -> ExecutionResult {
 
     let controller = room.controller();
 
-    let my_controller = controller
+    let is_my_controller = controller
         .as_ref()
         .map(|c| {
             // c.my() can panic
@@ -68,7 +68,7 @@ fn update_scout_info(state: &mut GameState, creep: &Creep) -> ExecutionResult {
         })
         .map(|my| bool::try_from(my).unwrap_or(false));
 
-    let iff = match my_controller {
+    let iff = match is_my_controller {
         None => RoomIFF::NoMansLand,
         Some(true) => RoomIFF::Friendly,
         Some(false) => match controller.map(|c| c.level()) {

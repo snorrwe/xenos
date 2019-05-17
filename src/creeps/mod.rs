@@ -4,7 +4,7 @@ mod builder;
 mod conqueror;
 mod gofer;
 mod harvester;
-mod long_range_harvester;
+mod lrh;
 mod repairer;
 mod upgrader;
 
