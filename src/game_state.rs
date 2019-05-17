@@ -1,5 +1,5 @@
 use crate::creeps::roles::ALL_ROLES;
-use crate::creeps::HOME_ROOM;
+use crate::creeps::{CREEP_ROLE, HOME_ROOM};
 use screeps::{game, memory, Room};
 use serde_json::{self, Map, Value};
 use std::collections::HashMap;
@@ -186,7 +186,7 @@ impl GameState {
     pub fn count_conquerors(&self) -> i8 {
         game::creeps::values()
             .into_iter()
-            .filter_map(|creep| self.creep_memory_string(CreepName(&creep.name()), "role"))
+            .filter_map(|creep| self.creep_memory_string(CreepName(&creep.name()), CREEP_ROLE))
             .map(|role| role == "conqueror")
             .count() as i8
     }
@@ -201,7 +201,7 @@ impl GameState {
                     .map(|r| r == room.name())
                     .unwrap_or(false)
             })
-            .filter_map(|(k, _v)| self.creep_memory_string(CreepName(k), "role"))
+            .filter_map(|(k, _v)| self.creep_memory_string(CreepName(k), CREEP_ROLE))
             .for_each(|role| {
                 if let Some(count) = result.get_mut(role) {
                     *count += 1

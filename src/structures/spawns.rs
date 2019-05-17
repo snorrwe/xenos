@@ -1,6 +1,6 @@
 use crate::prelude::*;
 use creeps::roles::{next_role, spawn_config_by_role};
-use creeps::HOME_ROOM;
+use creeps::{CREEP_ROLE, HOME_ROOM};
 use screeps::{
     constants::find,
     game,
@@ -100,7 +100,7 @@ fn spawn_creep(state: &mut GameState, spawn: &StructureSpawn, role: &str) -> Exe
         } else {
             let memory = state.creep_memory_entry(CreepName(&name));
             memory.insert(HOME_ROOM.into(), spawn.room().name().into());
-            memory.insert("role".into(), role.into());
+            memory.insert(CREEP_ROLE.into(), role.into());
             info!(
                 "Spawn {} is spawning creep: {}, result: {}",
                 spawn.name(),

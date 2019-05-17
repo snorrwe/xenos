@@ -23,6 +23,7 @@ use stdweb::{unstable::TryInto, Reference};
 
 pub const HOME_ROOM: &'static str = "home";
 pub const TARGET: &'static str = "target";
+pub const CREEP_ROLE: &'static str = "role";
 
 pub fn task<'a>() -> Task<'a> {
     Task::new(move |state| {
@@ -59,7 +60,7 @@ fn assign_role<'a>(state: &'a mut GameState, creep: &'a Creep) -> Option<String>
     trace!("Assigning role to {}", creep.name());
 
     if state
-        .creep_memory_string(CreepName(&creep.name()), "role")
+        .creep_memory_string(CreepName(&creep.name()), CREEP_ROLE)
         .is_some()
     {
         trace!("Already has a role");
@@ -72,14 +73,14 @@ fn assign_role<'a>(state: &'a mut GameState, creep: &'a Creep) -> Option<String>
     })?;
 
     let memory = state.creep_memory_entry(CreepName(&creep.name()));
-    memory.insert("role".to_string(), result.clone().into());
+    memory.insert(CREEP_ROLE.to_string(), result.clone().into());
     Some(result)
 }
 
 fn run_role<'a>(state: &'a mut GameState, creep: &'a Creep) -> ExecutionResult {
     let task = {
         let role = state
-            .creep_memory_string(CreepName(&creep.name()), "role")
+            .creep_memory_string(CreepName(&creep.name()), CREEP_ROLE)
             .ok_or_else(|| {
                 let error = "failed to read creep role";
                 error!("{}", error);
