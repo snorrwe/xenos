@@ -17,4 +17,3 @@ panic = "abort"
 # So Os it is
 opt-level = "s"
 lto = true
-debug = true

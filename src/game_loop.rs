@@ -23,7 +23,39 @@ pub fn game_loop() {
 
     let mut state = GameState::read_from_memory_or_default();
     state.cpu_bucket = bucket;
+    run_game_logic(state);
 
+    let bucket = bucket.unwrap_or(-1);
+
+    if log_enabled!(Info) && bucket > 1000 {
+        save_stats(
+            screeps::game::time() as u32,
+            screeps::game::creeps::keys().len() as u32,
+            // Note that cpu stats won't take the stats saving into account
+            screeps::game::cpu::get_used() as f32,
+            bucket,
+        )
+        .map(|_| {
+            info!("Statistics saved!");
+        })
+        .unwrap_or_else(|e| error!("Failed to save stats {:?}", e));
+    }
+
+    // Yes, measure again even after stats save
+    let cpu = screeps::game::cpu::get_used();
+
+    info!(
+        "---------------- Done! CPU: {:.4} Bucket: {} ----------------",
+        cpu, bucket
+    );
+}
+
+/// Call subsystems in order of priority
+/// Runs to completion even if a subsystem fails
+/// Consumes the state object
+///
+/// TODO: GameResult object to return?
+fn run_game_logic(mut state: GameState) {
     creeps::task()
         .tick(&mut state)
         .unwrap_or_else(|e| warn!("Failed to run creeps {:?}", e));
@@ -45,31 +77,6 @@ pub fn game_loop() {
             error!("Failed to clean up memory {:?}", e);
         });
     }
-
-    let cpu = screeps::game::cpu::get_used();
-    let bucket = bucket.unwrap_or(-1);
-
-    if log_enabled!(Info) {
-        Task::new(|_| {
-            save_stats(
-                screeps::game::time() as u32,
-                screeps::game::creeps::keys().len() as u32,
-                cpu as f32,
-                bucket,
-            )
-        })
-        .with_required_bucket(1000)
-        .tick(&mut state)
-        .map(|_| {
-            info!("Statistics saved!");
-        })
-        .unwrap_or_else(|e| error!("Failed to save stats {:?}", e));
-    }
-
-    info!(
-        "---------------- Done! CPU: {:.4} Bucket: {} ----------------",
-        cpu, bucket
-    );
 }
 
 fn save_stats(time: u32, creep_count: u32, cpu: f32, bucket: i32) -> ExecutionResult {
