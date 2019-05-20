@@ -19,19 +19,13 @@ pub trait ControlNode {
     fn new(children: Vec<Task>) -> Self;
 }
 
-pub trait TaskNew<'a> {
-    fn new<F>(task: F) -> Self
-    where
-        F: Fn(&mut GameState) -> ExecutionResult + 'a;
-}
-
 /// Control node in the Behaviour Tree
-/// - Selector runs its child tasks until the first failure
-/// - Sequence runs its child tasks until the first success
 #[derive(Clone)]
 pub enum Control<'a> {
     #[allow(dead_code)]
+    /// Runs its child tasks until the first failure
     Selector(Vec<Task<'a>>),
+    /// Runs its child tasks until the first success
     Sequence(Vec<Task<'a>>),
 }
 
@@ -44,13 +38,11 @@ impl<'a> BtNode for Control<'a> {
                     .map(|node| node.tick(state))
                     .find(|result| result.is_err());
                 if let Some(found) = found {
-                    let error = found.unwrap_err();
-                    debug!("Failure in selector {:?}", error);
-                    Err(error)
-                } else {
-                    Ok(())
+                    Err(format!("Task failure in selector {:?}", found.unwrap_err()))?;
                 }
+                Ok(())
             }
+
             Control::Sequence(nodes) => {
                 let found = nodes.iter().any(|node| node.tick(state).is_ok());
                 if found {

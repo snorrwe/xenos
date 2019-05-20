@@ -10,11 +10,20 @@ pub struct Task<'a> {
     /// How much "cpu bucket" is required for the task to execute
     /// Useful for turning off tasks when the bucket falls below a threshold
     pub required_bucket: Option<i32>,
-
     task: Rc<Fn(&mut GameState) -> ExecutionResult + 'a>,
 }
 
 impl<'a> Task<'a> {
+    pub fn new<F>(task: F) -> Self
+    where
+        F: Fn(&mut GameState) -> ExecutionResult + 'a,
+    {
+        Self {
+            task: Rc::new(task),
+            required_bucket: None,
+        }
+    }
+
     pub fn with_required_bucket(mut self, bucket: i32) -> Self {
         self.required_bucket = Some(bucket);
         self
@@ -47,17 +56,5 @@ impl<'a> BtNode for Task<'a> {
             debug!("Task Error {:?}", e);
             e
         })
-    }
-}
-
-impl<'a> TaskNew<'a> for Task<'a> {
-    fn new<F>(task: F) -> Self
-    where
-        F: Fn(&mut GameState) -> ExecutionResult + 'a,
-    {
-        Self {
-            task: Rc::new(task),
-            required_bucket: None,
-        }
     }
 }

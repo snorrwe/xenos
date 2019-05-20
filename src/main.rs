@@ -29,9 +29,17 @@ fn main() {
         const game_loop = @{game_loop};
 
         module.exports.loop = function() {
-            // Provide actual error traces.
             try {
+                const bucket = Game.cpu.bucket;
+                if (bucket < 500) {
+                    console.log("Bucket:", bucket);
+                    console_error("Bucket is empty, skipping loop this tick");
+                    return;
+                }
+
+                // Run the game logic
                 game_loop();
+
             } catch (error) {
                 console_error("caught exception:", error);
                 if (error.stack) {

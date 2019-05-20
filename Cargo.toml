@@ -13,6 +13,8 @@ serde_json = "1.0"
 
 [profile.release]
 panic = "abort"
-opt-level = 3
-# opt-level = "s"
+# At O3 we actually ran out of cpu while initializing the script
+# So Os it is
+opt-level = "s"
 lto = true
+debug = true

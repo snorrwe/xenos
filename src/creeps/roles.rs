@@ -189,4 +189,3 @@ fn role_part_max(room: &Room, role: &str) -> Option<usize> {
         _ => None,
     }
 }
-

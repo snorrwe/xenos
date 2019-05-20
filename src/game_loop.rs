@@ -3,7 +3,11 @@ use super::constructions;
 use super::creeps;
 use super::structures::{spawns, towers};
 use crate::game_state::GameState;
+use log::Level::Info;
+use screeps::raw_memory;
 use stdweb::unstable::TryFrom;
+
+const STATISTICS_SEGMENT: u32 = 1;
 
 pub fn game_loop() {
     debug!("Loop starting! CPU: {}", screeps::game::cpu::get_used());
@@ -42,9 +46,71 @@ pub fn game_loop() {
         });
     }
 
+    let cpu = screeps::game::cpu::get_used();
+    let bucket = bucket.unwrap_or(-1);
+
+    if log_enabled!(Info) {
+        Task::new(|_| {
+            save_stats(
+                screeps::game::time() as u32,
+                screeps::game::creeps::keys().len() as u32,
+                cpu as f32,
+                bucket,
+            )
+        })
+        .with_required_bucket(1000)
+        .tick(&mut state)
+        .map(|_| {
+            info!("Statistics saved!");
+        })
+        .unwrap_or_else(|e| error!("Failed to save stats {:?}", e));
+    }
+
     info!(
         "---------------- Done! CPU: {:.4} Bucket: {} ----------------",
-        screeps::game::cpu::get_used(),
-        bucket.unwrap_or(-1)
+        cpu, bucket
     );
+}
+
+fn save_stats(time: u32, creep_count: u32, cpu: f32, bucket: i32) -> ExecutionResult {
+    let mut stats: Vec<TickStats> = raw_memory::get_segment(STATISTICS_SEGMENT)
+        .and_then(|s| serde_json::from_str(s.as_str()).ok())
+        .unwrap_or(vec![]);
+
+    let gcl = screeps::game::gcl::level();
+    let gcl_progress = screeps::game::gcl::progress() as f32;
+    let gcl_progress_total = screeps::game::gcl::progress_total() as f32;
+
+    let tick_stats = TickStats {
+        time,
+        creep_count,
+        cpu,
+        bucket,
+        gcl,
+        gcl_progress,
+        gcl_progress_total,
+    };
+
+    stats.push(tick_stats);
+
+    let data = serde_json::to_string(&stats).unwrap_or("[]".into());
+
+    if data.len() > 99_999 {
+        Err("Statistics segment is full")?;
+    }
+
+    raw_memory::set_segment(STATISTICS_SEGMENT, &data);
+
+    Ok(())
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct TickStats {
+    time: u32,
+    cpu: f32,
+    bucket: i32,
+    creep_count: u32,
+    gcl: u32,
+    gcl_progress: f32,
+    gcl_progress_total: f32,
 }
