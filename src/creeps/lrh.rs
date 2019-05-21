@@ -1,3 +1,4 @@
+//! Long Range Harvester
 //! Harvest energy from foreign rooms and move it back to the owning room
 //!
 

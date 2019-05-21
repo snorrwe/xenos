@@ -23,9 +23,9 @@ pub fn neighbours(room: &Room) -> Vec<String> {
         // TODO: return the directions too?
         const directions = [
             FIND_EXIT_TOP,
-            FIND_EXIT_RIGHT,
-            FIND_EXIT_BOTTOM,
             FIND_EXIT_LEFT,
+            FIND_EXIT_BOTTOM,
+            FIND_EXIT_RIGHT,
         ];
         return neighbours.filter((r,i) => room.findExitTo(r) == directions[i]);
     };
