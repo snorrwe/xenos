@@ -1,6 +1,6 @@
 //! Takes Rooms
 //!
-use super::{builder, harvester::attempt_harvest, move_to, TARGET};
+use super::{worker, harvester::attempt_harvest, move_to, TARGET};
 use crate::prelude::*;
 use screeps::{game, objects::Creep, prelude::*, ReturnCode};
 use stdweb::unstable::TryInto;
@@ -12,7 +12,7 @@ pub fn run<'a>(creep: &'a Creep) -> Task<'a> {
     let tasks = vec![
         Task::new(move |state| claim_target(state, creep)),
         Task::new(move |state| set_target(state, creep)),
-        Task::new(move |state| builder::attempt_build(state, creep)),
+        Task::new(move |state| worker::attempt_build(state, creep)),
         Task::new(move |state| attempt_harvest(state, creep, None)),
         Task::new(move |state| reset_target(state, creep)),
     ];

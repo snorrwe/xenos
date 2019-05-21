@@ -1,4 +1,4 @@
-use super::{super::bt::*, builder, conqueror, gofer, harvester, lrh, upgrader};
+use super::{super::bt::*, worker, conqueror, gofer, harvester, lrh, upgrader};
 use screeps::{
     constants::find,
     game,
@@ -99,7 +99,7 @@ pub fn run_role<'a>(role: Role, creep: &'a Creep) -> Task<'a> {
     let task = match role {
         Role::Upgrader => upgrader::run(creep),
         Role::Harvester => harvester::run(creep),
-        Role::Worker => builder::run(creep),
+        Role::Worker => worker::run(creep),
         Role::Gofer => gofer::run(creep),
         Role::Conqueror => conqueror::run(creep),
         Role::Lrh => lrh::run(creep),
@@ -146,11 +146,11 @@ pub fn target_number_of_role_in_room<'a>(role: Role, room: &'a Room) -> i8 {
         Role::Upgrader => n_containers.min(UPGRADER_COUNT),
         Role::Harvester => n_sources,
         Role::Worker => {
-            let target_builders = n_constructions.min(1) + WORKER_COUNT;
+            let target_workers = n_constructions.min(1) + WORKER_COUNT;
             if n_containers > 0 {
-                target_builders
+                target_workers
             } else {
-                target_builders + UPGRADER_COUNT
+                target_workers + UPGRADER_COUNT
             }
         }
         Role::Conqueror => n_flags * 2, // TODO: make the closest room spawn it
