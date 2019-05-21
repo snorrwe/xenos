@@ -8,6 +8,7 @@ mod lrh;
 mod repairer;
 mod upgrader;
 
+pub use self::roles::Role;
 use crate::prelude::*;
 use screeps::{
     constants::ResourceType,
@@ -56,11 +57,11 @@ pub fn initialize_creep<'a>(state: &'a mut GameState, creep: &'a Creep) -> Execu
     Ok(())
 }
 
-fn assign_role<'a>(state: &'a mut GameState, creep: &'a Creep) -> Option<String> {
+fn assign_role<'a>(state: &'a mut GameState, creep: &'a Creep) -> Option<Role> {
     trace!("Assigning role to {}", creep.name());
 
     if state
-        .creep_memory_string(CreepName(&creep.name()), CREEP_ROLE)
+        .creep_memory_role(CreepName(&creep.name()), CREEP_ROLE)
         .is_some()
     {
         trace!("Already has a role");
@@ -73,14 +74,14 @@ fn assign_role<'a>(state: &'a mut GameState, creep: &'a Creep) -> Option<String>
     })?;
 
     let memory = state.creep_memory_entry(CreepName(&creep.name()));
-    memory.insert(CREEP_ROLE.to_string(), result.clone().into());
+    memory.insert(CREEP_ROLE.to_string(), (result as i64).into());
     Some(result)
 }
 
 fn run_role<'a>(state: &'a mut GameState, creep: &'a Creep) -> ExecutionResult {
     let task = {
         let role = state
-            .creep_memory_string(CreepName(&creep.name()), CREEP_ROLE)
+            .creep_memory_role(CreepName(&creep.name()), CREEP_ROLE)
             .ok_or_else(|| {
                 let error = "failed to read creep role";
                 error!("{}", error);
@@ -253,3 +254,4 @@ pub fn find_repair_target<'a>(room: &'a Room) -> Option<Structure> {
     };
     result.try_into().ok()
 }
+

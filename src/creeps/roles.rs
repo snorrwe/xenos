@@ -5,6 +5,7 @@ use screeps::{
     objects::{Creep, Room},
     Part,
 };
+use std::fmt::{self, Display, Formatter};
 use stdweb::unstable::TryInto;
 
 pub struct SpawnConfig {
@@ -13,54 +14,95 @@ pub struct SpawnConfig {
     pub body_max: Option<usize>,
 }
 
-pub const ALL_ROLES: &'static [&'static str] = &[
-    "upgrader",
-    "harvester",
-    "builder",
-    "gofer",
-    "lrh",
-    "conqueror",
-];
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Hash, Eq, PartialEq)]
+#[repr(u8)]
+pub enum Role {
+    Unknown = 0,
+    Upgrader = 1,
+    Harvester = 2,
+    Builder = 3,
+    Gofer = 4,
+    Lrh = 5,
+    Conqueror = 6,
+}
+
+impl From<u8> for Role {
+    fn from(item: u8) -> Self {
+        match item {
+            0 => Role::Unknown,
+            1 => Role::Upgrader,
+            2 => Role::Harvester,
+            3 => Role::Builder,
+            4 => Role::Gofer,
+            5 => Role::Lrh,
+            6 => Role::Conqueror,
+            _ => unreachable!("Role does not exist"),
+        }
+    }
+}
+
+impl Display for Role {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        let name = match self {
+            Role::Unknown => "Unknown",
+            Role::Upgrader => "Upgrader",
+            Role::Harvester => "Harvester",
+            Role::Builder => "Builder",
+            Role::Gofer => "Gofer",
+            Role::Lrh => "Lrh",
+            Role::Conqueror => "Conqueror",
+        };
+        write!(f, "{}", name)?;
+        Ok(())
+    }
+}
+
+impl Role {
+    pub fn all_roles() -> &'static [Self] {
+        use self::Role::*;
+        &[Upgrader, Harvester, Builder, Gofer, Lrh, Conqueror]
+    }
+}
 
 // TODO: return an array of all roles to spawn in order of priority
 /// Get the next target role in the given room
-pub fn next_role<'a>(state: &'a mut GameState, room: &'a Room) -> Option<String> {
+pub fn next_role<'a>(state: &'a mut GameState, room: &'a Room) -> Option<Role> {
     let conqueror_count = state.global_conqueror_count();
     let counts = state.count_creeps_in_room(room);
-    counts.insert("conqueror".into(), conqueror_count);
+    counts.insert(Role::Conqueror, conqueror_count);
 
     counts
         .into_iter()
-        .fold(None, |result: Option<String>, (role, actual)| {
-            let expected = target_number_of_role_in_room(role, room);
+        .fold(None, |result: Option<Role>, (role, actual)| {
+            let expected = target_number_of_role_in_room(*role, room);
             if expected <= *actual {
                 return result;
             }
             result
                 .map(|result| {
-                    let result_prio = role_priority(room, result.as_str());
-                    let role_prio = role_priority(room, role);
+                    let result_prio = role_priority(room, result);
+                    let role_prio = role_priority(room, *role);
                     if role_prio > result_prio {
-                        role.clone()
+                        *role
                     } else {
-                        result.into()
+                        result
                     }
                 })
-                .or_else(|| Some(role.to_string()))
+                .or_else(|| Some(*role))
         })
 }
 
 /// Run the creep according to the given role
-pub fn run_role<'a>(role: &str, creep: &'a Creep) -> Task<'a> {
+pub fn run_role<'a>(role: Role, creep: &'a Creep) -> Task<'a> {
     trace!("Running creep {} by role {}", creep.name(), role);
 
     let task = match role {
-        "upgrader" => upgrader::run(creep),
-        "harvester" => harvester::run(creep),
-        "builder" => builder::run(creep),
-        "gofer" => gofer::run(creep),
-        "conqueror" => conqueror::run(creep),
-        "lrh" => lrh::run(creep),
+        Role::Upgrader => upgrader::run(creep),
+        Role::Harvester => harvester::run(creep),
+        Role::Builder => builder::run(creep),
+        Role::Gofer => gofer::run(creep),
+        Role::Conqueror => conqueror::run(creep),
+        Role::Lrh => lrh::run(creep),
         _ => unimplemented!(),
     };
 
@@ -74,19 +116,19 @@ pub fn run_role<'a>(role: &str, creep: &'a Creep) -> Task<'a> {
 }
 
 /// The higher the more important
-pub fn role_priority<'a>(_room: &'a Room, role: &'a str) -> i8 {
+pub fn role_priority<'a>(_room: &'a Room, role: Role) -> i8 {
     match role {
-        "harvester" => 3,
-        "gofer" => 2,
-        "builder" => 1,
-        "lrh" => -1,
-        "conqueror" => -2,
+        Role::Harvester => 3,
+        Role::Gofer => 2,
+        Role::Builder => 1,
+        Role::Lrh => -1,
+        Role::Conqueror => -2,
         _ => 0,
     }
 }
 
 /// Max number of creeps of a given role in the given room
-pub fn target_number_of_role_in_room<'a>(role: &'a str, room: &'a Room) -> i8 {
+pub fn target_number_of_role_in_room<'a>(role: Role, room: &'a Room) -> i8 {
     let n_flags = game::flags::keys().len() as i8;
     let n_sources = room.find(find::SOURCES).len() as i8;
     let n_containers = js! {
@@ -101,9 +143,9 @@ pub fn target_number_of_role_in_room<'a>(role: &'a str, room: &'a Room) -> i8 {
     const UPGRADER_COUNT: i8 = 2;
     const WORKER_COUNT: i8 = 1;
     match role {
-        "upgrader" => n_containers.min(UPGRADER_COUNT),
-        "harvester" => n_sources,
-        "builder" => {
+        Role::Upgrader => n_containers.min(UPGRADER_COUNT),
+        Role::Harvester => n_sources,
+        Role::Builder => {
             let target_builders = n_constructions.min(1) + WORKER_COUNT;
             if n_containers > 0 {
                 target_builders
@@ -111,14 +153,14 @@ pub fn target_number_of_role_in_room<'a>(role: &'a str, room: &'a Room) -> i8 {
                 target_builders + UPGRADER_COUNT
             }
         }
-        "conqueror" => n_flags * 2, // TODO: make the closest room spawn it
-        "lrh" => 0,                 // TODO: reenable once the cpu budget can afford it
-        "gofer" => n_sources.min(n_containers as i8),
+        Role::Conqueror => n_flags * 2, // TODO: make the closest room spawn it
+        Role::Lrh => 0,                 // TODO: reenable once the cpu budget can afford it
+        Role::Gofer => n_sources.min(n_containers as i8),
         _ => unimplemented!(),
     }
 }
 
-pub fn spawn_config_by_role(room: &Room, role: &str) -> SpawnConfig {
+pub fn spawn_config_by_role(room: &Room, role: Role) -> SpawnConfig {
     SpawnConfig {
         basic_body: basic_role_parts(room, role),
         body_extension: role_part_scale(room, role),
@@ -127,10 +169,10 @@ pub fn spawn_config_by_role(room: &Room, role: &str) -> SpawnConfig {
 }
 
 /// The minimum parts required by the role
-fn basic_role_parts<'a>(_room: &Room, role: &'a str) -> Vec<Part> {
+fn basic_role_parts<'a>(_room: &Room, role: Role) -> Vec<Part> {
     match role {
-        "harvester" => vec![Part::Move, Part::Work, Part::Carry, Part::Work],
-        "conqueror" => vec![
+        Role::Harvester => vec![Part::Move, Part::Work, Part::Carry, Part::Work],
+        Role::Conqueror => vec![
             Part::Move,
             Part::Work,
             Part::Carry,
@@ -138,26 +180,26 @@ fn basic_role_parts<'a>(_room: &Room, role: &'a str) -> Vec<Part> {
             Part::Move,
             Part::Move,
         ],
-        "gofer" => vec![Part::Move, Part::Carry],
-        "lrh" => vec![
+        Role::Gofer => vec![Part::Move, Part::Carry],
+        Role::Lrh => vec![
             Part::Move,
             Part::Move,
             Part::Carry,
             Part::Work,
             Part::Attack,
         ],
-        "upgrader" | "builder" => vec![Part::Move, Part::Move, Part::Carry, Part::Work],
-        _ => unimplemented!(),
+        Role::Upgrader | Role::Builder => vec![Part::Move, Part::Move, Part::Carry, Part::Work],
+        Role::Unknown => unimplemented!(),
     }
 }
 
 /// Intended parts to be appended to 'role_parts'
-fn role_part_scale<'a>(_room: &Room, role: &'a str) -> Vec<Part> {
+fn role_part_scale<'a>(_room: &Room, role: Role) -> Vec<Part> {
     match role {
-        "harvester" => vec![Part::Work],
-        "conqueror" => vec![],
-        "gofer" => vec![Part::Move, Part::Carry],
-        "lrh" => vec![
+        Role::Harvester => vec![Part::Work],
+        Role::Conqueror => vec![],
+        Role::Gofer => vec![Part::Move, Part::Carry],
+        Role::Lrh => vec![
             Part::Move,
             Part::Carry,
             Part::Work,
@@ -169,7 +211,7 @@ fn role_part_scale<'a>(_room: &Room, role: &'a str) -> Vec<Part> {
 }
 
 /// The largest a creep of role `role` may be
-fn role_part_max(room: &Room, role: &str) -> Option<usize> {
+fn role_part_max(room: &Room, role: Role) -> Option<usize> {
     let level = room.controller().map(|c| c.level()).unwrap_or(0);
 
     let worker_count = || {
@@ -183,9 +225,10 @@ fn role_part_max(room: &Room, role: &str) -> Option<usize> {
     };
 
     match role {
-        "harvester" => Some(8),
-        "lrh" | "gofer" => Some(worker_count() * 2),
-        "builder" | "upgrader" => Some(worker_count()),
+        Role::Harvester => Some(8),
+        Role::Lrh | Role::Gofer => Some(worker_count() * 2),
+        Role::Builder | Role::Upgrader => Some(worker_count()),
         _ => None,
     }
 }
+

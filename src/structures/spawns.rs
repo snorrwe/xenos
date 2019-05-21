@@ -1,5 +1,5 @@
 use crate::prelude::*;
-use creeps::roles::{next_role, spawn_config_by_role};
+use creeps::roles::{next_role, spawn_config_by_role, Role};
 use creeps::{CREEP_ROLE, HOME_ROOM};
 use screeps::{
     constants::find,
@@ -46,17 +46,17 @@ fn run_spawn<'a>(state: &'a mut GameState, spawn: &'a StructureSpawn) -> Executi
 
     let next_role = next_role.unwrap();
 
-    spawn_creep(state, &spawn, &next_role)?;
+    spawn_creep(state, &spawn, next_role)?;
 
-    match next_role.as_str() {
-        "conqueror" => *state.conqueror_count.as_mut().unwrap() += 1,
+    match next_role {
+        Role::Conqueror => *state.conqueror_count.as_mut().unwrap() += 1,
         _ => {}
     }
 
     Ok(())
 }
 
-fn spawn_creep(state: &mut GameState, spawn: &StructureSpawn, role: &str) -> ExecutionResult {
+fn spawn_creep(state: &mut GameState, spawn: &StructureSpawn, role: Role) -> ExecutionResult {
     trace!("Spawning creep");
 
     let room = spawn.room();
@@ -100,7 +100,7 @@ fn spawn_creep(state: &mut GameState, spawn: &StructureSpawn, role: &str) -> Exe
         } else {
             let memory = state.creep_memory_entry(CreepName(&name));
             memory.insert(HOME_ROOM.into(), spawn.room().name().into());
-            memory.insert(CREEP_ROLE.into(), role.into());
+            memory.insert(CREEP_ROLE.into(), (role as i64).into());
             info!(
                 "Spawn {} is spawning creep: {}, result: {}",
                 spawn.name(),
@@ -116,3 +116,4 @@ fn spawn_creep(state: &mut GameState, spawn: &StructureSpawn, role: &str) -> Exe
     }
     Ok(())
 }
+

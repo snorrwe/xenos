@@ -1,4 +1,4 @@
-use crate::creeps::roles::ALL_ROLES;
+use crate::creeps::roles::Role;
 use crate::creeps::{CREEP_ROLE, HOME_ROOM};
 use screeps::{game, raw_memory, Room};
 use serde_json::{self, Map, Value};
@@ -23,7 +23,7 @@ pub struct GameState {
     /// Structure: room -> role -> n
     #[serde(skip_serializing)]
     #[serde(default)]
-    creep_count_by_room: HashMap<String, HashMap<String, i8>>,
+    creep_count_by_room: HashMap<String, HashMap<Role, i8>>,
 
     /// Information about rooms
     /// Structure: room -> info
@@ -113,13 +113,13 @@ impl GameState {
             .unwrap_or_default()
     }
 
-    pub fn count_creeps_in_room<'b>(&mut self, room: &'b Room) -> &mut HashMap<String, i8> {
+    pub fn count_creeps_in_room<'b>(&mut self, room: &'b Room) -> &mut HashMap<Role, i8> {
         let name = room.name();
         // TODO: use cached value
         let count = self
             .count_roles_in_room(room)
             .iter()
-            .map(|(k, v)| (k.to_string(), *v))
+            .map(|(k, v)| (*k, *v))
             .collect();
         self.creep_count_by_room.insert(name.clone(), count);
         self.creep_count_by_room.get_mut(&name).unwrap()
@@ -160,11 +160,15 @@ impl GameState {
             .and_then(|x| x.as_str())
     }
 
-    #[allow(dead_code)]
     pub fn creep_memory_i64(&self, creep: CreepName, key: &str) -> Option<i64> {
         self.creep_memory_get(creep)
             .and_then(|map| map.get(key))
             .and_then(|x| x.as_i64())
+    }
+
+    pub fn creep_memory_role(&self, creep: CreepName, key: &str) -> Option<Role> {
+        self.creep_memory_i64(creep, key)
+            .map(|x| Role::from(x as u8))
     }
 
     pub fn cleanup_memory(&mut self) -> Result<(), Box<::std::error::Error>> {
@@ -200,8 +204,11 @@ impl GameState {
             .count() as i8
     }
 
-    fn count_roles_in_room(&self, room: &Room) -> HashMap<&'static str, i8> {
-        let mut result: HashMap<&'static str, i8> = ALL_ROLES.iter().map(|x| (*x, 0)).collect();
+    fn count_roles_in_room(&self, room: &Room) -> HashMap<Role, i8> {
+        let mut result = Role::all_roles()
+            .into_iter()
+            .map(|x| (*x, 0))
+            .collect::<HashMap<_, _>>();
 
         self.creep_memory
             .iter()
@@ -210,9 +217,12 @@ impl GameState {
                     .map(|r| r == room.name())
                     .unwrap_or(false)
             })
-            .filter_map(|(k, _v)| self.creep_memory_string(CreepName(k), CREEP_ROLE))
+            .filter_map(|(k, _v)| {
+                self.creep_memory_i64(CreepName(k), CREEP_ROLE)
+                    .map(|x| x as u8)
+            })
             .for_each(|role| {
-                if let Some(count) = result.get_mut(role) {
+                if let Some(count) = result.get_mut(&Role::from(role)) {
                     *count += 1
                 } else {
                     error!(
