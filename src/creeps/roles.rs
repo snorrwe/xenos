@@ -140,7 +140,7 @@ pub fn target_number_of_role_in_room<'a>(role: Role, room: &'a Room) -> i8 {
     let n_containers: i64 = n_containers.try_into().unwrap();
     let n_containers: i8 = n_containers as i8;
     let n_constructions = (room.find(find::CONSTRUCTION_SITES).len()) as i8;
-    const UPGRADER_COUNT: i8 = 2;
+    const UPGRADER_COUNT: i8 = 1;
     const WORKER_COUNT: i8 = 1;
     match role {
         Role::Upgrader => n_containers.min(UPGRADER_COUNT),
@@ -154,7 +154,7 @@ pub fn target_number_of_role_in_room<'a>(role: Role, room: &'a Room) -> i8 {
             }
         }
         Role::Conqueror => n_flags * 2, // TODO: make the closest room spawn it
-        Role::Lrh => 0,                 // TODO: reenable once the cpu budget can afford it
+        Role::Lrh => 0,                 // TODO: increase number once the cpu budget can afford it
         Role::Gofer => n_sources.min(n_containers as i8),
         _ => unimplemented!(),
     }
@@ -186,7 +186,6 @@ fn basic_role_parts<'a>(_room: &Room, role: Role) -> Vec<Part> {
             Part::Move,
             Part::Carry,
             Part::Work,
-            Part::Attack,
         ],
         Role::Upgrader | Role::Worker => vec![Part::Move, Part::Move, Part::Carry, Part::Work],
         Role::Unknown => unimplemented!(),
@@ -204,7 +203,6 @@ fn role_part_scale<'a>(_room: &Room, role: Role) -> Vec<Part> {
             Part::Carry,
             Part::Work,
             Part::Move,
-            Part::Attack,
         ],
         _ => vec![Part::Move, Part::Carry, Part::Work],
     }
@@ -215,12 +213,12 @@ fn role_part_max(room: &Room, role: Role) -> Option<usize> {
     let level = room.controller().map(|c| c.level()).unwrap_or(0);
 
     let worker_count = || {
-        if level < 6 {
+        if level < 5 {
             16
         } else if level < 8 {
             24
         } else {
-            32
+            48
         }
     };
 
