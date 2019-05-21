@@ -36,7 +36,7 @@ impl From<u8> for Role {
             4 => Role::Gofer,
             5 => Role::Lrh,
             6 => Role::Conqueror,
-            _ => unreachable!("Role does not exist"),
+            _ => unimplemented!("Role {} is not unimplemented!", item),
         }
     }
 }
