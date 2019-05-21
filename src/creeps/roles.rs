@@ -1,4 +1,4 @@
-use super::{super::bt::*, worker, conqueror, gofer, harvester, lrh, upgrader};
+use super::{super::bt::*, conqueror, gofer, harvester, lrh, upgrader, worker};
 use screeps::{
     constants::find,
     game,
@@ -181,14 +181,9 @@ fn basic_role_parts<'a>(_room: &Room, role: Role) -> Vec<Part> {
             Part::Move,
         ],
         Role::Gofer => vec![Part::Move, Part::Carry],
-        Role::Lrh => vec![
-            Part::Move,
-            Part::Move,
-            Part::Carry,
-            Part::Work,
-        ],
+        Role::Lrh => vec![Part::Move, Part::Move, Part::Carry, Part::Work],
         Role::Upgrader | Role::Worker => vec![Part::Move, Part::Move, Part::Carry, Part::Work],
-        Role::Unknown => unimplemented!(),
+        Role::Unknown => vec![],
     }
 }
 
@@ -198,12 +193,7 @@ fn role_part_scale<'a>(_room: &Room, role: Role) -> Vec<Part> {
         Role::Harvester => vec![Part::Work],
         Role::Conqueror => vec![],
         Role::Gofer => vec![Part::Move, Part::Carry],
-        Role::Lrh => vec![
-            Part::Move,
-            Part::Carry,
-            Part::Work,
-            Part::Move,
-        ],
+        Role::Lrh => vec![Part::Move, Part::Carry, Part::Work, Part::Move],
         _ => vec![Part::Move, Part::Carry, Part::Work],
     }
 }
@@ -226,7 +216,7 @@ fn role_part_max(room: &Room, role: Role) -> Option<usize> {
         Role::Harvester => Some(8),
         Role::Lrh | Role::Gofer => Some(worker_count() * 2),
         Role::Worker | Role::Upgrader => Some(worker_count()),
-        _ => None,
+        Role::Conqueror | Role::Unknown => None,
     }
 }
 
