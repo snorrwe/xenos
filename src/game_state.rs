@@ -101,17 +101,6 @@ impl Drop for GameState {
 }
 
 impl GameState {
-    #[allow(dead_code)]
-    pub fn read_from_memory_or_default() -> Self {
-        use stdweb::unstable::TryFrom;
-
-        let result = js! {
-            return Memory.game_state; // TODO pass key
-        };
-
-        Self::try_from(result).unwrap_or_default()
-    }
-
     pub fn read_from_segment_or_default(segment: u32) -> Self {
         raw_memory::get_segment(segment)
             .and_then(|string| {
