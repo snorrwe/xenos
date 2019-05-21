@@ -21,8 +21,10 @@ pub fn game_loop() {
 
     let bucket = Option::<i32>::try_from(bucket).expect("Expected bucket to be a number");
 
-    let mut state = GameState::read_from_memory_or_default();
+    let mut state = GameState::read_from_segment_or_default(0);
     state.cpu_bucket = bucket;
+    state.memory_segment = Some(0);
+    state.memory_route = None;
     run_game_logic(state);
 
     let bucket = bucket.unwrap_or(-1);

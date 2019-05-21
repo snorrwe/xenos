@@ -1,6 +1,6 @@
 use crate::creeps::roles::ALL_ROLES;
 use crate::creeps::{CREEP_ROLE, HOME_ROOM};
-use screeps::{game, memory, Room};
+use screeps::{game, memory, raw_memory, Room};
 use serde_json::{self, Map, Value};
 use std::collections::HashMap;
 
@@ -33,6 +33,11 @@ pub struct GameState {
     /// In directions: [N, W, S, E]
     pub long_range_harvesters: HashMap<String, [u8; 4]>,
 
+    /// Where to save this state when dropping
+    /// Defaults to saving to "game_state"
+    #[serde(skip_serializing)]
+    #[serde(default)]
+    pub memory_segment: Option<u32>,
     /// Where to save this state when dropping
     /// Defaults to saving to "game_state"
     #[serde(skip_serializing)]
@@ -90,10 +95,24 @@ impl Drop for GameState {
             .unwrap_or("game_state");
         use stdweb::serde::Serde;
         memory::root().set(route, Serde(&self));
+
+        if let Some(segment) = self.memory_segment {
+            let data = serde_json::to_string(self);
+
+            match data {
+                Ok(data) => {
+                    raw_memory::set_segment(segment, data.as_str());
+                }
+                Err(e) => {
+                    error!("Failed to serialize game_state {:?}", e);
+                }
+            }
+        }
     }
 }
 
 impl GameState {
+    #[allow(dead_code)]
     pub fn read_from_memory_or_default() -> Self {
         use stdweb::unstable::TryFrom;
 
@@ -102,6 +121,18 @@ impl GameState {
         };
 
         Self::try_from(result).unwrap_or_default()
+    }
+
+    pub fn read_from_segment_or_default(segment: u32) -> Self {
+        raw_memory::get_segment(segment)
+            .and_then(|string| {
+                serde_json::from_str(&string)
+                    .map_err(|e| {
+                        error!("Failed to deserialize game_state from segment {:?}", e);
+                    })
+                    .ok()
+            })
+            .unwrap_or_default()
     }
 
     pub fn count_creeps_in_room<'b>(&mut self, room: &'b Room) -> &mut HashMap<String, i8> {
