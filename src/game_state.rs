@@ -1,6 +1,6 @@
 use crate::creeps::roles::ALL_ROLES;
 use crate::creeps::{CREEP_ROLE, HOME_ROOM};
-use screeps::{game, memory, raw_memory, Room};
+use screeps::{game, raw_memory, Room};
 use serde_json::{self, Map, Value};
 use std::collections::HashMap;
 
@@ -34,15 +34,10 @@ pub struct GameState {
     pub long_range_harvesters: HashMap<String, [u8; 4]>,
 
     /// Where to save this state when dropping
-    /// Defaults to saving to "game_state"
+    /// Defaults to 0
     #[serde(skip_serializing)]
     #[serde(default)]
     pub memory_segment: Option<u32>,
-    /// Where to save this state when dropping
-    /// Defaults to saving to "game_state"
-    #[serde(skip_serializing)]
-    #[serde(default)]
-    pub memory_route: Option<String>,
     #[serde(skip_serializing)]
     #[serde(default)]
     pub save_to_memory: Option<bool>,
@@ -70,6 +65,9 @@ pub enum RoomIFF {
     Keepers,
 }
 
+/// Used to make sure the right string is passed
+/// to the right parameter when accessing creep memory
+/// It's deliberately verbose
 pub struct CreepName<'a>(pub &'a str);
 
 impl Default for RoomIFF {
@@ -88,24 +86,15 @@ impl Drop for GameState {
             return;
         }
         debug!("Saving GameState");
-        let route = self
-            .memory_route
-            .as_ref()
-            .map(|x| x.as_str())
-            .unwrap_or("game_state");
-        use stdweb::serde::Serde;
-        memory::root().set(route, Serde(&self));
 
-        if let Some(segment) = self.memory_segment {
-            let data = serde_json::to_string(self);
+        let segment = self.memory_segment.unwrap_or(0);
 
-            match data {
-                Ok(data) => {
-                    raw_memory::set_segment(segment, data.as_str());
-                }
-                Err(e) => {
-                    error!("Failed to serialize game_state {:?}", e);
-                }
+        match serde_json::to_string(self) {
+            Ok(data) => {
+                raw_memory::set_segment(segment, data.as_str());
+            }
+            Err(e) => {
+                error!("Failed to serialize game_state {:?}", e);
             }
         }
     }
@@ -247,3 +236,4 @@ impl GameState {
         result
     }
 }
+
