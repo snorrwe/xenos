@@ -20,7 +20,7 @@ pub enum Role {
     Unknown = 0,
     Upgrader = 1,
     Harvester = 2,
-    Builder = 3,
+    Worker = 3,
     Gofer = 4,
     Lrh = 5,
     Conqueror = 6,
@@ -32,7 +32,7 @@ impl From<u8> for Role {
             0 => Role::Unknown,
             1 => Role::Upgrader,
             2 => Role::Harvester,
-            3 => Role::Builder,
+            3 => Role::Worker,
             4 => Role::Gofer,
             5 => Role::Lrh,
             6 => Role::Conqueror,
@@ -47,7 +47,7 @@ impl Display for Role {
             Role::Unknown => "Unknown",
             Role::Upgrader => "Upgrader",
             Role::Harvester => "Harvester",
-            Role::Builder => "Builder",
+            Role::Worker => "Worker",
             Role::Gofer => "Gofer",
             Role::Lrh => "Lrh",
             Role::Conqueror => "Conqueror",
@@ -60,7 +60,7 @@ impl Display for Role {
 impl Role {
     pub fn all_roles() -> &'static [Self] {
         use self::Role::*;
-        &[Upgrader, Harvester, Builder, Gofer, Lrh, Conqueror]
+        &[Upgrader, Harvester, Worker, Gofer, Lrh, Conqueror]
     }
 }
 
@@ -99,7 +99,7 @@ pub fn run_role<'a>(role: Role, creep: &'a Creep) -> Task<'a> {
     let task = match role {
         Role::Upgrader => upgrader::run(creep),
         Role::Harvester => harvester::run(creep),
-        Role::Builder => builder::run(creep),
+        Role::Worker => builder::run(creep),
         Role::Gofer => gofer::run(creep),
         Role::Conqueror => conqueror::run(creep),
         Role::Lrh => lrh::run(creep),
@@ -120,7 +120,7 @@ pub fn role_priority<'a>(_room: &'a Room, role: Role) -> i8 {
     match role {
         Role::Harvester => 3,
         Role::Gofer => 2,
-        Role::Builder => 1,
+        Role::Worker => 1,
         Role::Lrh => -1,
         Role::Conqueror => -2,
         _ => 0,
@@ -145,7 +145,7 @@ pub fn target_number_of_role_in_room<'a>(role: Role, room: &'a Room) -> i8 {
     match role {
         Role::Upgrader => n_containers.min(UPGRADER_COUNT),
         Role::Harvester => n_sources,
-        Role::Builder => {
+        Role::Worker => {
             let target_builders = n_constructions.min(1) + WORKER_COUNT;
             if n_containers > 0 {
                 target_builders
@@ -188,7 +188,7 @@ fn basic_role_parts<'a>(_room: &Room, role: Role) -> Vec<Part> {
             Part::Work,
             Part::Attack,
         ],
-        Role::Upgrader | Role::Builder => vec![Part::Move, Part::Move, Part::Carry, Part::Work],
+        Role::Upgrader | Role::Worker => vec![Part::Move, Part::Move, Part::Carry, Part::Work],
         Role::Unknown => unimplemented!(),
     }
 }
@@ -227,7 +227,7 @@ fn role_part_max(room: &Room, role: Role) -> Option<usize> {
     match role {
         Role::Harvester => Some(8),
         Role::Lrh | Role::Gofer => Some(worker_count() * 2),
-        Role::Builder | Role::Upgrader => Some(worker_count()),
+        Role::Worker | Role::Upgrader => Some(worker_count()),
         _ => None,
     }
 }
