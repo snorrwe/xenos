@@ -2,11 +2,11 @@
 //! Harvest energy from foreign rooms and move it back to the owning room
 //!
 
-use super::{gofer, harvester, HOME_ROOM, TARGET};
-use crate::game_state::{RoomIFF, ScoutInfo};
+use super::{gofer, harvester, update_scout_info, HOME_ROOM, TARGET};
+use crate::game_state::RoomIFF;
 use crate::prelude::*;
 use crate::rooms::neighbours;
-use screeps::{constants::find, objects::Creep, prelude::*, traits::TryFrom, ReturnCode};
+use screeps::{objects::Creep, prelude::*, traits::TryFrom, ReturnCode};
 
 const HARVEST_TARGET_ROOM: &'static str = "harvest_target_room";
 
@@ -49,41 +49,6 @@ fn load<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResult {
         Control::Sequence(tasks)
     };
     tree.tick(state)
-}
-
-fn update_scout_info(state: &mut GameState, creep: &Creep) -> ExecutionResult {
-    let room = creep.room();
-
-    let n_sources = room.find(find::SOURCES).len() as u8;
-
-    let controller = room.controller();
-
-    let is_my_controller = controller
-        .as_ref()
-        .map(|c| {
-            // c.my() can panic
-            let result = js! {
-                return @{c}.my;
-            };
-            result
-        })
-        .map(|my| bool::try_from(my).unwrap_or(false));
-
-    let iff = match is_my_controller {
-        None => RoomIFF::NoMansLand,
-        Some(true) => RoomIFF::Friendly,
-        Some(false) => match controller.map(|c| c.level()) {
-            Some(0) => RoomIFF::Neutral,
-            Some(_) => RoomIFF::Hostile,
-            None => RoomIFF::Unknown,
-        },
-    };
-
-    let info = ScoutInfo { n_sources, iff };
-
-    state.scout_intel.insert(room.name(), info);
-
-    Ok(())
 }
 
 fn approach_target_room<'a>(

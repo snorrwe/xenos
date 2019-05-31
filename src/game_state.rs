@@ -12,7 +12,7 @@ pub struct GameState {
     /// CPU bucket available this tick
     #[serde(skip_serializing)]
     #[serde(default)]
-    pub cpu_bucket: Option<i32>,
+    pub cpu_bucket: Option<i16>,
 
     /// Lazily countable global conqueror creep count
     #[serde(skip_serializing)]
@@ -37,7 +37,7 @@ pub struct GameState {
     /// Defaults to 0
     #[serde(skip_serializing)]
     #[serde(default)]
-    pub memory_segment: Option<u32>,
+    pub memory_segment: Option<u8>,
     #[serde(skip_serializing)]
     #[serde(default)]
     pub save_to_memory: Option<bool>,
@@ -91,7 +91,7 @@ impl Drop for GameState {
 
         match serde_json::to_string(self) {
             Ok(data) => {
-                raw_memory::set_segment(segment, data.as_str());
+                raw_memory::set_segment(segment as u32, data.as_str());
             }
             Err(e) => {
                 error!("Failed to serialize game_state {:?}", e);
@@ -235,4 +235,3 @@ impl GameState {
         result
     }
 }
-

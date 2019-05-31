@@ -1,17 +1,18 @@
 pub mod roles;
 
-mod worker;
 mod conqueror;
 mod gofer;
 mod harvester;
 mod lrh;
 mod repairer;
 mod upgrader;
+mod worker;
 
 pub use self::roles::Role;
+use crate::game_state::{RoomIFF, ScoutInfo};
 use crate::prelude::*;
 use screeps::{
-    constants::ResourceType,
+    constants::{find, ResourceType},
     game::get_object_erased,
     objects::{
         Creep, RoomObject, RoomObjectProperties, Structure, StructureContainer, StructureStorage,
@@ -20,7 +21,10 @@ use screeps::{
     prelude::*,
     ReturnCode, Room,
 };
-use stdweb::{unstable::TryInto, Reference};
+use stdweb::{
+    unstable::{TryFrom, TryInto},
+    Reference,
+};
 
 pub const HOME_ROOM: &'static str = "home";
 pub const TARGET: &'static str = "target";
@@ -97,7 +101,6 @@ pub fn move_to<'a>(
     creep: &'a Creep,
     target: &'a impl screeps::RoomObjectProperties,
 ) -> ExecutionResult {
-    use screeps::traits::TryFrom;
     let res = js! {
         const creep = @{creep};
         const target = @{target.pos()};
@@ -255,3 +258,37 @@ pub fn find_repair_target<'a>(room: &'a Room) -> Option<Structure> {
     result.try_into().ok()
 }
 
+pub fn update_scout_info(state: &mut GameState, creep: &Creep) -> ExecutionResult {
+    let room = creep.room();
+
+    let n_sources = room.find(find::SOURCES).len() as u8;
+
+    let controller = room.controller();
+
+    let is_my_controller = controller
+        .as_ref()
+        .map(|c| {
+            // c.my() can panic
+            let result = js! {
+                return @{c}.my;
+            };
+            result
+        })
+        .map(|my| bool::try_from(my).unwrap_or(false));
+
+    let iff = match is_my_controller {
+        None => RoomIFF::NoMansLand,
+        Some(true) => RoomIFF::Friendly,
+        Some(false) => match controller.map(|c| c.level()) {
+            Some(0) => RoomIFF::Neutral,
+            Some(_) => RoomIFF::Hostile,
+            None => RoomIFF::Unknown,
+        },
+    };
+
+    let info = ScoutInfo { n_sources, iff };
+
+    state.scout_intel.insert(room.name(), info);
+
+    Ok(())
+}

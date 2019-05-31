@@ -1,7 +1,6 @@
 use screeps::traits::TryInto;
 use screeps::Room;
 
-#[allow(dead_code)]
 pub fn manhatten_distance(one: &str, other: &str) -> Result<i32, &'static str> {
     let one = parse_name(one)?;
     let other = parse_name(other)?;
@@ -82,3 +81,17 @@ fn neighbours_in_vectors([x, y]: [i32; 2]) -> [[i32; 2]; 4] {
     [[x, y + 1], [x + 1, y], [x, y - 1], [x - 1, y]]
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_manhatten() {
+        let a = "W43N1";
+        let b = "W45S1";
+
+        let d = manhatten_distance(a, b).expect("Failed to get the dinstance");
+
+        assert_eq!(d, 5);
+    }
+}

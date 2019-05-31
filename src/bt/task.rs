@@ -9,7 +9,7 @@ use std::rc::Rc;
 pub struct Task<'a> {
     /// How much "cpu bucket" is required for the task to execute
     /// Useful for turning off tasks when the bucket falls below a threshold
-    pub required_bucket: Option<i32>,
+    pub required_bucket: Option<i16>,
     task: Rc<Fn(&mut GameState) -> ExecutionResult + 'a>,
 }
 
@@ -24,7 +24,7 @@ impl<'a> Task<'a> {
         }
     }
 
-    pub fn with_required_bucket(mut self, bucket: i32) -> Self {
+    pub fn with_required_bucket(mut self, bucket: i16) -> Self {
         self.required_bucket = Some(bucket);
         self
     }
@@ -36,14 +36,12 @@ impl<'a> Task<'a> {
             .unwrap_or(false)
         {
             let required_bucket = self.required_bucket.unwrap();
-            debug!(
-                "Task bucket requirement not met. Required: {:?}, State: {:?}",
-                required_bucket, state
-            );
-            Err(format!(
-                "Task bucket requirement ({:?}) not met",
+            let message = format!(
+                "Task bucket requirement not met. Required: {:?}",
                 required_bucket
-            ))?;
+            );
+            debug!("{} State: {:?}", &message, state);
+            Err(message)?;
         }
         Ok(())
     }

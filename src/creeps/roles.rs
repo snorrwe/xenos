@@ -1,8 +1,10 @@
-use super::{super::bt::*, conqueror, gofer, harvester, lrh, upgrader, worker};
+use super::{conqueror, gofer, harvester, lrh, upgrader, worker};
+use crate::prelude::*;
+use crate::rooms::manhatten_distance;
 use screeps::{
     constants::find,
     game,
-    objects::{Creep, Room},
+    objects::{Creep, HasPosition, Room},
     Part,
 };
 use std::fmt::{self, Display, Formatter};
@@ -129,7 +131,22 @@ pub fn role_priority<'a>(_room: &'a Room, role: Role) -> i8 {
 
 /// Max number of creeps of a given role in the given room
 pub fn target_number_of_role_in_room<'a>(role: Role, room: &'a Room) -> i8 {
-    let n_flags = game::flags::keys().len() as i8;
+    let room_name = room.name();
+    let n_flags = game::flags::values()
+        .into_iter()
+        .filter(|flag| {
+            let rn = flag.pos().room_name();
+            manhatten_distance(&room_name, &rn)
+                .map(|d| d < 5)
+                .unwrap_or_else(|e| {
+                    error!(
+                        "Failed to calculate distance from {:?} to {:?}, {:?}",
+                        &room_name, &rn, e
+                    );
+                    false
+                })
+        })
+        .count() as i8;
     let n_sources = room.find(find::SOURCES).len() as i8;
     let n_containers = js! {
         const room = @{room};
@@ -202,7 +219,7 @@ fn role_part_scale<'a>(_room: &Room, role: Role) -> Vec<Part> {
 fn role_part_max(room: &Room, role: Role) -> Option<usize> {
     let level = room.controller().map(|c| c.level()).unwrap_or(0);
 
-    let worker_count = || {
+    let worker_count = {
         if level < 5 {
             16
         } else if level < 8 {
@@ -214,9 +231,9 @@ fn role_part_max(room: &Room, role: Role) -> Option<usize> {
 
     match role {
         Role::Harvester => Some(8),
-        Role::Lrh | Role::Gofer => Some(worker_count() * 2),
-        Role::Worker | Role::Upgrader => Some(worker_count()),
-        Role::Conqueror | Role::Unknown => None,
+        Role::Lrh | Role::Gofer => Some(worker_count * 2),
+        Role::Worker | Role::Upgrader => Some(worker_count),
+        Role::Conqueror => Some(worker_count),
+        Role::Unknown => None,
     }
 }
-
