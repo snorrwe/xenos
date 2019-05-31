@@ -1,6 +1,8 @@
 //! Takes Rooms
 //!
-use super::{worker::attempt_build, harvester::attempt_harvest, move_to, TARGET};
+use super::{
+    harvester::attempt_harvest, move_to, update_scout_info, worker::attempt_build, TARGET,
+};
 use crate::prelude::*;
 use screeps::{game, objects::Creep, prelude::*, ReturnCode};
 use stdweb::unstable::TryInto;
@@ -10,6 +12,12 @@ const CONQUEST_TARGET: &'static str = "conquest_target";
 pub fn run<'a>(creep: &'a Creep) -> Task<'a> {
     trace!("Running conqueror {}", creep.name());
     let tasks = vec![
+        Task::new(move |state| {
+            update_scout_info(state, creep).unwrap_or_else(|e| {
+                error!("Failed to update scout info {:?}", e);
+            });
+            Err("continue")?
+        }),
         Task::new(move |state| claim_target(state, creep)),
         Task::new(move |state| set_target(state, creep)),
         Task::new(move |state| attempt_build(state, creep)),
@@ -58,7 +66,7 @@ fn claim_target<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResult 
     // The Rust Screeps api may panic here
     let arrived = js! {
         const flag = @{&flag};
-        return @{&room}.name == (flag.room && flag.room.name);
+        return @{&room}.name == (flag.room && flag.room.name) || false;
     };
 
     let arrived: bool = arrived
@@ -69,13 +77,21 @@ fn claim_target<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResult 
         return move_to(creep, &flag);
     }
 
+    let my = js! {
+        return @{&room}.controller.my || false;
+    };
+
+    let my = my
+        .try_into()
+        .map_err(|e| format!("failed to convert 'my' to bool {:?}", e))?;
+
+    if my {
+        return Err(format!("room is already claimed"));
+    }
+
     let controller = room
         .controller()
         .ok_or_else(|| format!("room {:?} has no controller", room.name()))?;
-
-    if controller.my() {
-        return Err(format!("room is already claimed"));
-    }
 
     let result = creep.claim_controller(&controller);
 
