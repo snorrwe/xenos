@@ -1,6 +1,17 @@
 use screeps::traits::TryInto;
 use screeps::Room;
 
+#[allow(dead_code)]
+pub fn manhatten_distance(one: &str, other: &str) -> Result<i32, &'static str> {
+    let one = parse_name(one)?;
+    let other = parse_name(other)?;
+
+    let x = (one[0] - other[0]).abs();
+    let y = (one[1] - other[1]).abs();
+
+    Ok(x + y)
+}
+
 pub fn neighbours(room: &Room) -> Vec<String> {
     let name = room.name();
     let coords = parse_name(name.as_str());
@@ -70,3 +81,4 @@ fn dump_name([x, y]: &[i32; 2]) -> String {
 fn neighbours_in_vectors([x, y]: [i32; 2]) -> [[i32; 2]; 4] {
     [[x, y + 1], [x + 1, y], [x, y - 1], [x - 1, y]]
 }
+

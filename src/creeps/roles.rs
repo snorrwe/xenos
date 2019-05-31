@@ -138,7 +138,7 @@ pub fn target_number_of_role_in_room<'a>(role: Role, room: &'a Room) -> i8 {
         }).length;
     };
     let n_containers: i64 = n_containers.try_into().unwrap();
-    let n_containers: i8 = n_containers as i8;
+    let n_containers = n_containers as i8;
     let n_constructions = (room.find(find::CONSTRUCTION_SITES).len()) as i8;
     const UPGRADER_COUNT: i8 = 1;
     const WORKER_COUNT: i8 = 1;

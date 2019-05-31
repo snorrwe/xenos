@@ -199,8 +199,8 @@ impl GameState {
     pub fn count_conquerors(&self) -> i8 {
         game::creeps::values()
             .into_iter()
-            .filter_map(|creep| self.creep_memory_string(CreepName(&creep.name()), CREEP_ROLE))
-            .map(|role| role == "conqueror")
+            .filter_map(|creep| self.creep_memory_i64(CreepName(&creep.name()), CREEP_ROLE))
+            .filter(|role| Role::from(*role as u8) == Role::Conqueror)
             .count() as i8
     }
 
