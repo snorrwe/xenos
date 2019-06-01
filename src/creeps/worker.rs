@@ -12,7 +12,7 @@ use screeps::{
 
 pub fn run<'a>(creep: &'a Creep) -> Task<'a> {
     trace!("Running builder {}", creep.name());
-    let tasks = vec![
+    let tasks = [
         Task::new(move |state| attempt_build(state, creep)),
         Task::new(move |state| get_energy(state, creep)),
         Task::new(move |state| harvest(state, creep)),
@@ -26,7 +26,10 @@ pub fn run<'a>(creep: &'a Creep) -> Task<'a> {
             Err("continue")?
         }),
         Task::new(move |state| upgrader::attempt_upgrade(state, creep)),
-    ];
+    ]
+    .into_iter()
+    .cloned()
+    .collect();
 
     let tree = Control::Sequence(tasks);
     Task::new(move |state| tree.tick(state))
@@ -80,3 +83,4 @@ fn get_build_target(state: &mut GameState, creep: &Creep) -> Option<Construction
                 .ok()
         })
 }
+

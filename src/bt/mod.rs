@@ -7,16 +7,15 @@
 pub mod task;
 pub use self::task::*;
 pub use crate::game_state::*;
+use arrayvec::ArrayVec;
 
 /// Result of a task
 pub type ExecutionResult = Result<(), String>;
 
+pub type TaskCollection<'a> = ArrayVec<[Task<'a>; 16]>;
+
 pub trait BtNode {
     fn tick(&self, state: &mut GameState) -> ExecutionResult;
-}
-
-pub trait ControlNode {
-    fn new(children: Vec<Task>) -> Self;
 }
 
 /// Control node in the Behaviour Tree
@@ -24,9 +23,9 @@ pub trait ControlNode {
 pub enum Control<'a> {
     #[allow(dead_code)]
     /// Runs its child tasks until the first failure
-    Selector(Vec<Task<'a>>),
+    Selector(TaskCollection<'a>),
     /// Runs its child tasks until the first success
-    Sequence(Vec<Task<'a>>),
+    Sequence(TaskCollection<'a>),
 }
 
 impl<'a> BtNode for Control<'a> {
@@ -54,3 +53,4 @@ impl<'a> BtNode for Control<'a> {
         }
     }
 }
+

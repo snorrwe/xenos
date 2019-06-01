@@ -11,7 +11,7 @@ const CONQUEST_TARGET: &'static str = "conquest_target";
 
 pub fn run<'a>(creep: &'a Creep) -> Task<'a> {
     trace!("Running conqueror {}", creep.name());
-    let tasks = vec![
+    let tasks = [
         Task::new(move |state| {
             update_scout_info(state, creep).unwrap_or_else(|e| {
                 error!("Failed to update scout info {:?}", e);
@@ -23,7 +23,10 @@ pub fn run<'a>(creep: &'a Creep) -> Task<'a> {
         Task::new(move |state| attempt_build(state, creep)),
         Task::new(move |state| attempt_harvest(state, creep, None)),
         Task::new(move |state| reset_target(state, creep)),
-    ];
+    ]
+    .into_iter()
+    .cloned()
+    .collect();
 
     let tree = Control::Sequence(tasks);
     Task::new(move |state| tree.tick(state)).with_required_bucket(300)
@@ -123,3 +126,4 @@ fn set_target<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResult {
 
     Ok(())
 }
+

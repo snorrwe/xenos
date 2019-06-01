@@ -5,7 +5,6 @@ use creeps::{CREEP_ROLE, HOME_ROOM};
 use screeps::{
     constants::find,
     game,
-    memory::MemoryReference,
     objects::{SpawnOptions, StructureSpawn},
     prelude::*,
     Part, ReturnCode,
@@ -67,16 +66,17 @@ fn spawn_creep(state: &mut GameState, spawn: &StructureSpawn, role: Role) -> Exe
     let mut body = spawn_config
         .basic_body
         .into_iter()
-        .collect::<ArrayVec<[Part; 256]>>();
+        .collect::<ArrayVec<[Part; 50]>>();
     let mut body_len = body.len(); // the index until the body is valid
     let max_len = spawn_config.body_max;
 
     if !spawn_config.body_extension.is_empty() {
         loop {
             let spawn_options = SpawnOptions::new().dry_run(true);
-            if max_len
-                .map(|max_len| max_len <= body.len())
-                .unwrap_or(false)
+            if body.len() == 50
+                || max_len
+                    .map(|max_len| max_len <= body.len())
+                    .unwrap_or(false)
             {
                 break;
             }
@@ -95,25 +95,29 @@ fn spawn_creep(state: &mut GameState, spawn: &StructureSpawn, role: Role) -> Exe
 
     let name = game::time() % 10_000;
     let mut prefix = 0;
-    let res = loop {
+    let res = 'spawn_loop: loop {
         let name = format!("{}_{:04x}", role, name + prefix);
-        let mut memory = MemoryReference::new();
-        let spawn_options = SpawnOptions::new().memory(memory);
-        let res = spawn.spawn_creep_with_options(&body[..body_len], &name, &spawn_options);
+        let res = spawn.spawn_creep(&body[..body_len], &name);
 
-        if res == ReturnCode::NameExists {
-            prefix += 1;
-        } else {
-            let memory = state.creep_memory_entry(CreepName(&name));
-            memory.insert(HOME_ROOM.into(), spawn.room().name().into());
-            memory.insert(CREEP_ROLE.into(), (role as i64).into());
-            info!(
-                "Spawn {} is spawning creep: {}, result: {}",
-                spawn.name(),
-                name,
-                res as i32
-            );
-            break res;
+        match res {
+            ReturnCode::NameExists => {
+                prefix += 1;
+            }
+            ReturnCode::Ok => {
+                let memory = state.creep_memory_entry(CreepName(&name));
+                memory.insert(HOME_ROOM.into(), spawn.room().name().into());
+                memory.insert(CREEP_ROLE.into(), (role as i64).into());
+                info!(
+                    "Spawn {} is spawning creep: {}, result: {}",
+                    spawn.name(),
+                    name,
+                    res as i32
+                );
+                break 'spawn_loop res;
+            }
+            _ => {
+                break 'spawn_loop res;
+            }
         }
     };
 

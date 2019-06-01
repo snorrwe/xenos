@@ -19,11 +19,14 @@ use stdweb::{
 
 pub fn run<'a>(creep: &'a Creep) -> Task<'a> {
     trace!("Running gofer {}", creep.name());
-    let tasks = vec![
+    let tasks = [
         Task::new(move |state| attempt_unload(state, creep)),
         Task::new(move |state| get_energy(state, creep)),
         Task::new(move |state| attempt_unload(state, creep)),
-    ];
+    ]
+    .into_iter()
+    .cloned()
+    .collect();
 
     let tree = Control::Sequence(tasks);
     Task::new(move |state| {
@@ -55,12 +58,15 @@ pub fn attempt_unload<'a>(state: &'a mut GameState, creep: &'a Creep) -> Executi
 
     let target = find_unload_target(state, creep).ok_or_else(|| "no unload target")?;
 
-    let tasks = vec![
+    let tasks = [
         Task::new(|state| try_transfer::<StructureSpawn>(state, creep, &target)),
         Task::new(|state| try_transfer::<StructureExtension>(state, creep, &target)),
         Task::new(|state| try_transfer::<StructureTower>(state, creep, &target)),
         Task::new(|state| try_transfer::<StructureStorage>(state, creep, &target)),
-    ];
+    ]
+    .into_iter()
+    .cloned()
+    .collect();
 
     let tree = Control::Sequence(tasks);
     tree.tick(state).map_err(|e| {
@@ -81,12 +87,15 @@ fn find_unload_target<'a>(state: &'a mut GameState, creep: &'a Creep) -> Option<
             return Some(target.as_ref().clone());
         }
     }
-    let tasks = vec![
+    let tasks = [
         Task::new(|state| find_unload_target_by_type(state, creep, "spawn")),
         Task::new(|state| find_unload_target_by_type(state, creep, "tower")),
         Task::new(|state| find_unload_target_by_type(state, creep, "extension")),
         Task::new(|state| find_storage(state, creep)),
-    ];
+    ]
+    .into_iter()
+    .cloned()
+    .collect();
     let tree = Control::Sequence(tasks);
     tree.tick(state).unwrap_or_else(|e| {
         debug!("Failed to find unload target {:?}", e);
@@ -240,3 +249,4 @@ fn read_target_container(state: &GameState, creep: &Creep) -> Option<StructureCo
         .creep_memory_string(CreepName(&creep.name()), TARGET)
         .and_then(|id| get_object_typed(id).ok())?
 }
+

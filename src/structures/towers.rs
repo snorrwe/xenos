@@ -31,10 +31,13 @@ pub fn task<'a>() -> Task<'a> {
 fn run_tower<'a>(state: &'a mut GameState, tower: &'a StructureTower) -> ExecutionResult {
     debug!("Running tower {:?}", tower.id());
 
-    let tasks = vec![
+    let tasks = [
         Task::new(move |_| attempt_attack(tower)),
         Task::new(move |_| attempt_repair(tower)).with_required_bucket(1000),
-    ];
+    ]
+    .into_iter()
+    .cloned()
+    .collect();
 
     let tree = Control::Sequence(tasks);
     tree.tick(state)
@@ -85,3 +88,4 @@ fn repair<'a>(tower: &'a StructureTower, target: &'a Structure) -> ExecutionResu
         Err(error)
     }
 }
+

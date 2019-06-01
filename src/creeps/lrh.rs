@@ -13,10 +13,13 @@ const HARVEST_TARGET_ROOM: &'static str = "harvest_target_room";
 pub fn run<'a>(creep: &'a Creep) -> Task<'a> {
     trace!("Running long_range_harvester");
 
-    let tasks = vec![
+    let tasks = [
         Task::new(move |state| load(state, creep)),
         Task::new(move |state| unload(state, creep)),
-    ];
+    ]
+    .into_iter()
+    .cloned()
+    .collect();
 
     let tree = Control::Sequence(tasks);
     Task::new(move |state| tree.tick(state)).with_required_bucket(2000)
@@ -36,7 +39,7 @@ fn load<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResult {
             memory.remove(TARGET);
             Err("full")?;
         }
-        let tasks = vec![
+        let tasks = [
             Task::new(move |state| approach_target_room(state, creep, HARVEST_TARGET_ROOM)),
             Task::new(move |state| set_target_room(state, creep)),
             Task::new(move |state| {
@@ -44,7 +47,10 @@ fn load<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResult {
                 Err("continue")?
             }),
             Task::new(move |state| harvester::attempt_harvest(state, creep, Some(TARGET))),
-        ];
+        ]
+        .into_iter()
+        .cloned()
+        .collect();
 
         Control::Sequence(tasks)
     };
@@ -150,12 +156,16 @@ fn unload<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResult {
             memory.remove(TARGET);
             Err("empty")?;
         }
-        let tasks = vec![
+        let tasks = [
             Task::new(move |state| approach_target_room(state, creep, HOME_ROOM)),
             Task::new(move |state| gofer::attempt_unload(state, creep)),
-        ];
+        ]
+        .into_iter()
+        .cloned()
+        .collect();
 
         Control::Sequence(tasks)
     };
     tree.tick(state)
 }
+

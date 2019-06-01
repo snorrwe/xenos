@@ -44,10 +44,14 @@ fn run_creep<'a>(state: &mut GameState, creep: Creep) -> ExecutionResult {
     if creep.spawning() {
         return Ok(());
     }
-    let tasks = vec![
+    let tasks = [
         Task::new(|state| run_role(state, &creep)),
         Task::new(|state| initialize_creep(state, &creep)),
-    ];
+    ]
+    .into_iter()
+    .cloned()
+    .collect();
+
     let tree = Control::Sequence(tasks);
     tree.tick(state)
 }
@@ -161,7 +165,7 @@ pub fn get_energy<'a>(state: &'a mut GameState, creep: &'a Creep) -> ExecutionRe
             })?
     };
 
-    let tasks = vec![
+    let tasks = [
         Task::new(|_| try_withdraw::<Tombstone>(creep, &target)),
         Task::new(|_| try_withdraw::<StructureStorage>(creep, &target)),
         Task::new(|_| try_withdraw::<StructureContainer>(creep, &target)),
@@ -170,7 +174,10 @@ pub fn get_energy<'a>(state: &'a mut GameState, creep: &'a Creep) -> ExecutionRe
             memory.remove(TARGET);
             Ok(())
         }),
-    ];
+    ]
+    .into_iter()
+    .cloned()
+    .collect();
 
     let tree = Control::Sequence(tasks);
 
@@ -292,3 +299,4 @@ pub fn update_scout_info(state: &mut GameState, creep: &Creep) -> ExecutionResul
 
     Ok(())
 }
+

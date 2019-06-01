@@ -8,11 +8,14 @@ use screeps::{objects::Creep, prelude::*, ReturnCode};
 pub fn run<'a>(creep: &'a Creep) -> Task<'a> {
     trace!("Running upgrader {}", creep.name());
 
-    let tasks = vec![
+    let tasks = [
         Task::new(move |state| attempt_upgrade(state, creep)),
         Task::new(move |state| get_energy(state, creep)),
         Task::new(move |state| attempt_upgrade(state, creep)),
-    ];
+    ]
+    .into_iter()
+    .cloned()
+    .collect();
 
     let tree = Control::Sequence(tasks);
     Task::new(move |state| tree.tick(state))
@@ -45,3 +48,4 @@ pub fn attempt_upgrade<'a>(state: &mut GameState, creep: &'a Creep) -> Execution
         }
     }
 }
+

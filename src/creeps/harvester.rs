@@ -21,11 +21,14 @@ const HARVEST_TARGET: &'static str = "harvest_target";
 pub fn run<'a>(creep: &'a Creep) -> Task<'a> {
     trace!("Running harvester {}", creep.name());
 
-    let tasks = vec![
+    let tasks = [
         Task::new(move |state| attempt_harvest(state, creep, None)),
         Task::new(move |state| unload(state, &creep)),
         Task::new(move |state| attempt_harvest(state, creep, None)),
-    ];
+    ]
+    .into_iter()
+    .cloned()
+    .collect();
 
     let tree = Control::Sequence(tasks);
     Task::new(move |state| tree.tick(state))
@@ -50,10 +53,13 @@ pub fn unload<'a>(state: &'a mut GameState, creep: &'a Creep) -> ExecutionResult
         error
     })?;
 
-    let tasks = vec![
+    let tasks = [
         Task::new(|_| try_transfer::<StructureContainer>(creep, &target)),
         Task::new(|_| try_transfer::<StructureSpawn>(creep, &target)),
-    ];
+    ]
+    .into_iter()
+    .cloned()
+    .collect();
 
     let tree = Control::Sequence(tasks);
     tree.tick(state).map_err(|error| {
@@ -68,10 +74,13 @@ fn find_unload_target<'a>(state: &'a mut GameState, creep: &'a Creep) -> Option<
     trace!("Setting unload target");
 
     read_unload_target(state, creep).or_else(|| {
-        let tasks = vec![
+        let tasks = [
             Task::new(|state| find_container(state, creep)),
             Task::new(|state| find_spawn(state, creep)),
-        ];
+        ]
+        .into_iter()
+        .cloned()
+        .collect();
         let tree = Control::Sequence(tasks);
         tree.tick(state).unwrap_or_else(|e| {
             debug!("Failed to find unload target {:?}", e);
@@ -258,3 +267,4 @@ fn harvester_count(state: &mut GameState) -> HashMap<String, i32> {
     });
     result
 }
+

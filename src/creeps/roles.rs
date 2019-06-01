@@ -253,12 +253,13 @@ fn role_part_max(room: &Room, role: Role) -> Option<usize> {
         }
     };
 
-    match role {
+    let result = match role {
         Role::Harvester => Some(8),
-        Role::Lrh | Role::Gofer => Some(worker_count * 3),
+        Role::Lrh | Role::Gofer => Some(worker_count * 2),
         Role::Worker | Role::Upgrader => Some(worker_count),
         Role::Conqueror => Some(worker_count),
         Role::Unknown => None,
-    }
+    };
+    result.map(|x| x.max(50))
 }
 
