@@ -260,6 +260,6 @@ fn role_part_max(room: &Room, role: Role) -> Option<usize> {
         }
         Role::Unknown => None,
     };
-    result.map(|x| x.max(50))
+    result.map(|x| x.min(50))
 }
 
