@@ -1,4 +1,5 @@
 use crate::prelude::*;
+use arrayvec::ArrayVec;
 use creeps::roles::{next_role, spawn_config_by_role, Role};
 use creeps::{CREEP_ROLE, HOME_ROOM};
 use screeps::{
@@ -7,7 +8,7 @@ use screeps::{
     memory::MemoryReference,
     objects::{SpawnOptions, StructureSpawn},
     prelude::*,
-    ReturnCode,
+    Part, ReturnCode,
 };
 
 /// Return the BehaviourTree that runs the spawns
@@ -63,21 +64,26 @@ fn spawn_creep(state: &mut GameState, spawn: &StructureSpawn, role: Role) -> Exe
 
     let spawn_config = spawn_config_by_role(&room, role);
 
-    let mut body = spawn_config.basic_body;
+    let mut body = spawn_config
+        .basic_body
+        .into_iter()
+        .collect::<ArrayVec<[Part; 256]>>();
+    let mut body_len = body.len(); // the index until the body is valid
     let max_len = spawn_config.body_max;
 
     if !spawn_config.body_extension.is_empty() {
-        // Limit number of tries
-        for _ in 0..10 {
+        loop {
             let spawn_options = SpawnOptions::new().dry_run(true);
-            if body.len() >= max_len.unwrap_or(body.len() + 1) {
+            if max_len
+                .map(|max_len| max_len <= body.len())
+                .unwrap_or(false)
+            {
                 break;
             }
-            let mut b = body.clone();
-            b.extend(spawn_config.body_extension.iter());
-            let result = spawn.spawn_creep_with_options(&b, "___test_name", &spawn_options);
+            body.extend(spawn_config.body_extension.iter().cloned());
+            let result = spawn.spawn_creep_with_options(&body, "___test_name", &spawn_options);
             if result == ReturnCode::Ok {
-                body = b;
+                body_len = body.len();
             } else if result == ReturnCode::NotEnough {
                 break;
             } else {
@@ -93,7 +99,7 @@ fn spawn_creep(state: &mut GameState, spawn: &StructureSpawn, role: Role) -> Exe
         let name = format!("{}_{:04x}", role, name + prefix);
         let mut memory = MemoryReference::new();
         let spawn_options = SpawnOptions::new().memory(memory);
-        let res = spawn.spawn_creep_with_options(&body, &name, &spawn_options);
+        let res = spawn.spawn_creep_with_options(&body[..body_len], &name, &spawn_options);
 
         if res == ReturnCode::NameExists {
             prefix += 1;
@@ -116,3 +122,4 @@ fn spawn_creep(state: &mut GameState, spawn: &StructureSpawn, role: Role) -> Exe
     }
     Ok(())
 }
+

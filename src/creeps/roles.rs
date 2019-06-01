@@ -1,6 +1,7 @@
 use super::{conqueror, gofer, harvester, lrh, upgrader, worker};
 use crate::prelude::*;
 use crate::rooms::manhatten_distance;
+use arrayvec::ArrayVec;
 use screeps::{
     constants::find,
     game,
@@ -10,9 +11,11 @@ use screeps::{
 use std::fmt::{self, Display, Formatter};
 use stdweb::unstable::TryInto;
 
+pub type BodyCollection = ArrayVec<[Part; 16]>;
+
 pub struct SpawnConfig {
-    pub basic_body: Vec<Part>,
-    pub body_extension: Vec<Part>,
+    pub basic_body: BodyCollection,
+    pub body_extension: BodyCollection,
     pub body_max: Option<usize>,
 }
 
@@ -186,32 +189,53 @@ pub fn spawn_config_by_role(room: &Room, role: Role) -> SpawnConfig {
 }
 
 /// The minimum parts required by the role
-fn basic_role_parts<'a>(_room: &Room, role: Role) -> Vec<Part> {
+fn basic_role_parts<'a>(_room: &Room, role: Role) -> BodyCollection {
     match role {
-        Role::Harvester => vec![Part::Move, Part::Work, Part::Carry, Part::Work],
-        Role::Conqueror => vec![
+        Role::Harvester => [Part::Move, Part::Work, Part::Carry, Part::Work]
+            .into_iter()
+            .map(|x| *x)
+            .collect::<BodyCollection>(),
+        Role::Conqueror => [
             Part::Move,
             Part::Work,
             Part::Carry,
             Part::Claim,
             Part::Move,
             Part::Move,
-        ],
-        Role::Gofer => vec![Part::Move, Part::Carry],
-        Role::Lrh => vec![Part::Move, Part::Move, Part::Carry, Part::Work],
-        Role::Upgrader | Role::Worker => vec![Part::Move, Part::Move, Part::Carry, Part::Work],
-        Role::Unknown => vec![],
+        ]
+        .into_iter()
+        .map(|x| *x)
+        .collect::<BodyCollection>(),
+        Role::Gofer => [Part::Move, Part::Carry]
+            .into_iter()
+            .map(|x| *x)
+            .collect::<BodyCollection>(),
+        Role::Lrh => [Part::Move, Part::Move, Part::Carry, Part::Work]
+            .into_iter()
+            .map(|x| *x)
+            .collect::<BodyCollection>(),
+        Role::Upgrader | Role::Worker => [Part::Move, Part::Move, Part::Carry, Part::Work]
+            .into_iter()
+            .map(|x| *x)
+            .collect::<BodyCollection>(),
+        Role::Unknown => [].into_iter().map(|x| *x).collect::<BodyCollection>(),
     }
 }
 
 /// Intended parts to be appended to 'role_parts'
-fn role_part_scale<'a>(_room: &Room, role: Role) -> Vec<Part> {
+fn role_part_scale<'a>(_room: &Room, role: Role) -> BodyCollection {
     match role {
-        Role::Harvester => vec![Part::Work],
-        Role::Conqueror => vec![],
-        Role::Gofer => vec![Part::Move, Part::Carry],
-        Role::Lrh => vec![Part::Move, Part::Carry, Part::Work, Part::Move],
-        _ => vec![Part::Move, Part::Carry, Part::Work],
+        Role::Harvester => [Part::Work].into_iter().map(|x| *x).collect(),
+        Role::Conqueror => [].into_iter().map(|x| *x).collect(),
+        Role::Gofer => [Part::Move, Part::Carry].into_iter().map(|x| *x).collect(),
+        Role::Lrh => [Part::Move, Part::Carry, Part::Work, Part::Move]
+            .into_iter()
+            .map(|x| *x)
+            .collect(),
+        _ => [Part::Move, Part::Carry, Part::Work]
+            .into_iter()
+            .map(|x| *x)
+            .collect(),
     }
 }
 
@@ -231,9 +255,10 @@ fn role_part_max(room: &Room, role: Role) -> Option<usize> {
 
     match role {
         Role::Harvester => Some(8),
-        Role::Lrh | Role::Gofer => Some(worker_count * 2),
+        Role::Lrh | Role::Gofer => Some(worker_count * 3),
         Role::Worker | Role::Upgrader => Some(worker_count),
         Role::Conqueror => Some(worker_count),
         Role::Unknown => None,
     }
 }
+

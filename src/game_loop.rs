@@ -100,9 +100,9 @@ fn save_stats(time: u32, creep_count: u32, cpu: f32, bucket: i32) -> ExecutionRe
 
     stats.push(tick_stats);
 
-    let data = serde_json::to_string(&stats).unwrap_or("[]".into());
+    let data = serde_json::to_string(&stats).unwrap_or("[]".to_owned());
 
-    if data.len() > 99_999 {
+    if data.len() > 9_000 {
         Err("Statistics segment is full")?;
     }
 
