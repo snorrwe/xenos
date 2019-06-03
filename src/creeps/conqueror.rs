@@ -34,6 +34,8 @@ pub fn run<'a>(creep: &'a Creep) -> Task<'a> {
 
 fn reset_target<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResult {
     trace!("Resetting conqueror target");
+    profile!("reset_target");
+
     if !state.creep_memory_bool(CreepName(&creep.name()), "loading") {
         Err("not loading")?;
     }
@@ -49,6 +51,7 @@ fn reset_target<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResult 
 
 fn claim_target<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResult {
     trace!("claiming room");
+    profile!("claim_target");
 
     let memory = state.creep_memory_entry(CreepName(&creep.name()));
     let flag = {
@@ -107,6 +110,8 @@ fn claim_target<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResult 
 
 fn set_target<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResult {
     trace!("finding target");
+    profile!("set_target");
+
     if state
         .creep_memory_string(CreepName(&creep.name()), CONQUEST_TARGET)
         .is_some()

@@ -30,6 +30,7 @@ pub fn run<'a>(creep: &'a Creep) -> Task<'a> {
 
     let tree = Control::Sequence(tasks);
     Task::new(move |state| {
+        profile!("run");
         tree.tick(state).map_err(|err| {
             let memory = state.creep_memory_entry(CreepName(&creep.name()));
             memory.remove(TARGET);
@@ -40,6 +41,7 @@ pub fn run<'a>(creep: &'a Creep) -> Task<'a> {
 
 pub fn attempt_unload<'a>(state: &'a mut GameState, creep: &'a Creep) -> ExecutionResult {
     trace!("Unloading");
+    profile!("attempt_unload");
     {
         let loading = state.creep_memory_bool(CreepName(&creep.name()), "loading");
         if loading {
@@ -78,6 +80,7 @@ pub fn attempt_unload<'a>(state: &'a mut GameState, creep: &'a Creep) -> Executi
 
 fn find_unload_target<'a>(state: &'a mut GameState, creep: &'a Creep) -> Option<Reference> {
     trace!("Setting unload target");
+    profile!("find_unload_target");
     {
         let target = state.creep_memory_string(CreepName(&creep.name()), TARGET);
 
@@ -113,11 +116,13 @@ fn try_transfer<'a, T>(
 where
     T: Transferable + screeps::traits::TryFrom<&'a Reference>,
 {
+    profile!("try_transfer");
     let target = T::try_from(target).map_err(|_| "failed to convert transfer target")?;
     transfer(state, creep, &target)
 }
 
 fn find_storage<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResult {
+    profile!("find_storage");
     let res = creep.room().find(find::STRUCTURES).into_iter().find(|s| {
         if let Structure::Storage(s) = s {
             s.store_total() < s.store_capacity()
@@ -138,6 +143,8 @@ fn find_unload_target_by_type<'a>(
     creep: &'a Creep,
     struct_type: &'a str,
 ) -> ExecutionResult {
+    profile!("find_unload_target_by_type");
+
     let res = js! {
         const creep = @{creep};
         const ext = creep.pos.findClosestByRange(FIND_STRUCTURES, {
@@ -158,6 +165,8 @@ fn transfer<'a, T>(state: &mut GameState, creep: &'a Creep, target: &'a T) -> Ex
 where
     T: Transferable,
 {
+    profile!("transfer");
+
     if creep.pos().is_near_to(target) {
         let r = creep.transfer_all(target, ResourceType::Energy);
         if r != ReturnCode::Ok {
@@ -178,6 +187,7 @@ where
 /// If the creep is full sets the `loading` flag to false
 pub fn get_energy<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResult {
     trace!("Getting energy");
+    profile!("get_energy");
 
     {
         let loading = state.creep_memory_bool(CreepName(&creep.name()), "loading");
@@ -205,6 +215,8 @@ fn withdraw<'a>(
     creep: &'a Creep,
     target: &'a StructureContainer,
 ) -> ExecutionResult {
+    profile!("withdraw");
+
     if creep.pos().is_near_to(target) {
         let r = creep.withdraw_all(target, ResourceType::Energy);
         if r != ReturnCode::Ok {

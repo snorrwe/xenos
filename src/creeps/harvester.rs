@@ -20,6 +20,7 @@ const HARVEST_TARGET: &'static str = "harvest_target";
 
 pub fn run<'a>(creep: &'a Creep) -> Task<'a> {
     trace!("Running harvester {}", creep.name());
+    profile!("run");
 
     let tasks = [
         Task::new(move |state| attempt_harvest(state, creep, None)),
@@ -31,11 +32,15 @@ pub fn run<'a>(creep: &'a Creep) -> Task<'a> {
     .collect();
 
     let tree = Control::Sequence(tasks);
-    Task::new(move |state| tree.tick(state))
+    Task::new(move |state| {
+        profile!("run");
+        tree.tick(state)
+    })
 }
 
 pub fn unload<'a>(state: &'a mut GameState, creep: &'a Creep) -> ExecutionResult {
     trace!("Unloading");
+    profile!("unload");
 
     let carry_total = creep.carry_total();
     if carry_total == 0 {
@@ -72,6 +77,7 @@ pub fn unload<'a>(state: &'a mut GameState, creep: &'a Creep) -> ExecutionResult
 
 fn find_unload_target<'a>(state: &'a mut GameState, creep: &'a Creep) -> Option<Reference> {
     trace!("Setting unload target");
+    profile!("find_unload_target");
 
     read_unload_target(state, creep).or_else(|| {
         let tasks = [
@@ -90,6 +96,7 @@ fn find_unload_target<'a>(state: &'a mut GameState, creep: &'a Creep) -> Option<
 }
 
 fn read_unload_target<'a>(state: &mut GameState, creep: &'a Creep) -> Option<Reference> {
+    profile!("read_unload_target");
     let target = state.creep_memory_string(CreepName(&creep.name()), TARGET);
 
     if let Some(target) = target {
@@ -111,6 +118,8 @@ where
 
 fn find_container<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResult {
     trace!("Finding new unload target");
+    profile!("find_container");
+
     let result = js! {
         let creep = @{creep};
         const container = creep.pos.findClosestByRange(FIND_STRUCTURES, {
@@ -134,6 +143,8 @@ fn find_container<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResul
 
 fn find_spawn<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResult {
     trace!("Finding new unload target");
+    profile!("find_spawn");
+
     let target = creep
         .pos()
         .find_closest_by_range(find::MY_SPAWNS)
@@ -147,6 +158,8 @@ fn transfer<'a, T>(creep: &'a Creep, target: &'a T) -> ExecutionResult
 where
     T: Transferable,
 {
+    profile!("transfer");
+
     if creep.pos().is_near_to(target) {
         let r = creep.transfer_all(target, ResourceType::Energy);
         if r != ReturnCode::Ok {
@@ -165,6 +178,7 @@ pub fn attempt_harvest<'a>(
     target_memory: Option<&'a str>,
 ) -> ExecutionResult {
     trace!("Harvesting");
+    profile!("attempt_harvest");
 
     let target_memory = target_memory.unwrap_or(HARVEST_TARGET);
 
@@ -203,6 +217,7 @@ fn harvest_target<'a>(
     target_memory: &'a str,
 ) -> Option<Source> {
     trace!("Setting harvest target");
+    profile!("harvest_target");
 
     let target = state
         .creep_memory_string(CreepName(&creep.name()), target_memory)
@@ -228,6 +243,8 @@ fn harvest_target<'a>(
 
 fn find_harvest_target<'a>(state: &mut GameState, creep: &'a Creep) -> Option<Source> {
     trace!("Finding harvest target");
+    profile!("find_harvest_target");
+
     let room = creep.room();
     let harvester_count = harvester_count(state);
 
@@ -258,7 +275,10 @@ fn find_harvest_target<'a>(state: &mut GameState, creep: &'a Creep) -> Option<So
 }
 
 fn harvester_count(state: &mut GameState) -> HashMap<String, i32> {
+    profile!("harvester_count");
+
     let mut result = HashMap::new();
+
     game::creeps::values().into_iter().for_each(|creep| {
         let target = state.creep_memory_string(CreepName(&creep.name()), HARVEST_TARGET);
         if let Some(target) = target {
