@@ -10,7 +10,6 @@ use screeps::{
 
 pub fn attempt_repair<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResult {
     trace!("Repairing");
-    profile!("attempt_repair");
 
     let loading = state.creep_memory_bool(CreepName(&creep.name()), "loading");
     if loading {
@@ -32,8 +31,6 @@ pub fn attempt_repair<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionR
 }
 
 fn repair<'a>(creep: &'a Creep, target: &'a Structure) -> ExecutionResult {
-    profile!("repair");
-
     let res = creep.repair(target);
     match res {
         ReturnCode::Ok => Ok(()),

@@ -9,8 +9,6 @@ extern crate stdweb;
 extern crate serde;
 extern crate serde_json;
 extern crate arrayvec;
-#[macro_use]
-extern crate screeps_profiler;
 
 mod bt;
 mod constructions;

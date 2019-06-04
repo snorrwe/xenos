@@ -5,16 +5,12 @@ use super::structures::{spawns, towers};
 use crate::game_state::GameState;
 use log::Level::Info;
 use screeps::raw_memory;
-use screeps_profiler::screeps_profiling::RawMemoryProfiler;
 use stdweb::unstable::TryFrom;
 
 const MAIN_SEGMENT: u32 = 0;
 const STATISTICS_SEGMENT: u32 = 1;
-const PROFILER_SEGMENT: u32 = 2;
 
 pub fn game_loop() {
-    let _profiler = RawMemoryProfiler::read_from_segment_or_default(PROFILER_SEGMENT as u8);
-
     debug!("Loop starting! CPU: {}", screeps::game::cpu::get_used());
 
     trace!("Running");
@@ -61,36 +57,20 @@ pub fn game_loop() {
 ///
 /// TODO: GameResult object to return?
 fn run_game_logic(mut state: GameState) {
-    {
-        profile!("run creeps");
-        creeps::task()
-            .tick(&mut state)
-            .unwrap_or_else(|e| warn!("Failed to run creeps {:?}", e));
-    }
-
-    {
-        profile!("run towers");
-        towers::task()
-            .tick(&mut state)
-            .unwrap_or_else(|e| warn!("Failed to run towers {:?}", e));
-    }
-
-    {
-        profile!("run spawns");
-        spawns::task()
-            .tick(&mut state)
-            .unwrap_or_else(|e| warn!("Failed to run spawns {:?}", e));
-    }
-
-    {
-        profile!("run spawns");
-        constructions::task()
-            .tick(&mut state)
-            .unwrap_or_else(|e| warn!("Failed to run constructions {:?}", e));
-    }
+    creeps::task()
+        .tick(&mut state)
+        .unwrap_or_else(|e| warn!("Failed to run creeps {:?}", e));
+    towers::task()
+        .tick(&mut state)
+        .unwrap_or_else(|e| warn!("Failed to run towers {:?}", e));
+    spawns::task()
+        .tick(&mut state)
+        .unwrap_or_else(|e| warn!("Failed to run spawns {:?}", e));
+    constructions::task()
+        .tick(&mut state)
+        .unwrap_or_else(|e| warn!("Failed to run constructions {:?}", e));
 
     if screeps::game::time() % 16 == 0 {
-        profile!("cleanup memory");
         state.cleanup_memory().unwrap_or_else(|e| {
             error!("Failed to clean up memory {:?}", e);
         });

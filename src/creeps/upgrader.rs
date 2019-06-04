@@ -18,16 +18,11 @@ pub fn run<'a>(creep: &'a Creep) -> Task<'a> {
     .collect();
 
     let tree = Control::Sequence(tasks);
-    Task::new(move |state| {
-        profile!("run");
-        tree.tick(state)
-    })
+    Task::new(move |state| tree.tick(state))
 }
 
 pub fn attempt_upgrade<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResult {
     trace!("Upgrading");
-    profile!("attempt_upgrade");
-
     let loading = state.creep_memory_bool(CreepName(&creep.name()), "loading");
     if loading {
         return Err("loading".into());

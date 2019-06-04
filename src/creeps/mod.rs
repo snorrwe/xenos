@@ -41,7 +41,6 @@ pub fn task<'a>() -> Task<'a> {
 
 fn run_creep<'a>(state: &mut GameState, creep: Creep) -> ExecutionResult {
     debug!("Running creep {}", creep.name());
-    profile!("run_creep");
 
     if creep.spawning() {
         return Ok(());
@@ -59,8 +58,6 @@ fn run_creep<'a>(state: &mut GameState, creep: Creep) -> ExecutionResult {
 }
 
 pub fn initialize_creep<'a>(state: &'a mut GameState, creep: &'a Creep) -> ExecutionResult {
-    profile!("initialize_creep");
-
     assign_role(state, &creep)
         .map(|_| {})
         .ok_or_else(|| "Failed to find a role for creep")?;
@@ -71,7 +68,6 @@ pub fn initialize_creep<'a>(state: &'a mut GameState, creep: &'a Creep) -> Execu
 
 fn assign_role<'a>(state: &'a mut GameState, creep: &'a Creep) -> Option<Role> {
     trace!("Assigning role to {}", creep.name());
-    profile!("assign_role");
 
     if state
         .creep_memory_role(CreepName(&creep.name()), CREEP_ROLE)
@@ -92,8 +88,6 @@ fn assign_role<'a>(state: &'a mut GameState, creep: &'a Creep) -> Option<Role> {
 }
 
 fn run_role<'a>(state: &'a mut GameState, creep: &'a Creep) -> ExecutionResult {
-    profile!("run_role");
-
     let task = {
         let role = state
             .creep_memory_role(CreepName(&creep.name()), CREEP_ROLE)
@@ -112,8 +106,6 @@ pub fn move_to<'a>(
     creep: &'a Creep,
     target: &'a impl screeps::RoomObjectProperties,
 ) -> ExecutionResult {
-    profile!("move_to");
-
     let res = js! {
         const creep = @{creep};
         const target = @{target.pos()};
@@ -137,7 +129,6 @@ pub fn move_to<'a>(
 /// If the creep is full sets the `loading` flag to false
 pub fn get_energy<'a>(state: &'a mut GameState, creep: &'a Creep) -> ExecutionResult {
     trace!("Getting energy");
-    profile!("get_energy");
 
     let target = {
         if !state.creep_memory_bool(CreepName(&creep.name()), "loading") {

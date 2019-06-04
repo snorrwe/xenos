@@ -32,15 +32,11 @@ pub fn run<'a>(creep: &'a Creep) -> Task<'a> {
     .collect();
 
     let tree = Control::Sequence(tasks);
-    Task::new(move |state| {
-        profile!("run");
-        tree.tick(state)
-    })
+    Task::new(move |state| tree.tick(state))
 }
 
 pub fn attempt_build<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResult {
     trace!("Building");
-    profile!("attempt_build");
 
     let name = creep.name();
     {
@@ -71,8 +67,6 @@ pub fn attempt_build<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionRe
 }
 
 fn get_build_target(state: &mut GameState, creep: &Creep) -> Option<ConstructionSite> {
-    profile!("get_build_target");
-
     state
         .creep_memory_string(CreepName(&creep.name()), TARGET)
         .and_then(|id| get_object_typed(id).unwrap_or(None))
