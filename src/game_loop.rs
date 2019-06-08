@@ -85,11 +85,13 @@ fn save_stats(time: u32, creep_count: u32, cpu: f32, bucket: i32) -> ExecutionRe
     let gcl = screeps::game::gcl::level();
     let gcl_progress = screeps::game::gcl::progress() as f32;
     let gcl_progress_total = screeps::game::gcl::progress_total() as f32;
+    let cpu_limit = screeps::game::cpu::limit() as f32;
 
     let tick_stats = TickStats {
         time,
         creep_count,
         cpu,
+        cpu_limit,
         bucket,
         gcl,
         gcl_progress,
@@ -113,6 +115,7 @@ fn save_stats(time: u32, creep_count: u32, cpu: f32, bucket: i32) -> ExecutionRe
 struct TickStats {
     time: u32,
     cpu: f32,
+    cpu_limit: f32,
     bucket: i32,
     creep_count: u32,
     gcl: u32,
