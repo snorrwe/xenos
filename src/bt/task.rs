@@ -2,6 +2,7 @@ use super::*;
 use std::ops::Fn;
 use std::rc::Rc;
 
+/// Input to a Task
 pub trait TaskInput: std::fmt::Debug {
     fn cpu_bucket(&self) -> Option<i16>;
 }
@@ -10,16 +11,17 @@ pub trait TaskInput: std::fmt::Debug {
 /// An executable that will be called by a Task
 ///
 #[derive(Clone)]
-pub struct Task<'a, GS>
+pub struct Task<'a, T>
 where
-    GS: TaskInput,
+    T: TaskInput,
 {
     /// How much "cpu bucket" is required for the task to execute
     /// Useful for turning off tasks when the bucket falls below a threshold
     pub required_bucket: Option<i16>,
     /// Priority of the task, defaults to 0
+    /// Higher value means higher priority
     pub priority: i8,
-    task: Rc<Fn(&mut GS) -> ExecutionResult + 'a>,
+    task: Rc<Fn(&mut T) -> ExecutionResult + 'a>,
 }
 
 impl<'a, T> Task<'a, T>

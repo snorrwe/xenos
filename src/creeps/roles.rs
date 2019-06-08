@@ -161,7 +161,7 @@ pub fn target_number_of_role_in_room<'a>(role: Role, room: &'a Room) -> i8 {
     let n_containers = n_containers as i8;
     let n_constructions = (room.find(find::CONSTRUCTION_SITES).len()) as i8;
     const UPGRADER_COUNT: i8 = 1;
-    const WORKER_COUNT: i8 = 1;
+    const WORKER_COUNT: i8 = 2;
     match role {
         Role::Upgrader => n_containers.min(UPGRADER_COUNT),
         Role::Harvester => n_sources,

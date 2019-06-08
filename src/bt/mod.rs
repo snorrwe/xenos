@@ -13,8 +13,8 @@ pub type ExecutionResult = Result<(), String>;
 
 pub type TaskCollection<'a, T> = ArrayVec<[Task<'a, T>; 16]>;
 
-pub trait BtNode<GS> {
-    fn tick(&self, state: &mut GS) -> ExecutionResult;
+pub trait BtNode<T> {
+    fn tick(&self, state: &mut T) -> ExecutionResult;
 }
 
 /// Control node in the Behaviour Tree
