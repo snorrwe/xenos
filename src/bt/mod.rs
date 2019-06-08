@@ -6,30 +6,35 @@
 //!
 pub mod task;
 pub use self::task::*;
-pub use crate::game_state::*;
 use arrayvec::ArrayVec;
 
 /// Result of a task
 pub type ExecutionResult = Result<(), String>;
 
-pub type TaskCollection<'a> = ArrayVec<[Task<'a>; 16]>;
+pub type TaskCollection<'a, T> = ArrayVec<[Task<'a, T>; 16]>;
 
-pub trait BtNode {
-    fn tick(&self, state: &mut GameState) -> ExecutionResult;
+pub trait BtNode<GS> {
+    fn tick(&self, state: &mut GS) -> ExecutionResult;
 }
 
 /// Control node in the Behaviour Tree
 #[derive(Clone)]
-pub enum Control<'a> {
+pub enum Control<'a, T>
+where
+    T: TaskInput,
+{
     #[allow(dead_code)]
     /// Runs its child tasks until the first failure
-    Selector(TaskCollection<'a>),
+    Selector(TaskCollection<'a, T>),
     /// Runs its child tasks until the first success
-    Sequence(TaskCollection<'a>),
+    Sequence(TaskCollection<'a, T>),
 }
 
-impl<'a> BtNode for Control<'a> {
-    fn tick(&self, state: &mut GameState) -> ExecutionResult {
+impl<'a, T> BtNode<T> for Control<'a, T>
+where
+    T: TaskInput,
+{
+    fn tick(&self, state: &mut T) -> ExecutionResult {
         match self {
             Control::Selector(nodes) => {
                 let found = nodes
@@ -51,6 +56,74 @@ impl<'a> BtNode for Control<'a> {
                 }
             }
         }
+    }
+}
+
+impl<'a, T> Control<'a, T>
+where
+    T: TaskInput,
+{
+    #[allow(dead_code)]
+    /// Sort subtasks by priority
+    pub fn sorted_by_priority(mut self) -> Self {
+        use self::Control::*;
+        match &mut self {
+            Sequence(ref mut nodes) | Selector(ref mut nodes) => {
+                nodes.sort_by_key(|n| -n.priority);
+            }
+        }
+        self
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[derive(Debug, Default, Clone)]
+    struct TestState {
+        results: String,
+    }
+
+    impl TaskInput for TestState {
+        fn cpu_bucket(&self) -> Option<i16> {
+            None
+        }
+    }
+
+    #[test]
+    fn test_priority_sorting() {
+        let tasks = [
+            Task::new(|state: &mut TestState| {
+                state.results.push('a');
+                Ok(())
+            })
+            .with_priority(-1),
+            Task::new(|state: &mut TestState| {
+                state.results.push('b');
+                Ok(())
+            }),
+            Task::new(|state: &mut TestState| {
+                state.results.push('c');
+                Ok(())
+            })
+            .with_priority(5),
+            Task::new(|state: &mut TestState| {
+                state.results.push('d');
+                Ok(())
+            })
+            .with_priority(1),
+        ]
+        .into_iter()
+        .cloned()
+        .collect();
+
+        let mut state = TestState::default();
+
+        let task = Control::Selector::<TestState>(tasks).sorted_by_priority();
+        task.tick(&mut state).unwrap();
+
+        assert_eq!(state.results, "cdba");
     }
 }
 

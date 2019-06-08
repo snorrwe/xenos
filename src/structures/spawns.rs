@@ -11,7 +11,7 @@ use screeps::{
 };
 
 /// Return the BehaviourTree that runs the spawns
-pub fn task<'a>() -> Task<'a> {
+pub fn task<'a>() -> Task<'a, GameState> {
     Task::new(move |state| {
         const SPAWN_SKIP: u32 = 5;
 

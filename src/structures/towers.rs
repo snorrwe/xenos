@@ -1,4 +1,4 @@
-use super::bt::*;
+use crate::prelude::*;
 use crate::creeps::find_repair_target;
 use screeps::{
     constants::find,
@@ -8,7 +8,7 @@ use screeps::{
 };
 
 /// Return the BehaviourTree that runs the spawns
-pub fn task<'a>() -> Task<'a> {
+pub fn task<'a>() -> Task<'a, GameState> {
     Task::new(move |state| {
         game::structures::values()
             .into_iter()

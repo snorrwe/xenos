@@ -3,7 +3,7 @@ mod neighbours;
 mod roads;
 
 use self::neighbours::*;
-use super::bt::*;
+use crate::prelude::*;
 use screeps::{
     constants::StructureType,
     objects::{HasPosition, Room, RoomPosition, StructureSpawn},
@@ -25,7 +25,7 @@ impl Pos {
 }
 
 /// Return the BehaviourTree that runs the spawns
-pub fn task<'a>() -> Task<'a> {
+pub fn task<'a>() -> Task<'a, GameState> {
     trace!("Init construction task");
 
     Task::new(move |_| {

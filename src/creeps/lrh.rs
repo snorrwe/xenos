@@ -10,12 +10,13 @@ use screeps::{objects::Creep, prelude::*, traits::TryFrom, ReturnCode};
 
 const HARVEST_TARGET_ROOM: &'static str = "harvest_target_room";
 
-pub fn run<'a>(creep: &'a Creep) -> Task<'a> {
+pub fn run<'a>(creep: &'a Creep) -> Task<'a, GameState> {
     trace!("Running long_range_harvester");
 
     let tasks = [
         Task::new(move |state| load(state, creep)),
         Task::new(move |state| unload(state, creep)),
+        Task::new(move |state| harvester::unload(state, creep)),
     ]
     .into_iter()
     .cloned()

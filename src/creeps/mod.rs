@@ -30,7 +30,7 @@ pub const HOME_ROOM: &'static str = "home";
 pub const TARGET: &'static str = "target";
 pub const CREEP_ROLE: &'static str = "role";
 
-pub fn task<'a>() -> Task<'a> {
+pub fn task<'a>() -> Task<'a, GameState> {
     Task::new(move |state| {
         screeps::game::creeps::values()
             .into_iter()
@@ -171,7 +171,7 @@ pub fn get_energy<'a>(state: &'a mut GameState, creep: &'a Creep) -> ExecutionRe
         Task::new(|_| try_withdraw::<Tombstone>(creep, &target)),
         Task::new(|_| try_withdraw::<StructureStorage>(creep, &target)),
         Task::new(|_| try_withdraw::<StructureContainer>(creep, &target)),
-        Task::new(|state| {
+        Task::new(|state: &mut GameState| {
             let memory = state.creep_memory_entry(CreepName(&creep.name()));
             memory.remove(TARGET);
             Ok(())

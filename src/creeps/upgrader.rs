@@ -5,7 +5,7 @@ use crate::game_state::GameState;
 use crate::prelude::*;
 use screeps::{objects::Creep, prelude::*, ReturnCode};
 
-pub fn run<'a>(creep: &'a Creep) -> Task<'a> {
+pub fn run<'a>(creep: &'a Creep) -> Task<'a, GameState> {
     trace!("Running upgrader {}", creep.name());
 
     let tasks = [

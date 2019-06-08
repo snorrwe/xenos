@@ -10,7 +10,7 @@ use screeps::{
     ReturnCode,
 };
 
-pub fn run<'a>(creep: &'a Creep) -> Task<'a> {
+pub fn run<'a>(creep: &'a Creep) -> Task<'a, GameState> {
     trace!("Running builder {}", creep.name());
     let tasks = [
         Task::new(move |state| attempt_build(state, creep)),
@@ -19,7 +19,7 @@ pub fn run<'a>(creep: &'a Creep) -> Task<'a> {
         Task::new(move |state| attempt_build(state, creep)),
         // If nothing can be built
         Task::new(move |state| repairer::attempt_repair(state, creep)).with_required_bucket(500),
-        Task::new(move |state| {
+        Task::new(move |state: &mut GameState| {
             state
                 .creep_memory_entry(CreepName(&creep.name()))
                 .remove(TARGET);

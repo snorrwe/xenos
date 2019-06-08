@@ -18,7 +18,7 @@ use stdweb::{
 
 const HARVEST_TARGET: &'static str = "harvest_target";
 
-pub fn run<'a>(creep: &'a Creep) -> Task<'a> {
+pub fn run<'a>(creep: &'a Creep) -> Task<'a, GameState> {
     trace!("Running harvester {}", creep.name());
 
     let tasks = [

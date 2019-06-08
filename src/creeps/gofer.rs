@@ -17,7 +17,7 @@ use stdweb::{
     Reference,
 };
 
-pub fn run<'a>(creep: &'a Creep) -> Task<'a> {
+pub fn run<'a>(creep: &'a Creep) -> Task<'a, GameState> {
     trace!("Running gofer {}", creep.name());
     let tasks = [
         Task::new(move |state| attempt_unload(state, creep)),

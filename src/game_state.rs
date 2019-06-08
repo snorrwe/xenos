@@ -1,5 +1,6 @@
 use crate::creeps::roles::Role;
 use crate::creeps::{CREEP_ROLE, HOME_ROOM};
+use crate::prelude::*;
 use screeps::{game, raw_memory, Room};
 use serde_json::{self, Map, Value};
 use std::collections::HashMap;
@@ -45,6 +46,12 @@ pub struct GameState {
     /// Holds the creep memory objects
     /// Structure: name -> data
     creep_memory: CreepMemory,
+}
+
+impl TaskInput for GameState {
+    fn cpu_bucket(&self) -> Option<i16> {
+        self.cpu_bucket
+    }
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -235,3 +242,4 @@ impl GameState {
         result
     }
 }
+

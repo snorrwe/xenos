@@ -98,7 +98,7 @@ pub fn next_role<'a>(state: &'a mut GameState, room: &'a Room) -> Option<Role> {
 }
 
 /// Run the creep according to the given role
-pub fn run_role<'a>(role: Role, creep: &'a Creep) -> Task<'a> {
+pub fn run_role<'a>(role: Role, creep: &'a Creep) -> Task<'a, GameState> {
     trace!("Running creep {} by role {}", creep.name(), role);
 
     let task = match role {
