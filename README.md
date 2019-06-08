@@ -8,7 +8,7 @@
 - Install cargo-screeps `cargo install cargo-screeps`
 - Install cargo-web `cargo install cargo-web`
 - Copy the example settings `cp example-screeps.toml screeps.toml`
-- Customize the screeps settings `nano screeps.toml`
+- Customize screeps settings `nano screeps.toml`
 
 ## Build
 
@@ -17,5 +17,9 @@
 ## Deploy
 
 - `cargo screeps deploy`
+
+## Screeps setup
+
+Use `RawMemory.setActiveSegments([0,1])` to initialize the memory usage
 
 

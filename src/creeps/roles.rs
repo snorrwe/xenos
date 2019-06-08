@@ -174,7 +174,7 @@ pub fn target_number_of_role_in_room<'a>(role: Role, room: &'a Room) -> i8 {
             }
         }
         Role::Conqueror => n_flags * 2, // TODO: make the closest room spawn it
-        Role::Lrh => 0,                 // TODO: increase number once the cpu budget can afford it
+        Role::Lrh => 8,
         Role::Gofer => n_sources.min(n_containers as i8),
         _ => unimplemented!(),
     }
