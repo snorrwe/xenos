@@ -51,7 +51,7 @@ where
     fn assert_pre_requisites(&self, state: &mut T) -> ExecutionResult {
         if self
             .required_bucket
-            .map(|rb| state.cpu_bucket().map(|cb| cb < rb).unwrap_or(false))
+            .and_then(|rb| state.cpu_bucket().map(|cb| cb < rb))
             .unwrap_or(false)
         {
             let required_bucket = self.required_bucket.unwrap();
