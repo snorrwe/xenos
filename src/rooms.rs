@@ -92,6 +92,6 @@ mod tests {
 
         let d = manhatten_distance(a, b).expect("Failed to get the dinstance");
 
-        assert_eq!(d, 5);
+        assert_eq!(d, 4);
     }
 }
