@@ -4,10 +4,11 @@ jobs:
   test:
     docker:
       - image: rust:1
-      - image: circleci/node:4.8.2 
+      - image: node:12.4.0-slim 
 
     steps:
       - checkout
+      - run: node --version
       - run:
           name: Calculate dependencies
           command: cargo generate-lockfile
