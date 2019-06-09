@@ -36,6 +36,7 @@ impl Pos {
         Self { x: x, y: y }
     }
 
+    #[allow(dead_code)]
     pub fn valid_neighbours(&self) -> ArrayVec<[Self; 8]> {
         let x = self.x as i16;
         let y = self.y as i16;
@@ -50,14 +51,13 @@ impl Pos {
             (x - 1, y - 1),
         ]
         .into_iter()
-        .filter(|(x, y)| Self::is_valid(*x, *y))
+        .filter(|(x, y)| {
+            let x = *x;
+            let y = *y;
+            1 <= x && x <= 48 && 1 <= y && y <= 48
+        })
         .map(|(x, y)| Self::new(*x as u16, *y as u16))
         .collect()
-    }
-
-    /// would x,y make a valid position?
-    fn is_valid(x: i16, y: i16) -> bool {
-        x < 1 || y < 1 || x > 48 || y > 48
     }
 }
 
@@ -100,10 +100,15 @@ impl ConstructionMatrix {
                         format!("No free space is available in room {:?}", room.name())
                     })?,
             };
+            debug!(
+                "Attempting build at position {:?} in room {:?}",
+                pos,
+                room.name()
+            );
             let pos = RoomPosition::new(pos.x as u32, pos.y as u32, &room.name());
             let result = room.create_construction_site(&pos, *ty);
             match result {
-                ReturnCode::Ok => {
+                ReturnCode::InvalidTarget | ReturnCode::Ok => {
                     self.open_positions.pop_front();
                 }
                 ReturnCode::Full => {
@@ -119,11 +124,20 @@ impl ConstructionMatrix {
 
     /// Return the tile processed if any
     fn process_next_tile(&mut self, room: &Room) -> Option<Pos> {
+        debug!("Processing next in room {:?}", room.name());
+
         let pos = self.todo.pop_front()?;
+        let parity = (pos.x + pos.y) % 2;
+
+        debug!("Processing tile pos {:?} parity: {:?}", pos, parity);
+
+        {
+            self.done.insert(pos);
+        }
 
         let done = &self.done;
         self.todo.extend(
-            pos.valid_neighbours()
+            Self::valid_neighbouring_tiles(pos)
                 .into_iter()
                 .filter(|p| !done.contains(p)),
         );
@@ -136,15 +150,11 @@ impl ConstructionMatrix {
             Pos::new(x + 0, y + 0), Pos::new(x + 1, y + 0), Pos::new(x + 2, y + 0),
             Pos::new(x + 0, y + 1), Pos::new(x + 1, y + 1), Pos::new(x + 2, y + 1),
             Pos::new(x + 0, y + 2), Pos::new(x + 1, y + 2), Pos::new(x + 2, y + 2),
-        ]
-            .into_iter()
-            .cloned()
-            .collect::<ArrayVec<[_; 9]>>();
+        ];
 
         let room_name = room.name();
 
         // Push either + or × pattern depending on the parity of the tile
-        let parity = (x + y) % 2;
         let n_free = tile
             .iter()
             .filter(|p| (p.x + p.y) % 2 != parity)
@@ -159,10 +169,12 @@ impl ConstructionMatrix {
 
             self.open_positions.extend(
                 tile.into_iter()
-                    .filter(|p| (p.x + p.y) % 2 == parity)
-                    .filter(|p| {
+                    .enumerate()
+                    .filter(|(i, _)| *i as u16 % 2 == parity)
+                    .filter(|(_, p)| {
                         is_free(room, &RoomPosition::new(p.x as u32, p.y as u32, &room_name))
-                    }),
+                    })
+                    .map(|(_, p)| *p),
             );
         }
 
@@ -174,6 +186,25 @@ impl ConstructionMatrix {
             x: pos.x / 3,
             y: pos.y / 3,
         }
+    }
+
+    fn valid_neighbouring_tiles(pos: Pos) -> ArrayVec<[Pos; 8]> {
+        let x = pos.x as i16;
+        let y = pos.y as i16;
+        [
+            (x + 1, y + 0),
+            (x - 1, y + 0),
+            (x + 0, y + 1),
+            (x + 0, y - 1),
+            (x + 1, y + 1),
+            (x - 1, y + 1),
+            (x + 1, y - 1),
+            (x - 1, y - 1),
+        ]
+        .into_iter()
+        .filter(|(x, y)| 0 <= *x && *x <= 16 && 0 <= *y && *y <= 16)
+        .map(|(x, y)| Pos::new(*x as u16, *y as u16))
+        .collect()
     }
 }
 

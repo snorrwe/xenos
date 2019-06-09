@@ -7,8 +7,8 @@ extern crate screeps;
 extern crate stdweb;
 #[macro_use]
 extern crate serde;
-extern crate serde_json;
 extern crate arrayvec;
+extern crate serde_json;
 
 mod bt;
 mod constructions;
@@ -51,10 +51,11 @@ fn main() {
                 // reset the VM since we don't know if everything was cleaned up and don't
                 // want an inconsistent state.
                 module.exports.loop = function() {
-                    __initialize(new WebAssembly.Module(require("xenos_bg")), false);
-                    module.exports.loop();
+                    wasm_module = null;
+                    wasm_initialize();
                 }
             }
         }
     }
 }
+
