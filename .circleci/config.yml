@@ -4,11 +4,15 @@ jobs:
   test:
     docker:
       - image: rust:1
-      - image: node:12.4.0-slim 
 
     steps:
       - checkout
-      - run: node --version
+      - run:
+          name: Install Google Chrome
+          command: |
+            wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add -
+            sh -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list'
+            apt-get update && apt-get install -y google-chrome-stable
       - run:
           name: Calculate dependencies
           command: cargo generate-lockfile
@@ -20,7 +24,7 @@ jobs:
           command: cargo install cargo-web 
       - run:
           name: Test
-          command: cargo web test --nodejs
+          command: cargo web test
       - save_cache:
           paths:
             - /usr/local/cargo/registry
