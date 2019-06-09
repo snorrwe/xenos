@@ -4,6 +4,7 @@ jobs:
   test:
     docker:
       - image: rust:1
+      - image: circleci/node:4.8.2 
 
     steps:
       - checkout
@@ -17,11 +18,8 @@ jobs:
           name: Install Cargo Web
           command: cargo install cargo-web 
       - run:
-          name: Install Cargo Screeps
-          command: cargo install cargo-screeps 
-      - run:
           name: Test
-          command: cargo web test
+          command: cargo web test --nodejs
       - save_cache:
           paths:
             - /usr/local/cargo/registry
