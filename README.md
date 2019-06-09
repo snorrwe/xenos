@@ -1,5 +1,7 @@
 # Xenos
 
+[![CircleCI](https://circleci.com/gh/snorrwe/xenos/tree/master.svg?style=svg)](https://circleci.com/gh/snorrwe/xenos/tree/master)
+
 [Screeps](https://screeps.com/) scripts in Rust using the [Screeps in Rust (via WASM)](https://github.com/daboross/screeps-in-rust-via-wasm) project
 
 ## Setup
