@@ -4,12 +4,11 @@ mod neighbours;
 mod roads;
 
 use self::construction_state::ConstructionState;
-use self::neighbours::*;
 use crate::prelude::*;
 use arrayvec::ArrayVec;
 use screeps::{
     constants::StructureType,
-    objects::{HasPosition, Room, RoomPosition, StructureSpawn},
+    objects::{Room, RoomPosition},
     ReturnCode,
 };
 use std::collections::{HashSet, VecDeque};
@@ -77,31 +76,6 @@ pub struct ConstructionMatrix {
 }
 
 impl ConstructionMatrix {
-    // pub fn next(&mut self, room: &Room) -> Option<Pos> {
-    //     self.open_positions.pop_front().or_else(|| {
-    //         self.process_next_tile(room)
-    //             .and_then(|_| self.open_positions.pop_front())
-    //     })
-    // }
-    //
-    // /// Calculate at most n open positions
-    // pub fn take(&mut self, n: usize, room: &Room) -> Vec<Pos> {
-    //     // Gotcha: Drain panics if len is more than VecDeque::len()
-    //
-    //     let mut len = self.open_positions.len().min(n);
-    //     let mut result = self.open_positions.drain(0..len).collect::<Vec<_>>();
-    //
-    //     len = n - len;
-    //
-    //     while len > 0 && self.process_next_tile(room).is_some() {
-    //         let l = self.open_positions.len().min(len);
-    //         result.extend(self.open_positions.drain(0..l));
-    //         len = n - result.len();
-    //     }
-    //
-    //     result
-    // }
-
     pub fn with_position(mut self, pos: Pos) -> Self {
         let pos = Self::as_matrix_top_left(pos);
         self.todo.push_back(pos);
@@ -114,32 +88,33 @@ impl ConstructionMatrix {
         &mut self,
         room: &Room,
         types: &ArrayVec<[StructureType; 24]>,
-    ) -> ArrayVec<[Option<ReturnCode>; 24]> {
-        types
-            .iter()
-            .map(|ty| {
-                self.open_positions
-                    .front()
-                    .or_else(|| {
-                        self.process_next_tile(room)
-                            .and_then(|_| self.open_positions.front())
-                    })
-                    .map(|pos| {
-                        let pos = RoomPosition::new(pos.x as u32, pos.y as u32, &room.name());
-                        let result = room.create_construction_site(&pos, *ty);
-                        match result {
-                            ReturnCode::Ok => {
-                                self.open_positions.pop_front();
-                            }
-                            ReturnCode::Full => {
-                                debug!("cant place construction site {:?}", result);
-                            }
-                            _ => {}
-                        }
-                        result
-                    })
-            })
-            .collect()
+    ) -> ExecutionResult {
+        for ty in types.iter() {
+            let open_position = { self.open_positions.front().map(|x| x.clone()) };
+            let pos = match open_position {
+                Some(x) => x,
+                None => self
+                    .process_next_tile(room)
+                    .and_then(|_| self.open_positions.front().map(|x| x.clone()))
+                    .ok_or_else(|| {
+                        format!("No free space is available in room {:?}", room.name())
+                    })?,
+            };
+            let pos = RoomPosition::new(pos.x as u32, pos.y as u32, &room.name());
+            let result = room.create_construction_site(&pos, *ty);
+            match result {
+                ReturnCode::Ok => {
+                    self.open_positions.pop_front();
+                }
+                ReturnCode::Full => {
+                    debug!("cant place construction site {:?}", result);
+                    Err("Room is full")?;
+                }
+                _ => {}
+            }
+        }
+
+        Ok(())
     }
 
     /// Return the tile processed if any
@@ -251,77 +226,32 @@ fn build_structures<'a>(room: &'a Room, state: &'a mut ConstructionState) -> Exe
     .map(|x| *x)
     .collect::<ArrayVec<_>>();
 
-    let matrix = match state.construction_matrices.get_mut(&room.name()) {
-        Some(matrix) => matrix,
-        None => {
-            let spawn = js! {
-                const room = @{room};
-                const spawns = room.find(FIND_STRUCTURES, {
-                    filter: { structureType: STRUCTURE_SPAWN }
-                });
-                return spawns && spawns[0] && spawns[0].pos || null;
-            };
-
-            if spawn.is_null() {
-                let e = Err(format!("No spawn in room {}", &room.name()));
-                debug!("{:?}", e);
-                e?;
-            }
-
-            let spawn = RoomPosition::try_from(spawn).map_err(|e| {
-                let err = format!("Failed to convert spawn position {:?}", e);
-                error!("{}", &err);
-                err
-            })?;
-
-            let result = ConstructionMatrix::default().with_position(Pos::from(spawn));
-
-            state.construction_matrices.insert(room.name(), result);
-
-            &mut state.construction_matrices[&room.name()]
-        }
+    let spawn = js! {
+        const room = @{room};
+        const spawns = room.find(FIND_STRUCTURES, {
+            filter: { structureType: STRUCTURE_SPAWN }
+        });
+        return spawns && spawns[0] && spawns[0].pos || null;
     };
 
-    matrix
-        .build_many(room, &structures)
-        .into_iter()
-        .fold(Ok(()), |result, build_res| {})
-}
-
-fn valid_construction_pos(room: &Room, pos: &RoomPosition, taken: &mut HashSet<Pos>) -> bool {
-    let pp = Pos::new(pos.x() as u16, pos.y() as u16);
-    if taken.contains(&pp) {
-        return false;
+    if spawn.is_null() {
+        let e = Err(format!("No spawn in room {}", &room.name()));
+        debug!("{:?}", e);
+        e?;
     }
 
-    let x = pos.x();
-    let y = pos.y();
+    let spawn = RoomPosition::try_from(spawn).map_err(|e| {
+        let err = format!("Failed to convert spawn position {:?}", e);
+        error!("{}", &err);
+        err
+    })?;
 
-    if x <= 2 || y <= 2 || x >= 48 || y >= 48 {
-        // Out of bounds
-        return false;
-    }
+    let construction_matrices = &mut state.construction_matrices;
+    let matrix = construction_matrices
+        .entry(room.name())
+        .or_insert_with(|| ConstructionMatrix::default().with_position(Pos::from(spawn)));
 
-    let name = pos.room_name();
-    [
-        RoomPosition::new(x - 1, y, name.as_str()),
-        RoomPosition::new(x + 1, y, name.as_str()),
-        RoomPosition::new(x, y - 1, name.as_str()),
-        RoomPosition::new(x, y + 1, name.as_str()),
-    ]
-    .into_iter()
-    .all(|p| {
-        let pos = Pos::new(p.x() as u16, p.y() as u16);
-        if taken.contains(&pos) {
-            false
-        } else {
-            let result = is_free(room, p);
-            if !result {
-                taken.insert(pos);
-            }
-            result
-        }
-    })
+    matrix.build_many(room, &structures)
 }
 
 fn is_free(room: &Room, pos: &RoomPosition) -> bool {
