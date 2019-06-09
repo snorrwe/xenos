@@ -127,9 +127,7 @@ impl ConstructionMatrix {
         debug!("Processing next in room {:?}", room.name());
 
         let pos = self.todo.pop_front()?;
-        let parity = (pos.x + pos.y) % 2;
-
-        debug!("Processing tile pos {:?} parity: {:?}", pos, parity);
+        debug!("Processing tile pos {:?} parity", pos);
 
         {
             self.done.insert(pos);
@@ -154,14 +152,17 @@ impl ConstructionMatrix {
 
         let room_name = room.name();
 
+        let parity = (pos.x + pos.y) % 2;
         // Push either + or × pattern depending on the parity of the tile
         let n_free = tile
             .iter()
-            .filter(|p| (p.x + p.y) % 2 != parity)
-            .filter(|p| is_free(room, &RoomPosition::new(p.x as u32, p.y as u32, &room_name)))
+            .enumerate()
+            .filter(|(i, _)| *i != 4) // Skip the middle
+            .filter(|(_, p)| (p.x + p.y) % 2 != parity)
+            .filter(|(_, p)| is_free(room, &RoomPosition::new(p.x as u32, p.y as u32, &room_name)))
             .count();
 
-        if n_free > 3 {
+        if n_free >= 3 {
             // At least 3 free positions needed so no blockage is built
 
             // Push the center
