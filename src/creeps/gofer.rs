@@ -97,12 +97,15 @@ fn find_unload_target<'a>(state: &'a mut GameState, creep: &'a Creep) -> Option<
     .cloned()
     .collect();
     let tree = Control::Sequence(tasks);
-    tree.tick(state).unwrap_or_else(|e| {
-        debug!("Failed to find unload target {:?}", e);
-        let memory = state.creep_memory_entry(CreepName(&creep.name()));
-        memory.remove(TARGET);
-    });
-    None
+    match tree.tick(state) {
+        Ok(_) => find_unload_target(state, creep),
+        Err(e) => {
+            debug!("Failed to find unload target {:?}", e);
+            let memory = state.creep_memory_entry(CreepName(&creep.name()));
+            memory.remove(TARGET);
+            None
+        }
+    }
 }
 
 fn try_transfer<'a, T>(
