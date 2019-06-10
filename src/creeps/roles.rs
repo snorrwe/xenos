@@ -140,7 +140,7 @@ pub fn target_number_of_role_in_room<'a>(role: Role, room: &'a Room) -> i8 {
         .filter(|flag| {
             let rn = flag.pos().room_name();
             manhatten_distance(&room_name, &rn)
-                .map(|d| d < 10)
+                .map(|d| d <= 5)
                 .unwrap_or_else(|e| {
                     error!(
                         "Failed to calculate distance from {:?} to {:?}, {:?}",
