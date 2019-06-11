@@ -1,6 +1,6 @@
 //! Move resources
 //!
-use super::{move_to, TARGET};
+use super::{move_to, pickup_energy, TARGET};
 use crate::prelude::*;
 use screeps::{
     constants::{find, ResourceType},
@@ -21,6 +21,7 @@ pub fn run<'a>(creep: &'a Creep) -> Task<'a, GameState> {
     trace!("Running gofer {}", creep.name());
     let tasks = [
         Task::new(move |state| attempt_unload(state, creep)),
+        Task::new(move |state| pickup_energy(state, creep)),
         Task::new(move |state| get_energy(state, creep)),
         Task::new(move |state| attempt_unload(state, creep)),
     ]
@@ -78,14 +79,8 @@ pub fn attempt_unload<'a>(state: &'a mut GameState, creep: &'a Creep) -> Executi
 
 fn find_unload_target<'a>(state: &'a mut GameState, creep: &'a Creep) -> Option<Reference> {
     trace!("Setting unload target");
-    {
-        let target = state.creep_memory_string(CreepName(&creep.name()), TARGET);
-
-        if let Some(target) = target {
-            trace!("Validating existing target");
-            let target = get_object_erased(target)?;
-            return Some(target.as_ref().clone());
-        }
+    if let Some(target) = read_unload_target(state, creep) {
+        return Some(target);
     }
     let tasks = [
         Task::new(|state| find_unload_target_by_type(state, creep, "spawn")),
@@ -98,7 +93,7 @@ fn find_unload_target<'a>(state: &'a mut GameState, creep: &'a Creep) -> Option<
     .collect();
     let tree = Control::Sequence(tasks);
     match tree.tick(state) {
-        Ok(_) => find_unload_target(state, creep),
+        Ok(_) => read_unload_target(state, creep),
         Err(e) => {
             debug!("Failed to find unload target {:?}", e);
             let memory = state.creep_memory_entry(CreepName(&creep.name()));
@@ -106,6 +101,15 @@ fn find_unload_target<'a>(state: &'a mut GameState, creep: &'a Creep) -> Option<
             None
         }
     }
+}
+
+fn read_unload_target(state: &mut GameState, creep: &Creep) -> Option<Reference> {
+    state
+        .creep_memory_string(CreepName(&creep.name()), TARGET)
+        .and_then(|target| {
+            trace!("Validating existing target");
+            get_object_erased(target).map(|target| target.as_ref().clone())
+        })
 }
 
 fn try_transfer<'a, T>(

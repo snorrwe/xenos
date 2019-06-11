@@ -13,10 +13,10 @@ use crate::game_state::{RoomIFF, ScoutInfo};
 use crate::prelude::*;
 use screeps::{
     constants::{find, ResourceType},
-    game::get_object_erased,
+    game::{get_object_erased, get_object_typed},
     objects::{
-        Creep, RoomObject, RoomObjectProperties, Structure, StructureContainer, StructureStorage,
-        Tombstone, Withdrawable,
+        Creep, Resource, RoomObject, RoomObjectProperties, Structure, StructureContainer,
+        StructureStorage, Tombstone, Withdrawable,
     },
     prelude::*,
     ReturnCode, Room,
@@ -29,6 +29,7 @@ use stdweb::{
 pub const HOME_ROOM: &'static str = "home";
 pub const TARGET: &'static str = "target";
 pub const CREEP_ROLE: &'static str = "role";
+pub const LOADING: &'static str = "loading";
 
 pub fn task<'a>() -> Task<'a, GameState> {
     Task::new(move |state| {
@@ -123,6 +124,77 @@ pub fn move_to<'a>(
     }
 }
 
+/// Find and pick up energy from the ground
+/// # Contracts & Side effects
+/// Required the `loading` flag to be set to true
+/// If the creep is full sets the `loading` flag to false
+pub fn pickup_energy(state: &mut GameState, creep: &Creep) -> ExecutionResult {
+    trace!("Picking up energy");
+    let target = {
+        if !state.creep_memory_bool(CreepName(&creep.name()), LOADING) {
+            Err("not loading")?;
+        }
+
+        let memory = state.creep_memory_entry(CreepName(&creep.name()));
+
+        if creep.carry_total() == creep.carry_capacity() {
+            memory.insert(LOADING.into(), false.into());
+            memory.remove(TARGET);
+            Err("full")?;
+        }
+
+        memory
+            .get(TARGET)
+            .map(|x| x.as_str())
+            .iter()
+            .filter_map(|id| *id)
+            .find_map(|id| get_object_typed::<Resource>(id).unwrap_or(None))
+            .or_else(|| {
+                find_dropped_energy(creep).map(|target| {
+                    let id = target.id();
+                    memory.insert(TARGET.into(), id.into());
+                    target
+                })
+            })
+            .ok_or_else(|| {
+                memory.remove(TARGET);
+                "Can't find energy source"
+            })?
+    };
+    let tasks = [
+        Task::new(|_| match creep.pickup(&target) {
+            ReturnCode::Ok => Ok(()),
+            _ => Err("Can't pick up".to_owned()),
+        }),
+        Task::new(|_| move_to(creep, &target)),
+        Task::new(|state: &mut GameState| {
+            let memory = state.creep_memory_entry(CreepName(&creep.name()));
+            memory.remove(TARGET);
+            Ok(())
+        }),
+    ]
+    .into_iter()
+    .cloned()
+    .collect();
+
+    let tree = Control::Sequence(tasks);
+
+    tree.tick(state).map_err(|_| {
+        let memory = state.creep_memory_entry(CreepName(&creep.name()));
+        memory.remove(TARGET);
+        "can't pick up energy".into()
+    })
+}
+
+pub fn find_dropped_energy(creep: &Creep) -> Option<Resource> {
+    creep
+        .room()
+        .find(find::DROPPED_RESOURCES)
+        .into_iter()
+        .filter(|resource| resource.resource_type() == ResourceType::Energy)
+        .max_by_key(|r| r.amount())
+}
+
 /// Retreive energy from a Container
 /// # Contracts & Side effects
 /// Required the `loading` flag to be set to true
@@ -131,14 +203,14 @@ pub fn get_energy<'a>(state: &'a mut GameState, creep: &'a Creep) -> ExecutionRe
     trace!("Getting energy");
 
     let target = {
-        if !state.creep_memory_bool(CreepName(&creep.name()), "loading") {
+        if !state.creep_memory_bool(CreepName(&creep.name()), LOADING) {
             Err("not loading")?;
         }
 
         let memory = state.creep_memory_entry(CreepName(&creep.name()));
 
         if creep.carry_total() == creep.carry_capacity() {
-            memory.insert("loading".into(), false.into());
+            memory.insert(LOADING.into(), false.into());
             memory.remove(TARGET);
             Err("full")?;
         }
@@ -154,7 +226,6 @@ pub fn get_energy<'a>(state: &'a mut GameState, creep: &'a Creep) -> ExecutionRe
                     let id = js! {
                         return @{&target}.id;
                     };
-
                     let id: String = id.try_into().unwrap();
 
                     memory.insert(TARGET.into(), id.into());
@@ -240,13 +311,13 @@ pub fn harvest<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResult {
     trace!("Worker harvesting");
 
     {
-        let loading = state.creep_memory_bool(CreepName(&creep.name()), "loading");
+        let loading = state.creep_memory_bool(CreepName(&creep.name()), LOADING);
         if !loading {
             Err("not loading")?;
         }
         let memory = state.creep_memory_entry(CreepName(&creep.name()));
         if creep.carry_total() == creep.carry_capacity() {
-            memory.insert("loading".into(), false.into());
+            memory.insert(LOADING.into(), false.into());
             memory.remove(TARGET);
             return Ok(());
         }

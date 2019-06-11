@@ -1,6 +1,6 @@
 //! Build structures
 //!
-use super::{get_energy, harvest, move_to, repairer, upgrader, TARGET};
+use super::{get_energy, harvest, move_to, pickup_energy, repairer, upgrader, TARGET};
 use crate::prelude::*;
 use screeps::{
     constants::find,
@@ -14,6 +14,7 @@ pub fn run<'a>(creep: &'a Creep) -> Task<'a, GameState> {
     trace!("Running builder {}", creep.name());
     let tasks = [
         Task::new(move |state| attempt_build(state, creep)),
+        Task::new(move |state| pickup_energy(state, creep)),
         Task::new(move |state| get_energy(state, creep)),
         Task::new(move |state| harvest(state, creep)),
         Task::new(move |state| attempt_build(state, creep)),
