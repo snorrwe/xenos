@@ -1,6 +1,6 @@
 //! Upgrade Controllers
 //!
-use super::{withdraw_energy, move_to, pickup_energy};
+use super::{move_to, pickup_energy, withdraw_energy};
 use crate::game_state::GameState;
 use crate::prelude::*;
 use screeps::{objects::Creep, prelude::*, ReturnCode};
@@ -49,4 +49,3 @@ pub fn attempt_upgrade<'a>(state: &mut GameState, creep: &'a Creep) -> Execution
         }
     }
 }
-

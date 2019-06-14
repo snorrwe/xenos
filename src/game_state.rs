@@ -242,4 +242,3 @@ impl GameState {
         result
     }
 }
-

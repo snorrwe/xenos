@@ -126,4 +126,3 @@ mod tests {
         assert_eq!(state.results, "cdba");
     }
 }
-

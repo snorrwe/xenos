@@ -1,5 +1,5 @@
-use crate::prelude::*;
 use crate::creeps::find_repair_target;
+use crate::prelude::*;
 use screeps::{
     constants::find,
     game,
@@ -88,4 +88,3 @@ fn repair<'a>(tower: &'a StructureTower, target: &'a Structure) -> ExecutionResu
         Err(error)
     }
 }
-

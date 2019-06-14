@@ -122,4 +122,3 @@ struct TickStats {
     gcl_progress: f32,
     gcl_progress_total: f32,
 }
-

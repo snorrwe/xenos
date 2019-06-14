@@ -126,4 +126,3 @@ fn spawn_creep(state: &mut GameState, spawn: &StructureSpawn, role: Role) -> Exe
     }
     Ok(())
 }
-

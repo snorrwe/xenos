@@ -128,4 +128,3 @@ fn set_target<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResult {
 
     Ok(())
 }
-

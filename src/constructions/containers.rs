@@ -47,4 +47,3 @@ pub fn build_containers<'a>(room: &'a Room) -> ExecutionResult {
 
     Ok(())
 }
-

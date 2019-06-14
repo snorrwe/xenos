@@ -1,6 +1,6 @@
 //! Build structures
 //!
-use super::{withdraw_energy, harvest, move_to, pickup_energy, repairer, upgrader, TARGET};
+use super::{harvest, move_to, pickup_energy, repairer, upgrader, withdraw_energy, TARGET};
 use crate::prelude::*;
 use screeps::{
     constants::find,
@@ -84,4 +84,3 @@ fn get_build_target(state: &mut GameState, creep: &Creep) -> Option<Construction
                 .ok()
         })
 }
-

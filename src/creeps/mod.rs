@@ -1,4 +1,5 @@
 pub mod roles;
+pub mod spawn_info;
 
 mod conqueror;
 mod gofer;
@@ -372,4 +373,3 @@ pub fn update_scout_info(state: &mut GameState, creep: &Creep) -> ExecutionResul
 
     Ok(())
 }
-

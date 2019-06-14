@@ -52,4 +52,3 @@ impl ConstructionState {
             .unwrap_or_default()
     }
 }
-
