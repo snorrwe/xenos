@@ -31,6 +31,7 @@ pub fn role_priority<'a>(_room: &'a Room, role: Role) -> i8 {
 
 /// Max number of creeps of a given role in the given room
 pub fn target_number_of_role_in_room<'a>(role: Role, room: &'a Room) -> i8 {
+    let level = room.controller().map(|l| l.level()).unwrap_or(0);
     let room_name = room.name();
     let n_flags = game::flags::values()
         .into_iter()
@@ -71,7 +72,7 @@ pub fn target_number_of_role_in_room<'a>(role: Role, room: &'a Room) -> i8 {
             }
         }
         Role::Conqueror => n_flags * 2, // TODO: make the closest room spawn it
-        Role::Lrh => 4,                 // TODO: scale with avialable rooms
+        Role::Lrh => 2 * level as i8,   // TODO: scale with avialable rooms
         Role::Gofer => n_sources.min(n_containers as i8),
         _ => unimplemented!(),
     }
@@ -159,3 +160,4 @@ fn role_part_max(room: &Room, role: Role) -> Option<usize> {
     };
     result.map(|x| x.min(50))
 }
+
