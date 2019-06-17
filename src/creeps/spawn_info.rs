@@ -72,7 +72,7 @@ pub fn target_number_of_role_in_room<'a>(role: Role, room: &'a Room) -> i8 {
             }
         }
         Role::Conqueror => n_flags * 2, // TODO: make the closest room spawn it
-        Role::Lrh => 2 * level as i8,   // TODO: scale with avialable rooms
+        Role::Lrh => level as i8,       // TODO: scale with avialable rooms
         Role::Gofer => n_sources.min(n_containers as i8),
         _ => unimplemented!(),
     }
@@ -88,11 +88,8 @@ pub fn spawn_config_by_role(room: &Room, role: Role) -> SpawnConfig {
 
 /// The minimum parts required by the role
 fn basic_role_parts<'a>(_room: &Room, role: Role) -> BodyCollection {
-    match role {
-        Role::Harvester => [Part::Move, Part::Work, Part::Carry, Part::Work]
-            .into_iter()
-            .map(|x| *x)
-            .collect::<BodyCollection>(),
+    let it = match role {
+        Role::Harvester => [Part::Move, Part::Work, Part::Carry, Part::Work].into_iter(),
         Role::Conqueror => [
             Part::Move,
             Part::Work,
@@ -101,40 +98,27 @@ fn basic_role_parts<'a>(_room: &Room, role: Role) -> BodyCollection {
             Part::Move,
             Part::Move,
         ]
-        .into_iter()
-        .map(|x| *x)
-        .collect::<BodyCollection>(),
-        Role::Gofer => [Part::Move, Part::Carry]
-            .into_iter()
-            .map(|x| *x)
-            .collect::<BodyCollection>(),
-        Role::Lrh => [Part::Move, Part::Move, Part::Carry, Part::Work]
-            .into_iter()
-            .map(|x| *x)
-            .collect::<BodyCollection>(),
-        Role::Upgrader | Role::Worker => [Part::Move, Part::Move, Part::Carry, Part::Work]
-            .into_iter()
-            .map(|x| *x)
-            .collect::<BodyCollection>(),
-        Role::Unknown => [].into_iter().map(|x| *x).collect::<BodyCollection>(),
-    }
+        .into_iter(),
+        Role::Gofer => [Part::Move, Part::Carry].into_iter().into_iter(),
+        Role::Lrh => [Part::Move, Part::Move, Part::Carry, Part::Work].into_iter(),
+        Role::Upgrader | Role::Worker => {
+            [Part::Move, Part::Move, Part::Carry, Part::Work].into_iter()
+        }
+        Role::Unknown => [].into_iter(),
+    };
+    it.map(|x| *x).collect()
 }
 
 /// Intended parts to be appended to 'role_parts'
 fn role_part_scale<'a>(_room: &Room, role: Role) -> BodyCollection {
-    match role {
-        Role::Harvester => [Part::Work].into_iter().map(|x| *x).collect(),
-        Role::Conqueror => [].into_iter().map(|x| *x).collect(),
-        Role::Gofer => [Part::Move, Part::Carry].into_iter().map(|x| *x).collect(),
-        Role::Lrh => [Part::Move, Part::Carry, Part::Work, Part::Move]
-            .into_iter()
-            .map(|x| *x)
-            .collect(),
-        _ => [Part::Move, Part::Carry, Part::Work]
-            .into_iter()
-            .map(|x| *x)
-            .collect(),
-    }
+    let it = match role {
+        Role::Harvester => [Part::Work].into_iter(),
+        Role::Conqueror => [].into_iter(),
+        Role::Gofer => [Part::Move, Part::Carry].into_iter(),
+        Role::Lrh => [Part::Move, Part::Carry, Part::Work, Part::Move].into_iter(),
+        _ => [Part::Move, Part::Carry, Part::Work].into_iter(),
+    };
+    it.map(|x| *x).collect()
 }
 
 /// The largest a creep of role `role` may be
@@ -153,9 +137,8 @@ fn role_part_max(room: &Room, role: Role) -> Option<usize> {
 
     let result = match role {
         Role::Harvester => Some(8),
-        Role::Lrh | Role::Gofer | Role::Worker | Role::Upgrader | Role::Conqueror => {
-            Some(worker_count)
-        }
+        Role::Lrh | Role::Worker | Role::Upgrader | Role::Conqueror => Some(worker_count),
+        Role::Gofer => Some((worker_count as f32 * 1.5) as usize),
         Role::Unknown => None,
     };
     result.map(|x| x.min(50))

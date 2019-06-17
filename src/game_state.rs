@@ -1,5 +1,5 @@
 use crate::creeps::roles::Role;
-use crate::creeps::{CREEP_ROLE, HOME_ROOM};
+use crate::creeps::{CreepExecutionStats, CREEP_ROLE, HOME_ROOM};
 use crate::prelude::*;
 use screeps::{game, raw_memory, Room};
 use serde_json::{self, Map, Value};
@@ -46,6 +46,12 @@ pub struct GameState {
     /// Holds the creep memory objects
     /// Structure: name -> data
     creep_memory: CreepMemory,
+
+    /// Data about creep task execution in a tick
+    #[serde(skip_serializing)]
+    #[serde(skip_deserializing)]
+    #[serde(default)]
+    pub creep_stats: CreepExecutionStats,
 }
 
 impl TaskInput for GameState {
@@ -242,3 +248,4 @@ impl GameState {
         result
     }
 }
+

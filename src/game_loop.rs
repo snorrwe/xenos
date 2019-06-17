@@ -24,7 +24,7 @@ pub fn game_loop() {
 
     let mut state = GameState::read_from_segment_or_default(MAIN_SEGMENT);
     state.cpu_bucket = bucket.map(|x| x as i16);
-    run_game_logic(state);
+    run_game_logic(&mut state);
 
     let bucket = bucket.unwrap_or(-1);
 
@@ -35,6 +35,7 @@ pub fn game_loop() {
             // Note that cpu stats won't take the stats saving into account
             screeps::game::cpu::get_used() as f32,
             bucket,
+            &state,
         )
         .map(|_| {
             info!("Statistics saved!");
@@ -56,18 +57,18 @@ pub fn game_loop() {
 /// Consumes the state object
 ///
 /// TODO: GameResult object to return?
-fn run_game_logic(mut state: GameState) {
+fn run_game_logic(state: &mut GameState) {
     creeps::task()
-        .tick(&mut state)
+        .tick(state)
         .unwrap_or_else(|e| warn!("Failed to run creeps {:?}", e));
     towers::task()
-        .tick(&mut state)
+        .tick(state)
         .unwrap_or_else(|e| warn!("Failed to run towers {:?}", e));
     spawns::task()
-        .tick(&mut state)
+        .tick(state)
         .unwrap_or_else(|e| warn!("Failed to run spawns {:?}", e));
     constructions::task()
-        .tick(&mut state)
+        .tick(state)
         .unwrap_or_else(|e| warn!("Failed to run constructions {:?}", e));
 
     if screeps::game::time() % 16 == 0 {
@@ -77,7 +78,13 @@ fn run_game_logic(mut state: GameState) {
     }
 }
 
-fn save_stats(time: u32, creep_count: u32, cpu: f32, bucket: i32) -> ExecutionResult {
+fn save_stats(
+    time: u32,
+    creep_count: u32,
+    cpu: f32,
+    bucket: i32,
+    state: &GameState,
+) -> ExecutionResult {
     let mut stats: Vec<TickStats> = raw_memory::get_segment(STATISTICS_SEGMENT)
         .and_then(|s| serde_json::from_str(s.as_str()).ok())
         .unwrap_or(vec![]);
@@ -96,6 +103,7 @@ fn save_stats(time: u32, creep_count: u32, cpu: f32, bucket: i32) -> ExecutionRe
         gcl,
         gcl_progress,
         gcl_progress_total,
+        creep_stats: state.creep_stats.clone(),
     };
 
     stats.push(tick_stats);
@@ -121,4 +129,6 @@ struct TickStats {
     gcl: u32,
     gcl_progress: f32,
     gcl_progress_total: f32,
+    creep_stats: creeps::CreepExecutionStats,
 }
+

@@ -14,7 +14,7 @@ use crate::game_state::{RoomIFF, ScoutInfo};
 use crate::prelude::*;
 use screeps::{
     constants::{find, ResourceType},
-    game::{get_object_erased, get_object_typed},
+    game::{self, get_object_erased, get_object_typed},
     objects::{
         Creep, Resource, RoomObject, RoomObjectProperties, Structure, StructureContainer,
         StructureStorage, Tombstone, Withdrawable,
@@ -32,11 +32,27 @@ pub const TARGET: &'static str = "target";
 pub const CREEP_ROLE: &'static str = "role";
 pub const LOADING: &'static str = "loading";
 
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct CreepExecutionStats {
+    working_creeps: u16,
+    idle_creeps: u16,
+    total_execution_time: f32,
+}
+
 pub fn task<'a>() -> Task<'a, GameState> {
     Task::new(move |state| {
-        screeps::game::creeps::values()
-            .into_iter()
-            .for_each(|creep| run_creep(state, creep).unwrap_or(()));
+        let start = game::cpu::get_used();
+
+        {
+            screeps::game::creeps::values()
+                .into_iter()
+                .for_each(|creep| run_creep(state, creep).unwrap_or(()));
+        }
+
+        let end = game::cpu::get_used();
+
+        state.creep_stats.total_execution_time = (end - start) as f32;
+
         Ok(())
     })
 }
@@ -48,7 +64,18 @@ fn run_creep<'a>(state: &mut GameState, creep: Creep) -> ExecutionResult {
         return Ok(());
     }
     let tasks = [
-        Task::new(|state| run_role(state, &creep)),
+        Task::new(|state| {
+            run_role(state, &creep)
+                .map_err(|e| {
+                    debug!("Recording failed run {:?}", e);
+                    state.creep_stats.idle_creeps += 1;
+                    e
+                })
+                .map(|_| {
+                    debug!("Recording successful run");
+                    state.creep_stats.working_creeps += 1;
+                })
+        }),
         Task::new(|state| initialize_creep(state, &creep)),
     ]
     .into_iter()
@@ -56,7 +83,8 @@ fn run_creep<'a>(state: &mut GameState, creep: Creep) -> ExecutionResult {
     .collect();
 
     let tree = Control::Sequence(tasks);
-    tree.tick(state)
+    let result = tree.tick(state);
+    result
 }
 
 pub fn initialize_creep<'a>(state: &'a mut GameState, creep: &'a Creep) -> ExecutionResult {
@@ -373,3 +401,4 @@ pub fn update_scout_info(state: &mut GameState, creep: &Creep) -> ExecutionResul
 
     Ok(())
 }
+
