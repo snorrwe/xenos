@@ -194,24 +194,20 @@ pub fn get_energy<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResul
         let memory = state.creep_memory_entry(CreepName(&creep.name()));
         if creep.carry_total() == creep.carry_capacity() {
             memory.insert("loading".into(), false.into());
-
+            memory.remove(TARGET);
             Err("full")?
         }
     }
 
     let target = find_container(state, creep).ok_or_else(|| "no container found")?;
-    withdraw(state, creep, &target).map_err(|e| {
+    withdraw(creep, &target).map_err(|e| {
         let memory = state.creep_memory_entry(CreepName(&creep.name()));
         memory.remove(TARGET);
         e
     })
 }
 
-fn withdraw<'a>(
-    state: &mut GameState,
-    creep: &'a Creep,
-    target: &'a StructureContainer,
-) -> ExecutionResult {
+fn withdraw<'a>(creep: &'a Creep, target: &'a StructureContainer) -> ExecutionResult {
     if creep.pos().is_near_to(target) {
         let r = creep.withdraw_all(target, ResourceType::Energy);
         if r != ReturnCode::Ok {
@@ -219,8 +215,6 @@ fn withdraw<'a>(
             Err("can't withdraw")?;
         }
     } else if target.store_total() == 0 {
-        let memory = state.creep_memory_entry(CreepName(&creep.name()));
-        memory.remove(TARGET);
         Err("Target is empty")?;
     } else {
         move_to(creep, target)?;
@@ -256,3 +250,4 @@ fn read_target_container(state: &GameState, creep: &Creep) -> Option<StructureCo
         .creep_memory_string(CreepName(&creep.name()), TARGET)
         .and_then(|id| get_object_typed(id).ok())?
 }
+

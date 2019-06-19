@@ -272,6 +272,7 @@ pub fn withdraw_energy<'a>(state: &'a mut GameState, creep: &'a Creep) -> Execut
         Task::new(|_| try_withdraw::<StructureStorage>(creep, &target)),
         Task::new(|_| try_withdraw::<StructureContainer>(creep, &target)),
         Task::new(|state: &mut GameState| {
+            warn!("Got a target that can not be withdrawn from");
             let memory = state.creep_memory_entry(CreepName(&creep.name()));
             memory.remove(TARGET);
             Ok(())
@@ -282,12 +283,7 @@ pub fn withdraw_energy<'a>(state: &'a mut GameState, creep: &'a Creep) -> Execut
     .collect();
 
     let tree = Control::Sequence(tasks);
-
-    tree.tick(state).map_err(|_| {
-        let memory = state.creep_memory_entry(CreepName(&creep.name()));
-        memory.remove(TARGET);
-        "can't withdraw".into()
-    })
+    tree.tick(state)
 }
 
 fn try_withdraw<'a, T>(creep: &'a Creep, target: &'a RoomObject) -> ExecutionResult
