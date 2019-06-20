@@ -20,10 +20,10 @@ use stdweb::{
 pub fn run<'a>(creep: &'a Creep) -> Task<'a, GameState> {
     trace!("Running gofer {}", creep.name());
     let tasks = [
-        Task::new(move |state| attempt_unload(state, creep)),
-        Task::new(move |state| pickup_energy(state, creep)),
-        Task::new(move |state| get_energy(state, creep)),
-        Task::new(move |state| attempt_unload(state, creep)),
+        Task::new(move |state| attempt_unload(state, creep)).with_name("Attempt unload"),
+        Task::new(move |state| pickup_energy(state, creep)).with_name("Pickup energy"),
+        Task::new(move |state| get_energy(state, creep)).with_name("Get energy"),
+        Task::new(move |state| attempt_unload(state, creep)).with_name("Attempt unload"),
     ]
     .into_iter()
     .cloned()
@@ -37,6 +37,7 @@ pub fn run<'a>(creep: &'a Creep) -> Task<'a, GameState> {
             err
         })
     })
+    .with_name("Gofer")
 }
 
 pub fn attempt_unload<'a>(state: &'a mut GameState, creep: &'a Creep) -> ExecutionResult {
@@ -60,10 +61,14 @@ pub fn attempt_unload<'a>(state: &'a mut GameState, creep: &'a Creep) -> Executi
     let target = find_unload_target(state, creep).ok_or_else(|| "no unload target")?;
 
     let tasks = [
-        Task::new(|state| try_transfer::<StructureSpawn>(state, creep, &target)),
-        Task::new(|state| try_transfer::<StructureExtension>(state, creep, &target)),
-        Task::new(|state| try_transfer::<StructureTower>(state, creep, &target)),
-        Task::new(|state| try_transfer::<StructureStorage>(state, creep, &target)),
+        Task::new(|state| try_transfer::<StructureSpawn>(state, creep, &target))
+            .with_name("Try transfer to StructureSpawn"),
+        Task::new(|state| try_transfer::<StructureExtension>(state, creep, &target))
+            .with_name("Try transfer to StructureExtension"),
+        Task::new(|state| try_transfer::<StructureTower>(state, creep, &target))
+            .with_name("Try transfer to StructureTower"),
+        Task::new(|state| try_transfer::<StructureStorage>(state, creep, &target))
+            .with_name("Try transfer to StructureStorage"),
     ]
     .into_iter()
     .cloned()
@@ -83,10 +88,14 @@ fn find_unload_target<'a>(state: &'a mut GameState, creep: &'a Creep) -> Option<
         return Some(target);
     }
     let tasks = [
-        Task::new(|state| find_unload_target_by_type(state, creep, "spawn")),
-        Task::new(|state| find_unload_target_by_type(state, creep, "tower")),
-        Task::new(|state| find_unload_target_by_type(state, creep, "extension")),
-        Task::new(|state| find_storage(state, creep)),
+        Task::new(|state| find_unload_target_by_type(state, creep, "spawn"))
+            .with_name("Find unload target by type spawn"),
+        Task::new(|state| find_unload_target_by_type(state, creep, "tower"))
+            .with_name("Find unload target by type tower"),
+        Task::new(|state| find_unload_target_by_type(state, creep, "extension"))
+            .with_name("Find unload target by type extension"),
+        Task::new(|state| find_storage(state, creep))
+            .with_name("Find unload target by type storage"),
     ]
     .into_iter()
     .cloned()
@@ -231,7 +240,7 @@ fn find_container<'a>(state: &mut GameState, creep: &'a Creep) -> Option<Structu
             let creep = @{creep};
             const container = creep.pos.findClosestByRange(FIND_STRUCTURES, {
                 filter: (i) => i.structureType == STRUCTURE_CONTAINER
-                            && i.store[RESOURCE_ENERGY] > 0
+                    && i.store[RESOURCE_ENERGY] > 0
             });
             return container;
         };

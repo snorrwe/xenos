@@ -7,18 +7,21 @@
 pub mod task;
 pub use self::task::*;
 use arrayvec::ArrayVec;
+use std::fmt::{Display, Formatter};
+
+pub const MAX_TASK_PER_CONTROL: usize = 16;
 
 /// Result of a task
 pub type ExecutionResult = Result<(), String>;
 
-pub type TaskCollection<'a, T> = ArrayVec<[Task<'a, T>; 16]>;
+pub type TaskCollection<'a, T> = ArrayVec<[Task<'a, T>; MAX_TASK_PER_CONTROL]>;
 
-pub trait BtNode<T> {
+pub trait BtNode<T>: std::fmt::Debug + std::fmt::Display {
     fn tick(&self, state: &mut T) -> ExecutionResult;
 }
 
 /// Control node in the Behaviour Tree
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum Control<'a, T>
 where
     T: TaskInput,
@@ -30,6 +33,24 @@ where
     Sequence(TaskCollection<'a, T>),
 }
 
+impl<'a, T> Display for Control<'a, T>
+where
+    T: TaskInput,
+{
+    fn fmt(&self, f: &mut Formatter) -> Result<(), std::fmt::Error> {
+        let tasks: ArrayVec<[&'a str; MAX_TASK_PER_CONTROL]> = match self {
+            Control::Selector(tasks) | Control::Sequence(tasks) => {
+                tasks.iter().map(|t| t.name).collect()
+            }
+        };
+        let name = match self {
+            Control::Selector(_) => "Selector",
+            Control::Sequence(_) => "Sequence",
+        };
+        write!(f, "Control {}, tasks: {:?}", name, tasks)
+    }
+}
+
 impl<'a, T> BtNode<T> for Control<'a, T>
 where
     T: TaskInput,
@@ -39,20 +60,27 @@ where
             Control::Selector(nodes) => {
                 let found = nodes
                     .iter()
-                    .map(|node| node.tick(state))
-                    .find(|result| result.is_err());
+                    .map(|node| (node, node.tick(state)))
+                    .find(|(_node, result)| result.is_err());
                 if let Some(found) = found {
-                    Err(format!("Task failure in selector {:?}", found.unwrap_err()))?;
+                    Err(format!(
+                        "Task failure in selector {:?} {:?}",
+                        found.1, found.0
+                    ))?;
                 }
                 Ok(())
             }
 
             Control::Sequence(nodes) => {
-                let found = nodes.iter().any(|node| node.tick(state).is_ok());
+                let found = nodes.iter().any(|node| {
+                    let result = node.tick(state);
+                    debug!("Task result in sequence {:?} {:?}", node, result);
+                    result.is_ok()
+                });
                 if found {
                     Ok(())
                 } else {
-                    Err("All tasks failed in sequence".into())
+                    Err(format!("All tasks failed in {}", &self))
                 }
             }
         }
@@ -126,3 +154,4 @@ mod tests {
         assert_eq!(state.results, "cdba");
     }
 }
+

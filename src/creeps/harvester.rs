@@ -22,9 +22,9 @@ pub fn run<'a>(creep: &'a Creep) -> Task<'a, GameState> {
     trace!("Running harvester {}", creep.name());
 
     let tasks = [
-        Task::new(move |state| attempt_harvest(state, creep, None)),
-        Task::new(move |state| unload(state, &creep)),
-        Task::new(move |state| attempt_harvest(state, creep, None)),
+        Task::new(move |state| attempt_harvest(state, creep, None)).with_name("Attempt harvest"),
+        Task::new(move |state| unload(state, &creep)).with_name("Attempt unload"),
+        Task::new(move |state| attempt_harvest(state, creep, None)).with_name("Attempt harvest"),
     ]
     .into_iter()
     .cloned()
@@ -54,8 +54,10 @@ pub fn unload<'a>(state: &'a mut GameState, creep: &'a Creep) -> ExecutionResult
     })?;
 
     let tasks = [
-        Task::new(|_| try_transfer::<StructureContainer>(creep, &target)),
-        Task::new(|_| try_transfer::<StructureSpawn>(creep, &target)),
+        Task::new(|_| try_transfer::<StructureContainer>(creep, &target))
+            .with_name("Try transfer container"),
+        Task::new(|_| try_transfer::<StructureSpawn>(creep, &target))
+            .with_name("Try transfer spawn"),
     ]
     .into_iter()
     .cloned()
@@ -75,8 +77,8 @@ fn find_unload_target<'a>(state: &'a mut GameState, creep: &'a Creep) -> Option<
 
     read_unload_target(state, creep).or_else(|| {
         let tasks = [
-            Task::new(|state| find_container(state, creep)),
-            Task::new(|state| find_spawn(state, creep)),
+            Task::new(|state| find_container(state, creep)).with_name("Find container"),
+            Task::new(|state| find_spawn(state, creep)).with_name("Find spawn"),
         ]
         .into_iter()
         .cloned()
@@ -271,3 +273,4 @@ fn harvester_count(state: &mut GameState) -> HashMap<String, i32> {
     });
     result
 }
+

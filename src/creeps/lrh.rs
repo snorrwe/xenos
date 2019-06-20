@@ -14,9 +14,9 @@ pub fn run<'a>(creep: &'a Creep) -> Task<'a, GameState> {
     trace!("Running long_range_harvester");
 
     let tasks = [
-        Task::new(move |state| load(state, creep)),
-        Task::new(move |state| unload(state, creep)),
-        Task::new(move |state| harvester::unload(state, creep)),
+        Task::new(move |state| load(state, creep)).with_name("Load"),
+        Task::new(move |state| unload(state, creep)).with_name("Unload"),
+        Task::new(move |state| harvester::unload(state, creep)).with_name("Harvester unload"),
     ]
     .into_iter()
     .cloned()
@@ -41,13 +41,16 @@ fn load<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResult {
             Err("full")?;
         }
         let tasks = [
-            Task::new(move |state| approach_target_room(state, creep, HARVEST_TARGET_ROOM)),
-            Task::new(move |state| set_target_room(state, creep)),
+            Task::new(move |state| approach_target_room(state, creep, HARVEST_TARGET_ROOM))
+                .with_name("Approach target room"),
+            Task::new(move |state| set_target_room(state, creep)).with_name("Set target room"),
             Task::new(move |state| {
                 update_scout_info(state, creep)?;
                 Err("continue")?
-            }),
-            Task::new(move |state| harvester::attempt_harvest(state, creep, Some(TARGET))),
+            })
+            .with_name("Update scout info"),
+            Task::new(move |state| harvester::attempt_harvest(state, creep, Some(TARGET)))
+                .with_name("Attempt harvest"),
         ]
         .into_iter()
         .cloned()
@@ -158,8 +161,9 @@ fn unload<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResult {
             Err("empty")?;
         }
         let tasks = [
-            Task::new(move |state| approach_target_room(state, creep, HOME_ROOM)),
-            Task::new(move |state| gofer::attempt_unload(state, creep)),
+            Task::new(move |state| approach_target_room(state, creep, HOME_ROOM))
+                .with_name("Approach target room"),
+            Task::new(move |state| gofer::attempt_unload(state, creep)).with_name("Attempt unload"),
         ]
         .into_iter()
         .cloned()
@@ -169,3 +173,4 @@ fn unload<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResult {
     };
     tree.tick(state)
 }
+

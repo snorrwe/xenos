@@ -17,19 +17,22 @@ pub fn run<'a>(creep: &'a Creep) -> Task<'a, GameState> {
                 error!("Failed to update scout info {:?}", e);
             });
             Err("continue")?
-        }),
-        Task::new(move |state| claim_target(state, creep)),
-        Task::new(move |state| set_target(state, creep)),
-        Task::new(move |state| attempt_build(state, creep)),
-        Task::new(move |state| attempt_harvest(state, creep, None)),
-        Task::new(move |state| reset_target(state, creep)),
+        })
+        .with_name("Update scout info"),
+        Task::new(move |state| claim_target(state, creep)).with_name("Claim target"),
+        Task::new(move |state| set_target(state, creep)).with_name("Set target"),
+        Task::new(move |state| attempt_build(state, creep)).with_name("Attempt build"),
+        Task::new(move |state| attempt_harvest(state, creep, None)).with_name("Attempt harvest"),
+        Task::new(move |state| reset_target(state, creep)).with_name("Reset target"),
     ]
     .into_iter()
     .cloned()
     .collect();
 
     let tree = Control::Sequence(tasks);
-    Task::new(move |state| tree.tick(state)).with_required_bucket(300)
+    Task::new(move |state| tree.tick(state))
+        .with_required_bucket(300)
+        .with_name("Conqueror")
 }
 
 fn reset_target<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResult {
@@ -128,3 +131,4 @@ fn set_target<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResult {
 
     Ok(())
 }
+

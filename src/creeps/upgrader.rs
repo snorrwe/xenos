@@ -9,10 +9,10 @@ pub fn run<'a>(creep: &'a Creep) -> Task<'a, GameState> {
     trace!("Running upgrader {}", creep.name());
 
     let tasks = [
-        Task::new(move |state| attempt_upgrade(state, creep)),
-        Task::new(move |state| pickup_energy(state, creep)),
-        Task::new(move |state| withdraw_energy(state, creep)),
-        Task::new(move |state| attempt_upgrade(state, creep)),
+        Task::new(move |state| attempt_upgrade(state, creep)).with_name("Attempt upgrade"),
+        Task::new(move |state| pickup_energy(state, creep)).with_name("Pickup energy"),
+        Task::new(move |state| withdraw_energy(state, creep)).with_name("Withdraw energy"),
+        Task::new(move |state| attempt_upgrade(state, creep)).with_name("Attempt upgrade"),
     ]
     .into_iter()
     .cloned()
@@ -49,3 +49,4 @@ pub fn attempt_upgrade<'a>(state: &mut GameState, creep: &'a Creep) -> Execution
         }
     }
 }
+

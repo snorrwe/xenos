@@ -1,4 +1,5 @@
 use super::*;
+use std::fmt::{Debug, Display, Formatter};
 use std::ops::Fn;
 use std::rc::Rc;
 
@@ -21,7 +22,31 @@ where
     /// Priority of the task, defaults to 0
     /// Higher value means higher priority
     pub priority: i8,
+    pub name: &'a str,
+
     task: Rc<Fn(&mut T) -> ExecutionResult + 'a>,
+}
+
+impl<'a, T> Display for Task<'a, T>
+where
+    T: TaskInput,
+{
+    fn fmt(&self, f: &mut Formatter) -> Result<(), std::fmt::Error> {
+        write!(f, "Task {}", self.name)
+    }
+}
+
+impl<'a, T> Debug for Task<'a, T>
+where
+    T: TaskInput,
+{
+    fn fmt(&self, f: &mut Formatter) -> Result<(), std::fmt::Error> {
+        write!(
+            f,
+            "Task {:?} required_bucket: {:?} priority: {:?}",
+            self.name, self.required_bucket, self.priority
+        )
+    }
 }
 
 impl<'a, T> Task<'a, T>
@@ -36,7 +61,13 @@ where
             task: Rc::new(task),
             required_bucket: None,
             priority: 0,
+            name: "UNNAMED_TASK",
         }
+    }
+
+    pub fn with_name(mut self, name: &'a str) -> Self {
+        self.name = name;
+        self
     }
 
     #[allow(dead_code)]
@@ -79,3 +110,4 @@ where
         })
     }
 }
+

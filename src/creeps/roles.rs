@@ -103,5 +103,6 @@ pub fn run_role<'a>(role: Role, creep: &'a Creep) -> Task<'a, GameState> {
             error
         })
     })
+    .with_name("Run role")
 }
 
