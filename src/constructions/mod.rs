@@ -266,6 +266,8 @@ fn build_structures<'a>(room: &'a Room, state: &'a mut ConstructionState) -> Exe
     };
 
     if spawn.is_null() {
+        let construction_matrices = &mut state.construction_matrices;
+        construction_matrices.remove(&room.name());
         let e = Err(format!("No spawn in room {}", &room.name()));
         debug!("{:?}", e);
         e?;

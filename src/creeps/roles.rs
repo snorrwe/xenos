@@ -1,5 +1,5 @@
 pub use super::spawn_info::*;
-use super::{conqueror, gofer, harvester, lrh, upgrader, worker};
+use super::{conqueror, gofer, harvester, lrh, upgrader, worker, lrw};
 use crate::prelude::*;
 use screeps::objects::{Creep, Room};
 use std::fmt::{self, Display, Formatter};
@@ -14,6 +14,7 @@ pub enum Role {
     Gofer = 4,
     Lrh = 5,
     Conqueror = 6,
+    Lrw = 7,
 }
 
 impl From<u8> for Role {
@@ -26,6 +27,7 @@ impl From<u8> for Role {
             4 => Role::Gofer,
             5 => Role::Lrh,
             6 => Role::Conqueror,
+            7 => Role::Lrw,
             _ => unimplemented!("Role {} is not unimplemented!", item),
         }
     }
@@ -40,6 +42,7 @@ impl Display for Role {
             Role::Worker => "Worker",
             Role::Gofer => "Gofer",
             Role::Lrh => "Lrh",
+            Role::Lrw => "Lrw",
             Role::Conqueror => "Conqueror",
         };
         write!(f, "{}", name)?;
@@ -93,12 +96,13 @@ pub fn run_role<'a>(role: Role, creep: &'a Creep) -> Task<'a, GameState> {
         Role::Gofer => gofer::run(creep),
         Role::Conqueror => conqueror::run(creep),
         Role::Lrh => lrh::run(creep),
+        Role::Lrw => lrw::run(creep),
         _ => unimplemented!(),
     };
 
     Task::new(move |state| {
         task.tick(state).map_err(|e| {
-            let error = format!("Creep {} is idle: {:?}", creep.name(), e);
+            let error = format!("Creep {} is idle: {}", creep.name(), e);
             warn!("{}", error);
             error
         })

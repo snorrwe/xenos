@@ -5,6 +5,7 @@ mod conqueror;
 mod gofer;
 mod harvester;
 mod lrh;
+mod lrw;
 mod repairer;
 mod upgrader;
 mod worker;
@@ -396,5 +397,39 @@ pub fn update_scout_info(state: &mut GameState, creep: &Creep) -> ExecutionResul
     state.scout_intel.insert(room.name(), info);
 
     Ok(())
+}
+
+/// target_key is a memory entry key
+pub fn approach_target_room<'a>(
+    state: &mut GameState,
+    creep: &'a Creep,
+    target_key: &str,
+) -> ExecutionResult {
+    let target = state
+        .creep_memory_string(CreepName(&creep.name()), target_key)
+        .ok_or("no target")?;
+
+    let room = creep.room();
+    let room_name = room.name();
+
+    if room_name == target {
+        Err("Already in the target room")?;
+    }
+
+    let result = js! {
+        const creep = @{creep};
+        const room = @{target};
+        const exitDir = creep.room.findExitTo(room);
+        const exit = creep.pos.findClosestByRange(exitDir);
+        return creep.moveTo(exit);
+    };
+
+    let result =
+        ReturnCode::try_from(result).map_err(|e| format!("Failed to parse return code {:?}", e))?;
+
+    match result {
+        ReturnCode::NoPath | ReturnCode::InvalidTarget => Err("Failed to move".to_owned()),
+        _ => Ok(()),
+    }
 }
 

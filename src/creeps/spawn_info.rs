@@ -25,6 +25,7 @@ pub fn role_priority<'a>(_room: &'a Room, role: Role) -> i8 {
         Role::Worker => 1,
         Role::Lrh => -1,
         Role::Conqueror => -2,
+        Role::Lrw => -3,
         _ => 0,
     }
 }
@@ -59,7 +60,7 @@ pub fn target_number_of_role_in_room<'a>(role: Role, room: &'a Room) -> i8 {
     let n_containers = n_containers as i8;
     let n_constructions = (room.find(find::CONSTRUCTION_SITES).len()) as i8;
     const UPGRADER_COUNT: i8 = 1;
-    const WORKER_COUNT: i8 = 2;
+    const WORKER_COUNT: i8 = 1;
     match role {
         Role::Upgrader => n_containers.min(UPGRADER_COUNT),
         Role::Harvester => n_sources,
@@ -71,9 +72,10 @@ pub fn target_number_of_role_in_room<'a>(role: Role, room: &'a Room) -> i8 {
                 target_workers + UPGRADER_COUNT
             }
         }
-        Role::Conqueror => n_flags * 2, // TODO: make the closest room spawn it
-        Role::Lrh => level as i8,       // TODO: scale with avialable rooms
+        Role::Conqueror => n_flags, // TODO: make the closest room spawn it
+        Role::Lrh => level as i8,   // TODO: scale with avialable rooms
         Role::Gofer => n_sources.min(n_containers as i8),
+        Role::Lrw => n_flags * 2,
         _ => unimplemented!(),
     }
 }
@@ -101,7 +103,7 @@ fn basic_role_parts<'a>(_room: &Room, role: Role) -> BodyCollection {
         .into_iter(),
         Role::Gofer => [Part::Move, Part::Carry].into_iter().into_iter(),
         Role::Lrh => [Part::Move, Part::Move, Part::Carry, Part::Work].into_iter(),
-        Role::Upgrader | Role::Worker => {
+        Role::Upgrader | Role::Worker | Role::Lrw => {
             [Part::Move, Part::Move, Part::Carry, Part::Work].into_iter()
         }
         Role::Unknown => [].into_iter(),
@@ -137,7 +139,9 @@ fn role_part_max(room: &Room, role: Role) -> Option<usize> {
 
     let result = match role {
         Role::Harvester => Some(8),
-        Role::Lrh | Role::Worker | Role::Upgrader | Role::Conqueror => Some(worker_count),
+        Role::Lrw | Role::Lrh | Role::Worker | Role::Upgrader | Role::Conqueror => {
+            Some(worker_count)
+        }
         Role::Gofer => Some((worker_count as f32 * 1.5) as usize),
         Role::Unknown => None,
     };

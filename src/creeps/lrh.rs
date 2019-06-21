@@ -2,11 +2,11 @@
 //! Harvest energy from foreign rooms and move it back to the owning room
 //!
 
-use super::{gofer, harvester, update_scout_info, HOME_ROOM, TARGET};
+use super::{approach_target_room, gofer, harvester, update_scout_info, HOME_ROOM, TARGET};
 use crate::game_state::RoomIFF;
 use crate::prelude::*;
 use crate::rooms::neighbours;
-use screeps::{objects::Creep, prelude::*, traits::TryFrom, ReturnCode};
+use screeps::{objects::Creep, prelude::*};
 
 const HARVEST_TARGET_ROOM: &'static str = "harvest_target_room";
 
@@ -59,39 +59,6 @@ fn load<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResult {
         Control::Sequence(tasks)
     };
     tree.tick(state)
-}
-
-fn approach_target_room<'a>(
-    state: &mut GameState,
-    creep: &'a Creep,
-    target_key: &str,
-) -> ExecutionResult {
-    let target = state
-        .creep_memory_string(CreepName(&creep.name()), target_key)
-        .ok_or("no target")?;
-
-    let room = creep.room();
-    let room_name = room.name();
-
-    if room_name == target {
-        Err("Already in the target room")?;
-    }
-
-    let result = js! {
-        const creep = @{creep};
-        const room = @{target};
-        const exitDir = creep.room.findExitTo(room);
-        const exit = creep.pos.findClosestByRange(exitDir);
-        return creep.moveTo(exit);
-    };
-
-    let result =
-        ReturnCode::try_from(result).map_err(|e| format!("Failed to parse return code {:?}", e))?;
-
-    match result {
-        ReturnCode::NoPath | ReturnCode::InvalidTarget => Err("Failed to move".to_owned()),
-        _ => Ok(()),
-    }
 }
 
 fn set_target_room<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResult {
