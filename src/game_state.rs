@@ -220,7 +220,7 @@ impl GameState {
     fn count_roles_in_room(&self, room: &Room) -> HashMap<Role, i8> {
         let mut result = Role::all_roles()
             .into_iter()
-            .map(|x| (*x, 0))
+            .map(|x| (x, 0))
             .collect::<HashMap<_, _>>();
 
         self.creep_memory

@@ -1,6 +1,7 @@
 pub use super::spawn_info::*;
-use super::{conqueror, gofer, harvester, lrh, upgrader, worker, lrw};
+use super::{conqueror, gofer, harvester, lrh, lrw, upgrader, worker};
 use crate::prelude::*;
+use arrayvec::ArrayVec;
 use screeps::objects::{Creep, Room};
 use std::fmt::{self, Display, Formatter};
 
@@ -50,10 +51,19 @@ impl Display for Role {
     }
 }
 
+type RoleArray = [Role; 7];
 impl Role {
-    pub fn all_roles() -> &'static [Self] {
+    pub fn all_roles() -> ArrayVec<RoleArray> {
         use self::Role::*;
-        &[Upgrader, Harvester, Worker, Gofer, Lrh, Conqueror]
+        const ROLES: RoleArray = [Upgrader, Harvester, Worker, Gofer, Lrh, Conqueror, Lrw];
+        ROLES
+            .into_iter()
+            // Trigger compilation error on a new role if it's missing
+            .filter_map(|r| match r {
+                Upgrader | Harvester | Worker | Gofer | Lrh | Conqueror | Lrw => Some(*r),
+                Unknown => None,
+            })
+            .collect()
     }
 }
 
