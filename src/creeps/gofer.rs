@@ -3,10 +3,10 @@
 use super::{move_to, pickup_energy, TARGET};
 use crate::prelude::*;
 use screeps::{
-    constants::{find, ResourceType},
+    constants::ResourceType,
     game::{get_object_erased, get_object_typed},
     objects::{
-        Creep, Structure, StructureContainer, StructureExtension, StructureSpawn, StructureStorage,
+        Creep, StructureContainer, StructureExtension, StructureSpawn, StructureStorage,
         StructureTower, Transferable,
     },
     prelude::*,
@@ -134,18 +134,16 @@ where
 }
 
 fn find_storage<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResult {
-    let res = creep.room().find(find::STRUCTURES).into_iter().find(|s| {
-        if let Structure::Storage(s) = s {
-            s.store_total() < s.store_capacity()
-        } else {
-            false
-        }
-    });
-    if let Some(res) = res {
-        state
-            .creep_memory_entry(CreepName(&creep.name()))
-            .insert(TARGET.into(), res.id().into());
+    let storage = creep
+        .room()
+        .storage()
+        .ok_or_else(|| format!("No storage in room {:?}", creep.room().name()))?;
+    if storage.store_total() == storage.store_capacity() {
+        Err("Storage is full")?;
     }
+    state
+        .creep_memory_entry(CreepName(&creep.name()))
+        .insert(TARGET.into(), storage.id().into());
     Ok(())
 }
 
