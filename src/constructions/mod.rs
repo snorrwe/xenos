@@ -204,7 +204,7 @@ pub fn task<'a>() -> Task<'a, GameState> {
         let rooms = screeps::game::rooms::values();
         let len = rooms.len() as u32;
 
-        if time % (len * 10) > len {
+        if time % (len * 3) > len {
             Err("Skipping constructions task")?;
         }
 
