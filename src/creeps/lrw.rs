@@ -21,7 +21,7 @@ pub fn run<'a>(creep: &'a Creep) -> Task<'a, GameState> {
         Task::new(move |state| approach_target_room(state, creep))
             .with_name("Approach target room"),
         Task::new(move |state| set_target(state, creep)).with_name("Set target"),
-        worker::run(creep),
+        worker::run(creep).with_name("Worker run"),
     ]
     .into_iter()
     .cloned()
