@@ -17,29 +17,19 @@ use stdweb::unstable::TryFrom;
 pub const CONSTRUCTION_SEGMENT: u32 = 2;
 
 #[derive(Debug, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Copy)]
-pub struct Pos {
-    pub x: u16,
-    pub y: u16,
-}
+pub struct Pos(u16, u16);
 
 impl From<RoomPosition> for Pos {
     fn from(pos: RoomPosition) -> Self {
-        Self {
-            x: pos.x() as u16,
-            y: pos.y() as u16,
-        }
+        Self(pos.x() as u16, pos.y() as u16)
     }
 }
 
 impl Pos {
-    pub fn new(x: u16, y: u16) -> Self {
-        Self { x: x, y: y }
-    }
-
     #[allow(dead_code)]
     pub fn valid_neighbours(&self) -> ArrayVec<[Self; 8]> {
-        let x = self.x as i16;
-        let y = self.y as i16;
+        let x = self.0 as i16;
+        let y = self.1 as i16;
         [
             (x + 1, y + 0),
             (x - 1, y + 0),
@@ -56,7 +46,7 @@ impl Pos {
             let y = *y;
             1 <= x && x <= 48 && 1 <= y && y <= 48
         })
-        .map(|(x, y)| Self::new(*x as u16, *y as u16))
+        .map(|(x, y)| Self(*x as u16, *y as u16))
         .collect()
     }
 }
@@ -105,7 +95,7 @@ impl ConstructionMatrix {
                 pos,
                 room.name()
             );
-            let pos = RoomPosition::new(pos.x as u32, pos.y as u32, &room.name());
+            let pos = RoomPosition::new(pos.0 as u32, pos.1 as u32, &room.name());
             let result = room.create_construction_site(&pos, *ty);
             match result {
                 ReturnCode::InvalidTarget | ReturnCode::Ok => {
@@ -140,26 +130,26 @@ impl ConstructionMatrix {
                 .filter(|p| !done.contains(p)),
         );
 
-        let x = pos.x * 3;
-        let y = pos.y * 3;
+        let x = pos.0 * 3;
+        let y = pos.1 * 3;
 
         #[rustfmt::skip]
         let tile = [
-            Pos::new(x + 0, y + 0), Pos::new(x + 1, y + 0), Pos::new(x + 2, y + 0),
-            Pos::new(x + 0, y + 1), Pos::new(x + 1, y + 1), Pos::new(x + 2, y + 1),
-            Pos::new(x + 0, y + 2), Pos::new(x + 1, y + 2), Pos::new(x + 2, y + 2),
+            Pos(x + 0, y + 0), Pos(x + 1, y + 0), Pos(x + 2, y + 0),
+            Pos(x + 0, y + 1), Pos(x + 1, y + 1), Pos(x + 2, y + 1),
+            Pos(x + 0, y + 2), Pos(x + 1, y + 2), Pos(x + 2, y + 2),
         ];
 
         let room_name = room.name();
 
-        let parity = (pos.x + pos.y) % 2;
+        let parity = (pos.0 + pos.1) % 2;
         // Push either + or × pattern depending on the parity of the tile
         let n_free = tile
             .iter()
             .enumerate()
             .filter(|(i, _)| *i != 4) // Skip the middle
-            .filter(|(_, p)| (p.x + p.y) % 2 != parity)
-            .filter(|(_, p)| is_free(room, &RoomPosition::new(p.x as u32, p.y as u32, &room_name)))
+            .filter(|(_, p)| (p.0 + p.1) % 2 != parity)
+            .filter(|(_, p)| is_free(room, &RoomPosition::new(p.0 as u32, p.1 as u32, &room_name)))
             .count();
 
         if n_free >= 3 {
@@ -173,7 +163,7 @@ impl ConstructionMatrix {
                     .enumerate()
                     .filter(|(i, _)| *i as u16 % 2 == parity)
                     .filter(|(_, p)| {
-                        is_free(room, &RoomPosition::new(p.x as u32, p.y as u32, &room_name))
+                        is_free(room, &RoomPosition::new(p.1 as u32, p.1 as u32, &room_name))
                     })
                     .map(|(_, p)| *p),
             );
@@ -183,15 +173,12 @@ impl ConstructionMatrix {
     }
 
     fn as_matrix_top_left(pos: Pos) -> Pos {
-        Pos {
-            x: pos.x / 3,
-            y: pos.y / 3,
-        }
+        Pos(pos.0 / 3, pos.1 / 3)
     }
 
     fn valid_neighbouring_tiles(pos: Pos) -> ArrayVec<[Pos; 8]> {
-        let x = pos.x as i16;
-        let y = pos.y as i16;
+        let x = pos.0 as i16;
+        let y = pos.1 as i16;
         [
             (x + 1, y + 0),
             (x - 1, y + 0),
@@ -204,7 +191,7 @@ impl ConstructionMatrix {
         ]
         .into_iter()
         .filter(|(x, y)| 0 <= *x && *x <= 16 && 0 <= *y && *y <= 16)
-        .map(|(x, y)| Pos::new(*x as u16, *y as u16))
+        .map(|(x, y)| Pos(*x as u16, *y as u16))
         .collect()
     }
 }
