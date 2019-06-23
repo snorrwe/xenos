@@ -1,7 +1,7 @@
 use crate::creeps::roles::Role;
 use crate::creeps::{CreepExecutionStats, CREEP_ROLE, HOME_ROOM};
 use crate::prelude::*;
-use screeps::{game, raw_memory, Room};
+use screeps::{raw_memory, Room};
 use serde_json::{self, Map, Value};
 use std::collections::HashMap;
 
@@ -14,11 +14,6 @@ pub struct GameState {
     #[serde(skip_serializing)]
     #[serde(default)]
     pub cpu_bucket: Option<i16>,
-
-    /// Lazily countable global conqueror creep count
-    #[serde(skip_serializing)]
-    #[serde(default)]
-    pub conqueror_count: Option<i8>,
 
     /// Count creeps in rooms
     /// Structure: room -> role -> n
@@ -138,16 +133,6 @@ impl GameState {
         self.creep_count_by_room.get_mut(&name).unwrap()
     }
 
-    /// Lazily computes the global number of conqueror creeps
-    pub fn global_conqueror_count(&mut self) -> i8 {
-        self.conqueror_count.unwrap_or_else(|| {
-            // Lazily count conquerors
-            let count = self.count_conquerors();
-            self.conqueror_count = Some(count);
-            count
-        })
-    }
-
     /// Get an entry in the creep's memory
     /// Inserts and empty map in the creep's name if none is found
     pub fn creep_memory_entry(&mut self, name: CreepName) -> &mut serde_json::Map<String, Value> {
@@ -207,14 +192,6 @@ impl GameState {
         info!("Cleaned up memory");
 
         Ok(())
-    }
-
-    pub fn count_conquerors(&self) -> i8 {
-        game::creeps::values()
-            .into_iter()
-            .filter_map(|creep| self.creep_memory_i64(CreepName(&creep.name()), CREEP_ROLE))
-            .filter(|role| Role::from(*role as u8) == Role::Conqueror)
-            .count() as i8
     }
 
     fn count_roles_in_room(&self, room: &Room) -> HashMap<Role, i8> {

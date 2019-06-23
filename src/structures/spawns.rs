@@ -48,11 +48,6 @@ fn run_spawn<'a>(state: &'a mut GameState, spawn: &'a StructureSpawn) -> Executi
 
     spawn_creep(state, &spawn, next_role)?;
 
-    match next_role {
-        Role::Conqueror => *state.conqueror_count.as_mut().unwrap() += 1,
-        _ => {}
-    }
-
     Ok(())
 }
 
@@ -126,3 +121,4 @@ fn spawn_creep(state: &mut GameState, spawn: &StructureSpawn, role: Role) -> Exe
     }
     Ok(())
 }
+

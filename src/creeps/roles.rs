@@ -70,13 +70,9 @@ impl Role {
 // TODO: return an array of all roles to spawn in order of priority
 /// Get the next target role in the given room
 pub fn next_role<'a>(state: &'a mut GameState, room: &'a Room) -> Option<Role> {
-    let conqueror_count = state.global_conqueror_count();
-    let counts = state.count_creeps_in_room(room);
-    counts.insert(Role::Conqueror, conqueror_count);
-
-    counts
-        .into_iter()
-        .fold(None, |result: Option<Role>, (role, actual)| {
+    state.count_creeps_in_room(room).into_iter().fold(
+        None,
+        |result: Option<Role>, (role, actual)| {
             let expected = target_number_of_role_in_room(*role, room);
             if expected <= *actual {
                 return result;
@@ -92,7 +88,8 @@ pub fn next_role<'a>(state: &'a mut GameState, room: &'a Room) -> Option<Role> {
                     }
                 })
                 .or_else(|| Some(*role))
-        })
+        },
+    )
 }
 
 /// Run the creep according to the given role
