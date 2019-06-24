@@ -1,14 +1,13 @@
 use super::bt::*;
 use super::constructions;
 use super::creeps;
+use super::flags;
 use super::structures::{spawns, towers};
 use crate::game_state::GameState;
+use crate::{MAIN_SEGMENT, STATISTICS_SEGMENT};
 use log::Level::Info;
 use screeps::raw_memory;
 use stdweb::unstable::TryFrom;
-
-const MAIN_SEGMENT: u32 = 0;
-const STATISTICS_SEGMENT: u32 = 1;
 
 pub fn game_loop() {
     debug!("Loop starting! CPU: {}", screeps::game::cpu::get_used());
@@ -70,6 +69,9 @@ fn run_game_logic(state: &mut GameState) {
     constructions::task()
         .tick(state)
         .unwrap_or_else(|e| warn!("Failed to run constructions {:?}", e));
+    flags::task()
+        .tick(state)
+        .unwrap_or_else(|e| warn!("Failed to run flags {:?}", e));
 
     if screeps::game::time() % 16 == 0 {
         state.cleanup_memory().unwrap_or_else(|e| {

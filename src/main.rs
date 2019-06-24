@@ -13,6 +13,7 @@ extern crate serde_json;
 mod bt;
 mod constructions;
 mod creeps;
+mod flags;
 mod game_loop;
 mod game_state;
 mod logging;
@@ -21,6 +22,17 @@ mod rooms;
 mod structures;
 
 use game_loop::game_loop;
+use screeps::raw_memory;
+
+pub const MAIN_SEGMENT: u32 = 0;
+pub const STATISTICS_SEGMENT: u32 = 1;
+pub const CONSTRUCTIONS_SEGMENT: u32 = 2;
+
+/// Run initialisation tasks
+/// These are only called on script restart!
+fn initialize() {
+    raw_memory::set_active_segments(&[MAIN_SEGMENT, STATISTICS_SEGMENT, CONSTRUCTIONS_SEGMENT]);
+}
 
 fn main() {
     stdweb::initialize();
@@ -28,6 +40,9 @@ fn main() {
 
     js! {
         const game_loop = @{game_loop};
+        const initialize = @{initialize};
+
+        initialize();
 
         module.exports.loop = function() {
             try {
@@ -38,7 +53,6 @@ fn main() {
                     return;
                 }
 
-                // Run the game logic
                 game_loop();
 
             } catch (error) {
@@ -58,3 +72,4 @@ fn main() {
         }
     }
 }
+

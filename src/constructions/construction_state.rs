@@ -1,6 +1,7 @@
 use super::ConstructionMatrix;
 use screeps::raw_memory;
 use std::collections::HashMap;
+use crate::CONSTRUCTIONS_SEGMENT;
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct ConstructionState {
@@ -23,7 +24,7 @@ impl Drop for ConstructionState {
         }
         debug!("Saving GameState");
 
-        let segment = self.memory_segment.unwrap_or(2);
+        let segment = self.memory_segment.unwrap_or(CONSTRUCTIONS_SEGMENT as u8);
 
         match serde_json::to_string(self) {
             Ok(data) => {
