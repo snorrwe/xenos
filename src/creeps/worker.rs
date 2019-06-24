@@ -76,9 +76,10 @@ fn get_build_target(state: &mut GameState, creep: &Creep) -> Option<Construction
         .creep_memory_string(CreepName(&creep.name()), TARGET)
         .and_then(|id| get_object_typed(id).unwrap_or(None))
         .or_else(|| {
-            creep
-                .pos()
-                .find_closest_by_range(find::MY_CONSTRUCTION_SITES)
+            let sites = creep.room().find(find::MY_CONSTRUCTION_SITES);
+            sites
+                .into_iter()
+                .min_by_key(|s| s.progress_total() - s.progress())
                 .ok_or_else(|| debug!("Could not find a build target"))
                 .map(|site| {
                     let memory = state.creep_memory_entry(CreepName(&creep.name()));
