@@ -14,10 +14,13 @@ pub fn task<'a>() -> Task<'a, GameState> {
     let tasks = flags
         .into_iter()
         .map(|flag| {
+            let name = flag.name();
+            let name = format!("Flag {}", name);
             Task::new(move |_game_state| {
                 check_controller(&flag)?;
-                Ok(())
+                Err("continue".to_owned())
             })
+            .with_name(&name)
         })
         .collect();
     let seq = Control::Sequence(tasks);

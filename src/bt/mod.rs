@@ -39,9 +39,9 @@ where
     T: TaskInput,
 {
     fn fmt(&self, f: &mut Formatter) -> Result<(), std::fmt::Error> {
-        let tasks: ArrayVec<[&'a str; MAX_TASK_PER_CONTROL]> = match self {
+        let tasks: ArrayVec<[&TName; MAX_TASK_PER_CONTROL]> = match self {
             Control::Selector(tasks) | Control::Sequence(tasks) => {
-                tasks.iter().map(|t| t.name).collect()
+                tasks.iter().map(|t| &t.name).collect()
             }
         };
         let name = match self {
@@ -89,16 +89,13 @@ where
                 } else {
                     let mut error_str = String::with_capacity(512);
                     for (i, error) in errors.iter().enumerate() {
-                        let name = nodes[i].name;
+                        let name = &nodes[i].name;
                         write!(&mut error_str, "{}: {}\n", name, error).map_err(|e| {
                             error!("Failed to write to error string, aborting {:?}", e);
                             "Debug info write failure"
                         })?;
                     }
-                    Err(format!(
-                        "All tasks failed in Sequence node\n{}",
-                        error_str
-                    ))
+                    Err(format!("All tasks failed in Sequence node\n{}", error_str))
                 }
             }
         }

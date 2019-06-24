@@ -1,7 +1,12 @@
 use super::*;
+use arrayvec::ArrayString;
 use std::fmt::{Debug, Display, Formatter};
 use std::ops::Fn;
 use std::rc::Rc;
+
+pub const MAX_NAME_LENGTH: usize = 48;
+
+pub type TName = Box<ArrayString<[u8; MAX_NAME_LENGTH]>>;
 
 /// Input to a Task
 pub trait TaskInput: std::fmt::Debug {
@@ -16,15 +21,15 @@ pub struct Task<'a, T>
 where
     T: TaskInput,
 {
+    task: Rc<Fn(&mut T) -> ExecutionResult + 'a>,
+
     /// How much "cpu bucket" is required for the task to execute
     /// Useful for turning off tasks when the bucket falls below a threshold
-    pub required_bucket: Option<i16>,
+    pub required_bucket: i16,
     /// Priority of the task, defaults to 0
     /// Higher value means higher priority
     pub priority: i8,
-    pub name: &'a str,
-
-    task: Rc<Fn(&mut T) -> ExecutionResult + 'a>,
+    pub name: TName,
 }
 
 impl<'a, T> Display for Task<'a, T>
@@ -59,14 +64,23 @@ where
     {
         Self {
             task: Rc::new(task),
-            required_bucket: None,
+            required_bucket: -1,
             priority: 0,
-            name: "UNNAMED_TASK",
+            name: Box::new(ArrayString::from("UNNAMED_TASK").unwrap()),
         }
     }
 
-    pub fn with_name(mut self, name: &'a str) -> Self {
-        self.name = name;
+    pub fn with_name(mut self, name: &str) -> Self {
+        self.name.clear();
+        self.name
+            .try_push_str(name)
+            .map_err(|_| {
+                error!(
+                    "Name {:?} is too long, max capacity is {}",
+                    name, MAX_NAME_LENGTH
+                );
+            })
+            .unwrap_or(());
         self
     }
 
@@ -77,20 +91,19 @@ where
     }
 
     pub fn with_required_bucket(mut self, bucket: i16) -> Self {
-        self.required_bucket = Some(bucket);
+        self.required_bucket = bucket;
         self
     }
 
     fn assert_pre_requisites(&self, state: &mut T) -> ExecutionResult {
-        if self
-            .required_bucket
-            .and_then(|rb| state.cpu_bucket().map(|cb| cb < rb))
+        if state
+            .cpu_bucket()
+            .map(|cb| cb < self.required_bucket)
             .unwrap_or(false)
         {
-            let required_bucket = self.required_bucket.unwrap();
             let message = format!(
                 "Task bucket requirement not met. Required: {:?}",
-                required_bucket
+                self.required_bucket
             );
             Err(message)?;
         }

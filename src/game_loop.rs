@@ -59,19 +59,19 @@ pub fn game_loop() {
 fn run_game_logic(state: &mut GameState) {
     creeps::task()
         .tick(state)
-        .unwrap_or_else(|e| warn!("Failed to run creeps {:?}", e));
+        .unwrap_or_else(|e| warn!("Failed to run creeps {}", e));
     towers::task()
         .tick(state)
-        .unwrap_or_else(|e| warn!("Failed to run towers {:?}", e));
+        .unwrap_or_else(|e| warn!("Failed to run towers {}", e));
     spawns::task()
         .tick(state)
-        .unwrap_or_else(|e| warn!("Failed to run spawns {:?}", e));
+        .unwrap_or_else(|e| warn!("Failed to run spawns {}", e));
     constructions::task()
         .tick(state)
-        .unwrap_or_else(|e| warn!("Failed to run constructions {:?}", e));
+        .unwrap_or_else(|e| warn!("Failed to run constructions {}", e));
     flags::task()
         .tick(state)
-        .unwrap_or_else(|e| warn!("Failed to run flags {:?}", e));
+        .unwrap_or_else(|e| warn!("Failed to run flags {}", e));
 
     if screeps::game::time() % 16 == 0 {
         state.cleanup_memory().unwrap_or_else(|e| {
