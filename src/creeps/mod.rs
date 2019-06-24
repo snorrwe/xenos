@@ -355,7 +355,7 @@ pub fn harvest<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResult {
 pub fn find_repair_target<'a>(room: &'a Room) -> Option<Structure> {
     trace!("Finding repair target in room {:?}", room.name());
 
-    let result = js! {
+    let candidates = js! {
         const room = @{room};
         return room.find(FIND_STRUCTURES, {
             filter: s => {
@@ -366,9 +366,19 @@ pub fn find_repair_target<'a>(room: &'a Room) -> Option<Structure> {
                         return s.hits < s.hitsMax;
                 }
             }
-        })[0];
+        });
     };
-    result.try_into().ok()
+    let candidates: Vec<Structure> = candidates
+        .try_into()
+        .map_err(|e| {
+            error!("Failed to deserialize repair candidates {:?}", e);
+        })
+        .ok()?;
+
+    candidates
+        .into_iter()
+        .filter(|s|s.as_attackable().is_some())
+        .min_by_key(|s| s.as_attackable().map(|s| s.hits()).unwrap())
 }
 
 pub fn update_scout_info(state: &mut GameState, creep: &Creep) -> ExecutionResult {
