@@ -13,20 +13,24 @@ use screeps::{
 pub fn run<'a>(creep: &'a Creep) -> Task<'a, GameState> {
     trace!("Running builder {}", creep.name());
     let tasks = [
-        Task::new(move |state| attempt_build(state, creep)),
-        Task::new(move |state| pickup_energy(state, creep)),
-        Task::new(move |state| withdraw_energy(state, creep)),
-        Task::new(move |state| harvest(state, creep)),
-        Task::new(move |state| attempt_build(state, creep)),
+        Task::new(move |state| attempt_build(state, creep)).with_name("Attempt build"),
+        Task::new(move |state| pickup_energy(state, creep)).with_name("Pickup energy"),
+        Task::new(move |state| withdraw_energy(state, creep)).with_name("Withdraw energy"),
+        Task::new(move |state| harvest(state, creep)).with_name("Harvest"),
+        Task::new(move |state| attempt_build(state, creep)).with_name("Attempt build"),
         // If nothing can be built
-        Task::new(move |state| repairer::attempt_repair(state, creep)).with_required_bucket(500),
+        Task::new(move |state| repairer::attempt_repair(state, creep))
+            .with_required_bucket(500)
+            .with_name("Attempt repair"),
         Task::new(move |state: &mut GameState| {
             state
                 .creep_memory_entry(CreepName(&creep.name()))
                 .remove(TARGET);
             Err("continue")?
-        }),
-        Task::new(move |state| upgrader::attempt_upgrade(state, creep)),
+        })
+        .with_name("Delete target"),
+        Task::new(move |state| upgrader::attempt_upgrade(state, creep))
+            .with_name("Attempt upgrade"),
     ]
     .into_iter()
     .cloned()
@@ -84,3 +88,4 @@ fn get_build_target(state: &mut GameState, creep: &Creep) -> Option<Construction
                 .ok()
         })
 }
+

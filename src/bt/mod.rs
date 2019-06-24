@@ -7,6 +7,7 @@
 pub mod task;
 pub use self::task::*;
 use arrayvec::ArrayVec;
+use std::fmt::Write;
 use std::fmt::{Display, Formatter};
 
 pub const MAX_TASK_PER_CONTROL: usize = 16;
@@ -72,15 +73,32 @@ where
             }
 
             Control::Sequence(nodes) => {
+                let mut errors: ArrayVec<[String; MAX_TASK_PER_CONTROL]> =
+                    [].into_iter().cloned().collect();
                 let found = nodes.iter().any(|node| {
                     let result = node.tick(state);
                     debug!("Task result in sequence {:?} {:?}", node, result);
-                    result.is_ok()
+                    let ok = result.is_ok();
+                    if let Err(err) = result {
+                        errors.push(err);
+                    }
+                    ok
                 });
                 if found {
                     Ok(())
                 } else {
-                    Err(format!("All tasks failed in {}", &self))
+                    let mut error_str = String::with_capacity(512);
+                    for (i, error) in errors.iter().enumerate() {
+                        let name = nodes[i].name;
+                        write!(&mut error_str, "{}: {}\n", name, error).map_err(|e| {
+                            error!("Failed to write to error string, aborting {:?}", e);
+                            "Debug info write failure"
+                        })?;
+                    }
+                    Err(format!(
+                        "All tasks failed in Sequence node\n{}",
+                        error_str
+                    ))
                 }
             }
         }
