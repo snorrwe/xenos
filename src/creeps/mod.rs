@@ -358,7 +358,14 @@ pub fn find_repair_target<'a>(room: &'a Room) -> Option<Structure> {
     let result = js! {
         const room = @{room};
         return room.find(FIND_STRUCTURES, {
-            filter: s => s.hits < s.hitsMax
+            filter: s => {
+                switch (s.structureType) {
+                    case STRUCTURE_WALL:
+                        return s.hits < 10*1000*1000;
+                    default:
+                        return s.hits < s.hitsMax;
+                }
+            }
         })[0];
     };
     result.try_into().ok()
