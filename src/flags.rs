@@ -1,6 +1,8 @@
 use crate::prelude::*;
+use screeps::constants::find;
 use screeps::game::flags;
-use screeps::objects::{Flag, Structure};
+use screeps::objects::{Flag, OwnedStructureProperties, Structure};
+use screeps::RoomObjectProperties;
 use screeps::traits::TryInto;
 
 pub fn task<'a>() -> Task<'a, GameState> {
@@ -40,8 +42,11 @@ fn check_controller(flag: &Flag) -> ExecutionResult {
     match controller {
         Structure::Controller(ref controller) => {
             let level = controller.level();
-            if level >= 2 {
-                flag.remove();
+            if controller.my() && level >= 2 {
+                let spawn = flag.room().find(find::MY_SPAWNS).len();
+                if spawn > 0 {
+                    flag.remove();
+                }
             }
         }
         _ => {
