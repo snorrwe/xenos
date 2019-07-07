@@ -112,7 +112,7 @@ fn save_stats(
 
     let data = serde_json::to_string(&stats).unwrap_or("[]".to_owned());
 
-    if data.len() > 9_000 {
+    if data.len() > 100 * 1024 {
         Err("Statistics segment is full")?;
     }
 
