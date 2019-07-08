@@ -1,8 +1,6 @@
 //! Takes Rooms
 //!
-use super::{
-    harvester::attempt_harvest, move_to, update_scout_info, worker::attempt_build, TARGET,
-};
+use super::{move_to, update_scout_info, TARGET};
 use crate::prelude::*;
 use screeps::{game, objects::Creep, prelude::*, ReturnCode};
 use stdweb::unstable::TryInto;
@@ -21,8 +19,6 @@ pub fn run<'a>(creep: &'a Creep) -> Task<'a, GameState> {
         .with_name("Update scout info"),
         Task::new(move |state| claim_target(state, creep)).with_name("Claim target"),
         Task::new(move |state| set_target(state, creep)).with_name("Set target"),
-        Task::new(move |state| attempt_build(state, creep)).with_name("Attempt build"),
-        Task::new(move |state| attempt_harvest(state, creep, None)).with_name("Attempt harvest"),
         Task::new(move |state| reset_target(state, creep)).with_name("Reset target"),
     ]
     .into_iter()
