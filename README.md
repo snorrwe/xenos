@@ -19,9 +19,3 @@
 ## Deploy
 
 - `cargo screeps deploy`
-
-## Screeps setup
-
-Use `RawMemory.setActiveSegments([0,1,2])` to initialize the memory usage
-
-
