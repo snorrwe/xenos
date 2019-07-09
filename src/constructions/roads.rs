@@ -1,7 +1,7 @@
 use super::*;
 use screeps::{
     constants::{find, StructureType},
-    objects::{Room, RoomPosition, StructureProperties},
+    objects::{Room, RoomPosition},
     ReturnCode,
 };
 use stdweb::unstable::TryFrom;
@@ -46,12 +46,13 @@ fn can_continue_building(room: &Room) -> ExecutionResult {
             room.name()
         ));
     }
-    let has_tower = room
-        .find(find::STRUCTURES)
+    let has_construction = room
+        .find(find::MY_CONSTRUCTION_SITES)
         .into_iter()
-        .any(|s| s.structure_type() == StructureType::Tower);
-    if !has_tower {
-        return Err(format!("Room {} does not have a Tower yet", room.name()));
+        .next()
+        .is_some();
+    if has_construction {
+        return Err(format!("Room {} has incomplete constructions", room.name()));
     };
     Ok(())
 }
@@ -93,3 +94,4 @@ fn connect(pos0: &RoomPosition, pos1: &RoomPosition, room: &Room) -> ExecutionRe
         }
     })
 }
+
