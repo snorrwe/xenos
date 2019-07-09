@@ -17,5 +17,6 @@ panic = "abort"
 # At O3 we actually ran out of cpu while initializing the script
 # So Os it is
 opt-level = "s"
-lto = true
+# Hopefully this reduces binary size compared to lto=true
+lto = false
 
