@@ -1,7 +1,7 @@
 use super::*;
 use screeps::{
     constants::{find, StructureType},
-    objects::{Room, RoomPosition},
+    objects::{Room, RoomPosition, StructureProperties},
     ReturnCode,
 };
 use stdweb::unstable::TryFrom;
@@ -41,19 +41,29 @@ pub fn build_roads<'a>(room: &'a Room) -> ExecutionResult {
 fn can_continue_building(room: &Room) -> ExecutionResult {
     let rcl = room.controller().map(|c| c.level()).unwrap_or(0);
     if rcl < 3 {
-        return Err(format!(
+        Err(format!(
             "controller is not advanced enough to warrant road construction in room {}",
             room.name()
-        ));
+        ))?;
     }
+
     let has_construction = room
         .find(find::MY_CONSTRUCTION_SITES)
         .into_iter()
         .next()
         .is_some();
     if has_construction {
-        return Err(format!("Room {} has incomplete constructions", room.name()));
-    };
+        Err(format!("Room {} has incomplete constructions", room.name()))?;
+    }
+
+    let has_tower = room
+        .find(find::STRUCTURES)
+        .into_iter()
+        .any(|s| s.structure_type() == StructureType::Tower);
+    if !has_tower {
+        Err(format!("Room {} does not have a Tower yet", room.name()))?;
+    }
+
     Ok(())
 }
 
