@@ -18,6 +18,7 @@ mod game_loop;
 mod game_state;
 mod logging;
 mod prelude;
+mod stats;
 mod rooms;
 mod structures;
 
