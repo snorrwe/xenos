@@ -8,11 +8,6 @@ pub const MAX_NAME_LENGTH: usize = 48;
 
 pub type TName = Box<ArrayString<[u8; MAX_NAME_LENGTH]>>;
 
-/// Input to a Task
-pub trait TaskInput: std::fmt::Debug {
-    fn cpu_bucket(&self) -> Option<i16>;
-}
-
 /// Represents a single task in the behaviour tree
 /// An executable that will be called by a Task
 ///

@@ -1,5 +1,5 @@
 use super::task::*;
-use super::{ExecutionResult, MAX_TASK_PER_CONTROL};
+use super::{ExecutionResult, MAX_TASK_PER_CONTROL, TaskInput};
 use arrayvec::ArrayVec;
 use std::fmt::Write;
 use std::fmt::{Display, Formatter};
