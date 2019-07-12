@@ -21,7 +21,7 @@ pub struct Task<'a, T>
 where
     T: TaskInput,
 {
-    task: Rc<Fn(&mut T) -> ExecutionResult + 'a>,
+    task: Rc<dyn Fn(&mut T) -> ExecutionResult + 'a>,
 
     /// How much "cpu bucket" is required for the task to execute
     /// Useful for turning off tasks when the bucket falls below a threshold
