@@ -1,6 +1,5 @@
 use crate::creeps::roles::Role;
 use crate::creeps::{CreepExecutionStats, CREEP_ROLE, HOME_ROOM};
-use crate::prelude::*;
 use screeps::{raw_memory, Room};
 use serde_json::{self, Map, Value};
 use std::collections::HashMap;
@@ -47,12 +46,6 @@ pub struct GameState {
     #[serde(skip_deserializing)]
     #[serde(default)]
     pub creep_stats: CreepExecutionStats,
-}
-
-impl TaskInput for GameState {
-    fn cpu_bucket(&self) -> Option<i16> {
-        self.cpu_bucket
-    }
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
