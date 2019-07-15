@@ -27,7 +27,7 @@ pub fn game_loop() {
 
     let bucket = bucket.unwrap_or(-1);
 
-    if log_enabled!(Info) && bucket > 1000 {
+    if log_enabled!(Info) {
         save_stats(
             screeps::game::time() as u32,
             screeps::game::creeps::keys().len() as u32,

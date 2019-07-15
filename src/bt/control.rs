@@ -1,6 +1,7 @@
 use super::task::*;
-use super::{ExecutionResult, MAX_TASK_PER_CONTROL, TaskInput};
+use super::{ExecutionResult, TaskInput, MAX_TASK_PER_CONTROL};
 use arrayvec::ArrayVec;
+use log::Level::Debug;
 use std::fmt::Write;
 use std::fmt::{Display, Formatter};
 
@@ -28,9 +29,9 @@ where
     T: TaskInput,
 {
     fn fmt(&self, f: &mut Formatter) -> Result<(), std::fmt::Error> {
-        let tasks: ArrayVec<[&TName; MAX_TASK_PER_CONTROL]> = match self {
+        let tasks: ArrayVec<[&str; MAX_TASK_PER_CONTROL]> = match self {
             Control::Selector(tasks) | Control::Sequence(tasks) => {
-                tasks.iter().map(|t| &t.name).collect()
+                tasks.iter().map(|t| t.name.as_str()).collect()
             }
         };
         let name = match self {
@@ -53,10 +54,14 @@ where
                     .map(|node| (node, node.tick(state)))
                     .find(|(_node, result)| result.is_err());
                 if let Some(found) = found {
-                    Err(format!(
-                        "Task failure in selector {:?} {:?}",
-                        found.1, found.0
-                    ))?;
+                    if log_enabled!(Debug) {
+                        Err(format!(
+                            "Task failure in selector {:?} {:?}",
+                            found.1, found.0
+                        ))?;
+                    } else {
+                        Err(format!("A task failed in selector {:?}", found.1))?;
+                    }
                 }
                 Ok(())
             }
@@ -76,15 +81,19 @@ where
                 if found {
                     Ok(())
                 } else {
-                    let mut error_str = String::with_capacity(512);
-                    for (i, error) in errors.iter().enumerate() {
-                        let name = &nodes[i].name;
-                        write!(&mut error_str, "{}: {}\n", name, error).map_err(|e| {
-                            error!("Failed to write to error string, aborting {:?}", e);
-                            "Debug info write failure"
-                        })?;
+                    if log_enabled!(Debug) {
+                        let mut error_str = String::with_capacity(512);
+                        for (i, error) in errors.iter().enumerate() {
+                            let name = &nodes[i].name;
+                            write!(&mut error_str, "{}: {}\n", name, error).map_err(|e| {
+                                error!("Failed to write to error string, aborting {:?}", e);
+                                "Debug info write failure"
+                            })?;
+                        }
+                        Err(format!("All tasks failed in Sequence node\n{}", error_str))
+                    } else {
+                        Err("All tasks failed in Sequence!")?
                     }
-                    Err(format!("All tasks failed in Sequence node\n{}", error_str))
                 }
             }
         }

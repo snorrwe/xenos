@@ -1,12 +1,7 @@
 use super::*;
-use arrayvec::ArrayString;
 use std::fmt::{Debug, Display, Formatter};
 use std::ops::Fn;
 use std::rc::Rc;
-
-pub const MAX_NAME_LENGTH: usize = 48;
-
-pub type TName = Box<ArrayString<[u8; MAX_NAME_LENGTH]>>;
 
 /// Represents a single task in the behaviour tree
 /// An executable that will be called by a Task
@@ -25,7 +20,7 @@ where
 
     task: Rc<dyn Fn(&mut T) -> ExecutionResult + 'a>,
 
-    pub name: TName,
+    pub name: String,
 }
 
 impl<'a, T> Display for Task<'a, T>
@@ -62,21 +57,13 @@ where
             task: Rc::new(task),
             required_bucket: -1,
             priority: 0,
-            name: Box::new(ArrayString::from("UNNAMED_TASK").unwrap()),
+            name: "UNNAMED_TASK".to_owned(),
         }
     }
 
     pub fn with_name(mut self, name: &str) -> Self {
         self.name.clear();
-        self.name
-            .try_push_str(name)
-            .map_err(|_| {
-                error!(
-                    "Name {:?} is too long, max capacity is {}",
-                    name, MAX_NAME_LENGTH
-                );
-            })
-            .unwrap_or(());
+        self.name.push_str(name);
         self
     }
 
