@@ -1,12 +1,13 @@
 use super::bt::*;
 use super::creeps;
 use crate::game_state::GameState;
-use crate::{DEPLOYMENT_TIME, STATISTICS_SEGMENT};
+use crate::{DEPLOYMENT_TIME, STATISTICS_SEGMENT, VERSION};
 use screeps::raw_memory;
 
 #[derive(Serialize, Deserialize, Debug)]
 struct TickStats {
-    version: u32,
+    version: String,
+    deployment_time: u32,
     time: u32,
     cpu: f32,
     cpu_limit: f32,
@@ -35,7 +36,8 @@ pub fn save_stats(
     let cpu_limit = screeps::game::cpu::limit() as f32;
 
     let tick_stats = TickStats {
-        version: *DEPLOYMENT_TIME,
+        version: VERSION.to_owned(),
+        deployment_time: *DEPLOYMENT_TIME,
         time,
         creep_count,
         cpu,

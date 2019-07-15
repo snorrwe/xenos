@@ -44,3 +44,5 @@ screeps.toml
 stats/token\.pickle
 
 stats/__pycache__/
+
+VERSION

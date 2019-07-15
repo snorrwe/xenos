@@ -35,6 +35,8 @@ lazy_static! {
     pub static ref DEPLOYMENT_TIME: u32 = { screeps::game::time() };
 }
 
+pub const VERSION: &'static str = { include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/VERSION")) };
+
 /// Run initialisation tasks
 /// These are only called on script restart!
 fn initialize() {
@@ -44,7 +46,8 @@ fn initialize() {
 fn main() {
     stdweb::initialize();
     logging::setup_logging(logging::Info);
-    let _ = *DEPLOYMENT_TIME; // Init deployment time
+    let dt = *DEPLOYMENT_TIME; // Init deployment time
+    info!("Deployed version {} at {}", VERSION, dt);
 
     js! {
         const game_loop = @{game_loop};
