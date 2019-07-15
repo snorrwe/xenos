@@ -9,6 +9,8 @@ extern crate stdweb;
 extern crate serde;
 extern crate arrayvec;
 extern crate serde_json;
+#[macro_use]
+extern crate lazy_static;
 
 mod bt;
 mod constructions;
@@ -18,8 +20,8 @@ mod game_loop;
 mod game_state;
 mod logging;
 mod prelude;
-mod stats;
 mod rooms;
+mod stats;
 mod structures;
 
 use game_loop::game_loop;
@@ -28,6 +30,10 @@ use screeps::raw_memory;
 pub const MAIN_SEGMENT: u32 = 0;
 pub const STATISTICS_SEGMENT: u32 = 1;
 pub const CONSTRUCTIONS_SEGMENT: u32 = 2;
+
+lazy_static! {
+    pub static ref DEPLOYMENT_TIME: u32 = { screeps::game::time() };
+}
 
 /// Run initialisation tasks
 /// These are only called on script restart!
@@ -38,6 +44,7 @@ fn initialize() {
 fn main() {
     stdweb::initialize();
     logging::setup_logging(logging::Info);
+    let _ = *DEPLOYMENT_TIME; // Init deployment time
 
     js! {
         const game_loop = @{game_loop};

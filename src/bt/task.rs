@@ -16,14 +16,15 @@ pub struct Task<'a, T>
 where
     T: TaskInput,
 {
-    task: Rc<dyn Fn(&mut T) -> ExecutionResult + 'a>,
-
     /// How much "cpu bucket" is required for the task to execute
     /// Useful for turning off tasks when the bucket falls below a threshold
     pub required_bucket: i16,
     /// Priority of the task, defaults to 0
     /// Higher value means higher priority
     pub priority: i8,
+
+    task: Rc<dyn Fn(&mut T) -> ExecutionResult + 'a>,
+
     pub name: TName,
 }
 

@@ -1,8 +1,22 @@
 use super::bt::*;
 use super::creeps;
 use crate::game_state::GameState;
-use crate::STATISTICS_SEGMENT;
+use crate::{DEPLOYMENT_TIME, STATISTICS_SEGMENT};
 use screeps::raw_memory;
+
+#[derive(Serialize, Deserialize, Debug)]
+struct TickStats {
+    version: u32,
+    time: u32,
+    cpu: f32,
+    cpu_limit: f32,
+    bucket: i32,
+    creep_count: u32,
+    gcl: u32,
+    gcl_progress: f32,
+    gcl_progress_total: f32,
+    creep_stats: creeps::CreepExecutionStats,
+}
 
 pub fn save_stats(
     time: u32,
@@ -21,6 +35,7 @@ pub fn save_stats(
     let cpu_limit = screeps::game::cpu::limit() as f32;
 
     let tick_stats = TickStats {
+        version: *DEPLOYMENT_TIME,
         time,
         creep_count,
         cpu,
@@ -43,18 +58,5 @@ pub fn save_stats(
     raw_memory::set_segment(STATISTICS_SEGMENT, &data);
 
     Ok(())
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct TickStats {
-    time: u32,
-    cpu: f32,
-    cpu_limit: f32,
-    bucket: i32,
-    creep_count: u32,
-    gcl: u32,
-    gcl_progress: f32,
-    gcl_progress_total: f32,
-    creep_stats: creeps::CreepExecutionStats,
 }
 
