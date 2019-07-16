@@ -73,6 +73,13 @@ impl ConstructionMatrix {
         self
     }
 
+    pub fn reset(&mut self) {
+        let done = self.done.clone();
+        self.todo = done.into_iter().collect();
+        self.done = HashSet::new();
+        self.open_positions = [Pos(25, 25)].into_iter().map(|x| *x).collect();
+    }
+
     /// Build at most 24 structures and return their results
     /// None is returned if could not find a spot to build the structure
     pub fn build_many(
@@ -88,6 +95,7 @@ impl ConstructionMatrix {
                     .process_next_tile(room)
                     .and_then(|_| self.open_positions.front().map(|x| x.clone()))
                     .ok_or_else(|| {
+                        self.reset();
                         format!("No free space is available in room {:?}", room.name())
                     })?,
             };
