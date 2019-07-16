@@ -1,7 +1,8 @@
 mod construction_state;
 mod containers;
-mod neighbours;
+mod geometry;
 mod roads;
+mod spawns;
 
 use self::construction_state::ConstructionState;
 use crate::prelude::*;
@@ -16,7 +17,7 @@ use stdweb::unstable::TryFrom;
 
 pub const CONSTRUCTION_SEGMENT: u32 = 2;
 
-#[derive(Debug, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Copy)]
+#[derive(Debug, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Copy, Default)]
 pub struct Pos(u16, u16);
 
 impl From<RoomPosition> for Pos {
@@ -244,32 +245,16 @@ fn build_structures<'a>(room: &'a Room, state: &'a mut ConstructionState) -> Exe
     .map(|x| *x)
     .collect::<ArrayVec<_>>();
 
-    let spawn = js! {
-        const room = @{room};
-        const spawns = room.find(FIND_STRUCTURES, {
-            filter: { structureType: STRUCTURE_SPAWN }
-        });
-        return spawns && spawns[0] && spawns[0].pos || null;
-    };
-
-    if spawn.is_null() {
-        let construction_matrices = &mut state.construction_matrices;
-        construction_matrices.remove(&room.name());
-        let e = Err(format!("No spawn in room {}", &room.name()));
-        debug!("{:?}", e);
-        e?;
-    }
-
-    let spawn = RoomPosition::try_from(spawn).map_err(|e| {
-        let err = format!("Failed to convert spawn position {:?}", e);
-        error!("{}", &err);
-        err
-    })?;
-
     let construction_matrices = &mut state.construction_matrices;
-    let matrix = construction_matrices
-        .entry(room.name())
-        .or_insert_with(|| ConstructionMatrix::default().with_position(Pos::from(spawn)));
+    let matrix = construction_matrices.entry(room.name()).or_insert_with(|| {
+        let initial_p = spawns::find_initial_point(room)
+            .map(Pos::from)
+            .unwrap_or_else(|e| {
+                debug!("Cant find an optimal point {:?}", e);
+                Pos::default()
+            });
+        ConstructionMatrix::default().with_position(Pos::from(initial_p))
+    });
 
     matrix.build_many(room, &structures)
 }

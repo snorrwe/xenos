@@ -1,4 +1,4 @@
-use super::neighbours::*;
+use super::geometry::*;
 use super::*;
 use screeps::{
     constants::StructureType,

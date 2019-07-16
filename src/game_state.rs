@@ -4,6 +4,7 @@ use crate::prelude::*;
 use screeps::{raw_memory, Room};
 use serde_json::{self, Map, Value};
 use std::collections::HashMap;
+use std::error::Error;
 
 pub type CreepMemory = HashMap<String, Map<String, Value>>;
 
@@ -169,7 +170,7 @@ impl GameState {
             .map(|x| Role::from(x as u8))
     }
 
-    pub fn cleanup_memory(&mut self) -> Result<(), Box<::std::error::Error>> {
+    pub fn cleanup_memory(&mut self) -> Result<(), Box<dyn Error>> {
         trace!("Cleaning memory");
 
         let alive_creeps: std::collections::HashSet<String> =
