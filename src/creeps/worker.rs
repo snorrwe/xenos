@@ -29,8 +29,19 @@ pub fn run<'a>(creep: &'a Creep) -> Task<'a, GameState> {
             Err("continue")?
         })
         .with_name("Delete target"),
-        Task::new(move |state| upgrader::attempt_upgrade(state, creep))
-            .with_name("Attempt upgrade"),
+        Task::new(move |state| {
+            if creep
+                .room()
+                .controller()
+                .map(|c| c.level() >= 3)
+                .unwrap_or(false)
+            {
+                upgrader::attempt_upgrade(state, creep)
+            } else {
+                Err("Skip repairing until the controller is level 3")?
+            }
+        })
+        .with_name("Attempt upgrade"),
     ]
     .into_iter()
     .cloned()
