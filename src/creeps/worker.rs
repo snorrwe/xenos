@@ -19,16 +19,6 @@ pub fn run<'a>(creep: &'a Creep) -> Task<'a, GameState> {
         Task::new(move |state| harvest(state, creep)).with_name("Harvest"),
         Task::new(move |state| attempt_build(state, creep)).with_name("Attempt build"),
         // If nothing can be built
-        Task::new(move |state| repairer::attempt_repair(state, creep))
-            .with_required_bucket(500)
-            .with_name("Attempt repair"),
-        Task::new(move |state: &mut GameState| {
-            state
-                .creep_memory_entry(CreepName(&creep.name()))
-                .remove(TARGET);
-            Err("continue")?
-        })
-        .with_name("Delete target"),
         Task::new(move |state| {
             if creep
                 .room()
@@ -36,12 +26,22 @@ pub fn run<'a>(creep: &'a Creep) -> Task<'a, GameState> {
                 .map(|c| c.level() >= 3)
                 .unwrap_or(false)
             {
-                upgrader::attempt_upgrade(state, creep)
+                repairer::attempt_repair(state, creep)
             } else {
                 Err("Skip repairing until the controller is level 3")?
             }
         })
-        .with_name("Attempt upgrade"),
+        .with_required_bucket(500)
+        .with_name("Attempt repair"),
+        Task::new(move |state: &mut GameState| {
+            state
+                .creep_memory_entry(CreepName(&creep.name()))
+                .remove(TARGET);
+            Err("continue")?
+        })
+        .with_name("Delete target"),
+        Task::new(move |state| upgrader::attempt_upgrade(state, creep))
+            .with_name("Attempt upgrade"),
     ]
     .into_iter()
     .cloned()
