@@ -8,8 +8,8 @@ use self::construction_state::ConstructionState;
 use crate::prelude::*;
 use arrayvec::ArrayVec;
 use screeps::{
-    constants::StructureType,
-    objects::{Room, RoomPosition},
+    constants::{find, StructureType},
+    objects::{HasPosition, Room, RoomPosition},
     ReturnCode,
 };
 use std::collections::{HashSet, VecDeque};
@@ -259,7 +259,12 @@ fn build_structures<'a>(room: &'a Room, state: &'a mut ConstructionState) -> Exe
             .map(Pos::from)
             .unwrap_or_else(|e| {
                 debug!("Cant find an optimal point {:?}", e);
-                Pos::default()
+                room.find(find::STRUCTURES)
+                    .iter()
+                    .next()
+                    .map(|s| s.pos())
+                    .map(Pos::from)
+                    .unwrap_or(Pos(25, 25))
             });
         ConstructionMatrix::default().with_position(Pos::from(initial_p))
     });
