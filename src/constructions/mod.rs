@@ -6,6 +6,7 @@ mod spawns;
 
 use self::construction_state::ConstructionState;
 use crate::prelude::*;
+use crate::CONSTRUCTIONS_SEGMENT;
 use arrayvec::ArrayVec;
 use screeps::{
     constants::{find, StructureType},
@@ -14,8 +15,6 @@ use screeps::{
 };
 use std::collections::{HashSet, VecDeque};
 use stdweb::unstable::TryFrom;
-
-pub const CONSTRUCTION_SEGMENT: u32 = 2;
 
 #[derive(Debug, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Copy, Default)]
 pub struct Pos(u16, u16);
@@ -26,31 +25,7 @@ impl From<RoomPosition> for Pos {
     }
 }
 
-impl Pos {
-    #[allow(dead_code)]
-    pub fn valid_neighbours(&self) -> ArrayVec<[Self; 8]> {
-        let x = self.0 as i16;
-        let y = self.1 as i16;
-        [
-            (x + 1, y + 0),
-            (x - 1, y + 0),
-            (x + 0, y + 1),
-            (x + 0, y - 1),
-            (x + 1, y + 1),
-            (x - 1, y + 1),
-            (x + 1, y - 1),
-            (x - 1, y - 1),
-        ]
-        .into_iter()
-        .filter(|(x, y)| {
-            let x = *x;
-            let y = *y;
-            1 <= x && x <= 48 && 1 <= y && y <= 48
-        })
-        .map(|(x, y)| Self(*x as u16, *y as u16))
-        .collect()
-    }
-}
+impl Pos {}
 
 /// Represents a room split up into 3×3 squares
 /// Uses breadth frist search to find empty spaces
@@ -68,7 +43,7 @@ pub struct ConstructionMatrix {
 
 impl ConstructionMatrix {
     pub fn with_position(mut self, pos: Pos) -> Self {
-        let pos = Self::as_matrix_top_left(pos);
+        let pos = Self::as_tile_top_left(pos);
         self.todo.push_back(pos);
         self
     }
@@ -78,7 +53,7 @@ impl ConstructionMatrix {
         let pos = spawns::find_initial_point(room)
             .map(Pos::from)
             .unwrap_or(Pos(25, 25));
-        let pos = Self::as_matrix_top_left(pos);
+        let pos = Self::as_tile_top_left(pos);
         self.todo.push_back(pos);
     }
 
@@ -169,6 +144,7 @@ impl ConstructionMatrix {
 
         if n_free >= 3 {
             // At least 3 free positions needed so no blockage is built
+            // Note that this method only works for 3×3 tiles
 
             // Push the center
             self.open_positions.push_back(tile[4]);
@@ -187,7 +163,7 @@ impl ConstructionMatrix {
         Some(pos)
     }
 
-    fn as_matrix_top_left(pos: Pos) -> Pos {
+    fn as_tile_top_left(pos: Pos) -> Pos {
         Pos(pos.0 / 3, pos.1 / 3)
     }
 
@@ -223,9 +199,9 @@ pub fn task<'a>() -> Task<'a, GameState> {
             Err("Skipping constructions task")?;
         }
 
-        let mut state = ConstructionState::read_from_segment_or_default(CONSTRUCTION_SEGMENT);
+        let mut state = ConstructionState::read_from_segment_or_default(CONSTRUCTIONS_SEGMENT);
         state.save_to_memory = Some(true);
-        state.memory_segment = Some(CONSTRUCTION_SEGMENT as u8);
+        state.memory_segment = Some(CONSTRUCTIONS_SEGMENT as u8);
 
         let index = time % len;
         let room = &rooms[index as usize];
