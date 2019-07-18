@@ -73,11 +73,13 @@ impl ConstructionMatrix {
         self
     }
 
-    pub fn reset(&mut self) {
-        let done = self.done.clone();
-        self.todo = done.into_iter().collect();
+    fn soft_reset(&mut self, room: &Room) {
         self.done = HashSet::new();
-        self.open_positions = [Pos(25, 25)].into_iter().map(|x| *x).collect();
+        let pos = spawns::find_initial_point(room)
+            .map(Pos::from)
+            .unwrap_or(Pos(25, 25));
+        let pos = Self::as_matrix_top_left(pos);
+        self.todo.push_back(pos);
     }
 
     /// Build at most 24 structures and return their results
@@ -95,12 +97,12 @@ impl ConstructionMatrix {
                     .process_next_tile(room)
                     .and_then(|_| self.open_positions.front().map(|x| x.clone()))
                     .ok_or_else(|| {
-                        self.reset();
-                        format!("No free space is available in room {:?}", room.name())
+                        self.soft_reset(room);
+                        format!("No free space is available in room {}", room.name())
                     })?,
             };
             debug!(
-                "Attempting build at position {:?} in room {:?}",
+                "Attempting build at position {:?} in room {}",
                 pos,
                 room.name()
             );
@@ -114,7 +116,9 @@ impl ConstructionMatrix {
                     debug!("cant place construction site {:?}", result);
                     Err("Room is full")?;
                 }
-                _ => {}
+                _ => {
+                    debug!("Can't place construction site {:?}", result);
+                }
             }
         }
 
@@ -126,7 +130,7 @@ impl ConstructionMatrix {
         debug!("Processing next in room {:?}", room.name());
 
         let pos = self.todo.pop_front()?;
-        debug!("Processing tile pos {:?} parity", pos);
+        debug!("Processing tile pos {:?}", pos);
 
         {
             self.done.insert(pos);
@@ -138,6 +142,8 @@ impl ConstructionMatrix {
                 .into_iter()
                 .filter(|p| !done.contains(p)),
         );
+
+        debug!("Extended todo to a len of {}", self.todo.len());
 
         let x = pos.0 * 3;
         let y = pos.1 * 3;
@@ -172,7 +178,7 @@ impl ConstructionMatrix {
                     .enumerate()
                     .filter(|(i, _)| *i as u16 % 2 == parity)
                     .filter(|(_, p)| {
-                        is_free(room, &RoomPosition::new(p.1 as u32, p.1 as u32, &room_name))
+                        is_free(room, &RoomPosition::new(p.0 as u32, p.1 as u32, &room_name))
                     })
                     .map(|(_, p)| *p),
             );
@@ -259,11 +265,15 @@ fn build_structures<'a>(room: &'a Room, state: &'a mut ConstructionState) -> Exe
             .map(Pos::from)
             .unwrap_or_else(|e| {
                 debug!("Cant find an optimal point {:?}", e);
-                room.find(find::STRUCTURES)
+                room.find(find::MY_STRUCTURES)
                     .iter()
                     .next()
                     .map(|s| s.pos())
-                    .map(Pos::from)
+                    .map(|p| {
+                        let x = p.x() as u16;
+                        let y = p.y() as u16;
+                        Pos(x, y)
+                    })
                     .unwrap_or(Pos(25, 25))
             });
         ConstructionMatrix::default().with_position(Pos::from(initial_p))
