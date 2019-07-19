@@ -147,7 +147,7 @@ mod tests {
             .with_priority(-1),
             Task::new(|state: &mut TestState| {
                 state.results.push('b');
-                Ok(())
+                Err("Stop here")?
             }),
             Task::new(|state: &mut TestState| {
                 state.results.push('c');
@@ -167,9 +167,10 @@ mod tests {
         let mut state = TestState::default();
 
         let task = Control::Selector::<TestState>(tasks).sorted_by_priority();
-        task.tick(&mut state).unwrap();
+        task.tick(&mut state).expect_err("Should have failed");
 
-        assert_eq!(state.results, "cdba");
+        // The order by priority is cdba, but stop the execution at 'b'
+        assert_eq!(state.results, "cdb");
     }
 }
 
