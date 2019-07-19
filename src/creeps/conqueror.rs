@@ -1,6 +1,6 @@
 //! Takes Rooms
 //!
-use super::{move_to, update_scout_info, TARGET};
+use super::{move_to, update_scout_info};
 use crate::prelude::*;
 use screeps::{game, objects::Creep, prelude::*, ReturnCode};
 use stdweb::unstable::TryInto;
@@ -17,9 +17,8 @@ pub fn run<'a>(creep: &'a Creep) -> Task<'a, GameState> {
             Err("continue")?
         })
         .with_name("Update scout info"),
-        Task::new(move |state| claim_target(state, creep)).with_name("Claim target"),
+        claim_task(creep),
         Task::new(move |state| set_target(state, creep)).with_name("Set target"),
-        Task::new(move |state| reset_target(state, creep)).with_name("Reset target"),
     ]
     .into_iter()
     .cloned()
@@ -31,35 +30,32 @@ pub fn run<'a>(creep: &'a Creep) -> Task<'a, GameState> {
         .with_name("Conqueror")
 }
 
-fn reset_target<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResult {
-    trace!("Resetting conqueror target");
-
-    if !state.creep_memory_bool(CreepName(&creep.name()), "loading") {
-        Err("not loading")?;
-    }
-    let memory = state.creep_memory_entry(CreepName(&creep.name()));
-
-    if creep.carry_total() == creep.carry_capacity() {
-        memory.insert("loading".into(), false.into());
-        memory.remove(TARGET);
-        Err("full")?;
-    }
-    Ok(())
+fn claim_task<'a>(creep: &'a Creep) -> Task<'a, GameState> {
+    Control::Selector(
+        [
+            Task::new(move |state| claim_target(state, creep)).with_name("Claim target"),
+            Task::new(move |_| sign_controller(creep, "Frenetiq was here")) // TODO: more signatures
+                .with_name("Sign controller"),
+        ]
+        .into_iter()
+        .cloned()
+        .collect(),
+    )
+    .into()
 }
 
 fn claim_target<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResult {
     trace!("claiming room");
 
-    let memory = state.creep_memory_entry(CreepName(&creep.name()));
     let flag = {
-        let flag = memory
-            .get(CONQUEST_TARGET)
-            .and_then(|x| x.as_str())
+        let flag = state
+            .creep_memory_string(CreepName(&creep.name()), CONQUEST_TARGET)
             .ok_or_else(|| "no target set")?;
         game::flags::get(flag)
     };
 
     let flag = flag.ok_or_else(|| {
+        let memory = state.creep_memory_entry(CreepName(&creep.name()));
         memory.remove(CONQUEST_TARGET);
         String::from("target flag does not exist")
     })?;
@@ -126,5 +122,18 @@ fn set_target<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResult {
     debug!("set target to {}", flag.name());
 
     Ok(())
+}
+
+pub fn sign_controller(creep: &Creep, msg: &str) -> ExecutionResult {
+    let controller = creep
+        .room()
+        .controller()
+        .ok_or_else(|| "Room has no controller")?;
+
+    match creep.sign_controller(&controller, msg) {
+        ReturnCode::Ok => Ok(()),
+        ReturnCode::NotInRange => move_to(creep, &controller),
+        result => Err(format!("failed to sign controller {:?}", result)),
+    }
 }
 

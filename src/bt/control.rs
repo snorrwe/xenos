@@ -17,7 +17,6 @@ pub enum Control<'a, T>
 where
     T: TaskInput,
 {
-    #[allow(dead_code)]
     /// Runs its child tasks until the first failure
     Selector(TaskCollection<'a, T>),
     /// Runs its child tasks until the first success
@@ -114,6 +113,12 @@ where
             }
         }
         self
+    }
+}
+
+impl<'a, T: 'a + TaskInput> Into<Task<'a, T>> for Control<'a, T> {
+    fn into(self) -> Task<'a, T> {
+        Task::new(move |state| self.tick(state))
     }
 }
 
