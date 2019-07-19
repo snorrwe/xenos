@@ -44,11 +44,9 @@ pub fn task<'a>() -> Task<'a, GameState> {
     Task::new(move |state| {
         let start = game::cpu::get_used();
 
-        {
-            screeps::game::creeps::values()
-                .into_iter()
-                .for_each(|creep| run_creep(state, creep).unwrap_or(()));
-        }
+        screeps::game::creeps::values()
+            .into_iter()
+            .for_each(|creep| run_creep(state, creep).unwrap_or(()));
 
         let end = game::cpu::get_used();
 
@@ -377,7 +375,7 @@ pub fn find_repair_target<'a>(room: &'a Room) -> Option<Structure> {
 
     candidates
         .into_iter()
-        .filter(|s|s.as_attackable().is_some())
+        .filter(|s| s.as_attackable().is_some())
         .min_by_key(|s| s.as_attackable().map(|s| s.hits()).unwrap())
 }
 

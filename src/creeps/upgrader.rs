@@ -19,7 +19,7 @@ pub fn run<'a>(creep: &'a Creep) -> Task<'a, GameState> {
     .collect();
 
     let tree = Control::Sequence(tasks);
-    Task::new(move |state| tree.tick(state))
+    Task::from(tree).with_name("Upgrader")
 }
 
 pub fn attempt_upgrade<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResult {

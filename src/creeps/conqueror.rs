@@ -25,7 +25,7 @@ pub fn run<'a>(creep: &'a Creep) -> Task<'a, GameState> {
     .collect();
 
     let tree = Control::Sequence(tasks);
-    Task::new(move |state| tree.tick(state))
+    Task::from(tree)
         .with_required_bucket(300)
         .with_name("Conqueror")
 }

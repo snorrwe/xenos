@@ -31,7 +31,7 @@ pub fn run<'a>(creep: &'a Creep) -> Task<'a, GameState> {
     .collect();
 
     let tree = Control::Sequence(tasks);
-    Task::new(move |state| tree.tick(state))
+    Task::from(tree).with_name("Harvester")
 }
 
 pub fn unload<'a>(state: &'a mut GameState, creep: &'a Creep) -> ExecutionResult {

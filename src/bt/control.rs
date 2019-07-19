@@ -116,9 +116,9 @@ where
     }
 }
 
-impl<'a, T: 'a + TaskInput> Into<Task<'a, T>> for Control<'a, T> {
-    fn into(self) -> Task<'a, T> {
-        Task::new(move |state| self.tick(state))
+impl<'a, T: 'a + TaskInput> From<Control<'a, T>> for Task<'a, T> {
+    fn from(control: Control<'a, T>) -> Task<'a, T> {
+        control.into()
     }
 }
 
