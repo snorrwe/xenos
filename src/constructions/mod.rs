@@ -1,8 +1,12 @@
 mod construction_state;
 mod containers;
-mod geometry;
+pub mod geometry;
+pub mod point;
 mod roads;
 mod spawns;
+mod storage;
+
+use self::point::Point;
 
 use self::construction_state::ConstructionState;
 use crate::prelude::*;
@@ -16,17 +20,6 @@ use screeps::{
 use std::collections::{HashSet, VecDeque};
 use stdweb::unstable::TryFrom;
 
-#[derive(Debug, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Copy, Default)]
-pub struct Pos(u16, u16);
-
-impl From<RoomPosition> for Pos {
-    fn from(pos: RoomPosition) -> Self {
-        Self(pos.x() as u16, pos.y() as u16)
-    }
-}
-
-impl Pos {}
-
 /// Represents a room split up into 3×3 squares
 /// Uses breadth frist search to find empty spaces
 /// # Invariants
@@ -34,15 +27,15 @@ impl Pos {}
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ConstructionMatrix {
     /// 3×3 positions that have not been explored yet
-    pub todo: VecDeque<Pos>,
+    pub todo: VecDeque<Point>,
     /// 3×3 positions that have been explored already
-    pub done: HashSet<Pos>,
+    pub done: HashSet<Point>,
     /// 1×1 positions that are open for constructions
-    pub open_positions: VecDeque<Pos>,
+    pub open_positions: VecDeque<Point>,
 }
 
 impl ConstructionMatrix {
-    pub fn with_position(mut self, pos: Pos) -> Self {
+    pub fn with_position(mut self, pos: Point) -> Self {
         let pos = Self::as_tile_top_left(pos);
         self.todo.push_back(pos);
         self
@@ -51,8 +44,8 @@ impl ConstructionMatrix {
     fn soft_reset(&mut self, room: &Room) {
         self.done = HashSet::new();
         let pos = spawns::find_initial_point(room)
-            .map(Pos::from)
-            .unwrap_or(Pos(25, 25));
+            .map(Point::from)
+            .unwrap_or(Point(25, 25));
         let pos = Self::as_tile_top_left(pos);
         self.todo.push_back(pos);
     }
@@ -64,24 +57,16 @@ impl ConstructionMatrix {
         room: &Room,
         types: &ArrayVec<[StructureType; 24]>,
     ) -> ExecutionResult {
+        let name = &room.name();
+
         for ty in types.iter() {
-            let open_position = { self.open_positions.front().map(|x| x.clone()) };
-            let pos = match open_position {
-                Some(x) => x,
-                None => self
-                    .process_next_tile(room)
-                    .and_then(|_| self.open_positions.front().map(|x| x.clone()))
-                    .ok_or_else(|| {
-                        self.soft_reset(room);
-                        format!("No free space is available in room {}", room.name())
-                    })?,
-            };
+            let pos = self.find_next_pos(room)?;
             debug!(
                 "Attempting build at position {:?} in room {}",
                 pos,
                 room.name()
             );
-            let pos = RoomPosition::new(pos.0 as u32, pos.1 as u32, &room.name());
+            let pos = RoomPosition::new(pos.0 as u32, pos.1 as u32, &name);
             let result = room.create_construction_site(&pos, *ty);
             match result {
                 ReturnCode::InvalidTarget | ReturnCode::Ok => {
@@ -100,8 +85,26 @@ impl ConstructionMatrix {
         Ok(())
     }
 
+    pub fn find_next_pos(&mut self, room: &Room) -> Result<Point, String> {
+        let open_position = { self.open_positions.front().map(|x| x.clone()) };
+        if let Some(open_position) = open_position {
+            if is_free(room, &open_position.into_room_pos(&room.name())) {
+                self.open_positions.pop_front();
+                return Ok(open_position);
+            }
+        }
+        let pos = self
+            .process_next_tile(room)
+            .and_then(|_| self.open_positions.front().map(|x| x.clone()))
+            .ok_or_else(|| {
+                self.soft_reset(room);
+                format!("No free space is available in room {}", room.name())
+            })?;
+        Ok(pos)
+    }
+
     /// Return the tile processed if any
-    fn process_next_tile(&mut self, room: &Room) -> Option<Pos> {
+    fn process_next_tile(&mut self, room: &Room) -> Option<Point> {
         debug!("Processing next in room {:?}", room.name());
 
         let pos = self.todo.pop_front()?;
@@ -125,9 +128,9 @@ impl ConstructionMatrix {
 
         #[rustfmt::skip]
         let tile = [
-            Pos(x + 0, y + 0), Pos(x + 1, y + 0), Pos(x + 2, y + 0),
-            Pos(x + 0, y + 1), Pos(x + 1, y + 1), Pos(x + 2, y + 1),
-            Pos(x + 0, y + 2), Pos(x + 1, y + 2), Pos(x + 2, y + 2),
+            Point(x + 0, y + 0), Point(x + 1, y + 0), Point(x + 2, y + 0),
+            Point(x + 0, y + 1), Point(x + 1, y + 1), Point(x + 2, y + 1),
+            Point(x + 0, y + 2), Point(x + 1, y + 2), Point(x + 2, y + 2),
         ];
 
         let room_name = room.name();
@@ -139,7 +142,7 @@ impl ConstructionMatrix {
             .enumerate()
             .filter(|(i, _)| *i != 4) // Skip the middle
             .filter(|(_, p)| (p.0 + p.1) % 2 != parity)
-            .filter(|(_, p)| is_free(room, &RoomPosition::new(p.0 as u32, p.1 as u32, &room_name)))
+            .filter(|(_, p)| is_free(room, &p.into_room_pos(&room_name)))
             .count();
 
         if n_free >= 3 {
@@ -152,10 +155,8 @@ impl ConstructionMatrix {
             self.open_positions.extend(
                 tile.into_iter()
                     .enumerate()
-                    .filter(|(i, _)| *i as u16 % 2 == parity)
-                    .filter(|(_, p)| {
-                        is_free(room, &RoomPosition::new(p.0 as u32, p.1 as u32, &room_name))
-                    })
+                    .filter(|(i, _)| *i as i16 % 2 == parity)
+                    .filter(|(_, p)| is_free(room, &p.into_room_pos(&room_name)))
                     .map(|(_, p)| *p),
             );
         }
@@ -163,11 +164,11 @@ impl ConstructionMatrix {
         Some(pos)
     }
 
-    fn as_tile_top_left(pos: Pos) -> Pos {
-        Pos(pos.0 / 3, pos.1 / 3)
+    fn as_tile_top_left(pos: Point) -> Point {
+        Point(pos.0 / 3, pos.1 / 3)
     }
 
-    fn valid_neighbouring_tiles(pos: Pos) -> ArrayVec<[Pos; 8]> {
+    fn valid_neighbouring_tiles(pos: Point) -> ArrayVec<[Point; 8]> {
         let x = pos.0 as i16;
         let y = pos.1 as i16;
         [
@@ -182,7 +183,7 @@ impl ConstructionMatrix {
         ]
         .into_iter()
         .filter(|(x, y)| 0 <= *x && *x <= 16 && 0 <= *y && *y <= 16)
-        .map(|(x, y)| Pos(*x as u16, *y as u16))
+        .map(|(x, y)| Point(*x as i16, *y as i16))
         .collect()
     }
 }
@@ -217,8 +218,31 @@ fn manage_room<'a>(room: &'a Room, state: &mut ConstructionState) -> ExecutionRe
     build_structures(room, state).unwrap_or_else(|e| warn!("Failed build_structures {:?}", e));
     containers::build_containers(room).unwrap_or_else(|e| warn!("Failed containers {:?}", e));
     roads::build_roads(room).unwrap_or_else(|e| warn!("Failed roads {:?}", e));
+    // FIXME: finish the implementation
+    // build_storage(room, state).unwrap_or_else(|e| warn!("Failed storage {:?}", e));
 
     Ok(())
+}
+
+fn build_storage(room: &Room, state: &mut ConstructionState) -> ExecutionResult {
+    let mat = get_matrix_mut(state, room);
+    let pos = storage::find_storage_pos(room, mat)?;
+
+    warn!("Building storage at {:?}", pos);
+
+    let pos = pos.into_room_pos(&room.name());
+    let result = room.create_construction_site(&pos, StructureType::Storage);
+    match result {
+        ReturnCode::Ok => Ok(()),
+        ReturnCode::Full => {
+            debug!("Can't place construction site {:?}", result);
+            Err("Room is full")?
+        }
+        _ => {
+            debug!("Can't place construction site {:?}", result);
+            Err(format!("Failed to place construction site {:?}", result))?
+        }
+    }
 }
 
 fn build_structures<'a>(room: &'a Room, state: &'a mut ConstructionState) -> ExecutionResult {
@@ -235,10 +259,15 @@ fn build_structures<'a>(room: &'a Room, state: &'a mut ConstructionState) -> Exe
     .map(|x| *x)
     .collect::<ArrayVec<_>>();
 
+    let matrix = get_matrix_mut(state, room);
+    matrix.build_many(room, &structures)
+}
+
+fn get_matrix_mut<'a>(state: &'a mut ConstructionState, room: &Room) -> &'a mut ConstructionMatrix {
     let construction_matrices = &mut state.construction_matrices;
     let matrix = construction_matrices.entry(room.name()).or_insert_with(|| {
         let initial_p = spawns::find_initial_point(room)
-            .map(Pos::from)
+            .map(Point::from)
             .unwrap_or_else(|e| {
                 debug!("Cant find an optimal point {:?}", e);
                 room.find(find::MY_STRUCTURES)
@@ -246,19 +275,18 @@ fn build_structures<'a>(room: &'a Room, state: &'a mut ConstructionState) -> Exe
                     .next()
                     .map(|s| s.pos())
                     .map(|p| {
-                        let x = p.x() as u16;
-                        let y = p.y() as u16;
-                        Pos(x, y)
+                        let x = p.x() as i16;
+                        let y = p.y() as i16;
+                        Point(x, y)
                     })
-                    .unwrap_or(Pos(25, 25))
+                    .unwrap_or(Point(25, 25))
             });
-        ConstructionMatrix::default().with_position(Pos::from(initial_p))
+        ConstructionMatrix::default().with_position(Point::from(initial_p))
     });
-
-    matrix.build_many(room, &structures)
+    matrix
 }
 
-fn is_free(room: &Room, pos: &RoomPosition) -> bool {
+pub fn is_free(room: &Room, pos: &RoomPosition) -> bool {
     let result = js! {
         const pos = @{pos};
         const room = @{room};
