@@ -6,7 +6,7 @@ use screeps::{
     constants::ResourceType,
     game::{get_object_erased, get_object_typed},
     objects::{
-        Creep, StructureContainer, StructureExtension, StructureSpawn, StructureStorage,
+        Creep, HasStore, StructureContainer, StructureExtension, StructureSpawn, StructureStorage,
         StructureTower, Transferable,
     },
     prelude::*,
@@ -234,21 +234,25 @@ fn find_container<'a>(state: &mut GameState, creep: &'a Creep) -> Option<Structu
         trace!("Finding new withdraw target");
         let memory = state.creep_memory_entry(CreepName(&creep.name()));
         memory.remove(TARGET);
-        let result = js! {
+        let containers = js! {
             let creep = @{creep};
-            const container = creep.pos.findClosestByRange(FIND_STRUCTURES, {
+            const containers = creep.room.find(FIND_STRUCTURES, {
                 filter: (i) => i.structureType == STRUCTURE_CONTAINER
                     && i.store[RESOURCE_ENERGY] > 0
             });
-            return container;
+            return containers;
         };
-        result
-            .try_into()
-            .unwrap_or(None)
-            .map(|container: StructureContainer| {
-                memory.insert(TARGET.into(), container.id().into());
-                container
-            })
+        let containers: Vec<StructureContainer> =
+            containers.try_into().map(|c| Some(c)).unwrap_or(None)?;
+
+        let result = containers
+            .into_iter()
+            .max_by_key(|i| i.store_of(ResourceType::Energy));
+
+        result.map(|c| {
+            memory.insert(TARGET.into(), c.id().into());
+            c
+        })
     })
 }
 
