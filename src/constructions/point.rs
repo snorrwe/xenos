@@ -11,8 +11,25 @@ impl From<RoomPosition> for Point {
 }
 
 impl Point {
+    pub fn is_valid_room_position(&self) -> bool {
+        let x = self.0;
+        let y = self.1;
+        0 <= x && x <= 49 && 0 <= y && y <= 49
+    }
+
     pub fn into_room_pos(self, room: &str) -> RoomPosition {
         RoomPosition::new(self.0 as u32, self.1 as u32, room)
+    }
+
+    /// Validates args before casting
+    pub fn try_into_room_pos(self, room: &str) -> Option<RoomPosition> {
+        if !self.is_valid_room_position() {
+            None?;
+        }
+        let x = self.0 as u32;
+        let y = self.1 as u32;
+        let p = RoomPosition::new(x, y, room);
+        Some(p)
     }
 
     pub fn manhatten_dist(&self, other: &Self) -> u16 {

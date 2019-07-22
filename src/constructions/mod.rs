@@ -27,11 +27,11 @@ use stdweb::unstable::TryFrom;
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ConstructionMatrix {
     /// 3×3 positions that have not been explored yet
-    pub todo: VecDeque<Point>,
+    todo: VecDeque<Point>,
     /// 3×3 positions that have been explored already
-    pub done: HashSet<Point>,
+    done: HashSet<Point>,
     /// 1×1 positions that are open for constructions
-    pub open_positions: VecDeque<Point>,
+    open_positions: VecDeque<Point>,
 }
 
 impl ConstructionMatrix {
@@ -41,8 +41,9 @@ impl ConstructionMatrix {
         self
     }
 
-    fn soft_reset(&mut self, room: &Room) {
+    fn reset(&mut self, room: &Room) {
         self.done = HashSet::new();
+        self.open_positions = VecDeque::new();
         let pos = spawns::find_initial_point(room)
             .map(Point::from)
             .unwrap_or(Point(25, 25));
@@ -66,7 +67,11 @@ impl ConstructionMatrix {
                 pos,
                 room.name()
             );
-            let pos = RoomPosition::new(pos.0 as u32, pos.1 as u32, &name);
+            let pos = pos.try_into_room_pos(&name).ok_or_else(|| {
+                let err = format!("Failed to cast point {:?} to RoomPosition", pos);
+                error!("{}", err);
+                err
+            })?;
             let result = room.create_construction_site(&pos, *ty);
             match result {
                 ReturnCode::InvalidTarget | ReturnCode::Ok => {
@@ -97,7 +102,7 @@ impl ConstructionMatrix {
             .process_next_tile(room)
             .and_then(|_| self.open_positions.front().map(|x| x.clone()))
             .ok_or_else(|| {
-                self.soft_reset(room);
+                self.reset(room);
                 format!("No free space is available in room {}", room.name())
             })?;
         Ok(pos)
@@ -140,6 +145,7 @@ impl ConstructionMatrix {
         let n_free = tile
             .iter()
             .enumerate()
+            .filter(|(_, p)| p.is_valid_room_position())
             .filter(|(i, _)| *i != 4) // Skip the middle
             .filter(|(_, p)| (p.0 + p.1) % 2 != parity)
             .filter(|(_, p)| is_free(room, &p.into_room_pos(&room_name)))
@@ -155,6 +161,7 @@ impl ConstructionMatrix {
             self.open_positions.extend(
                 tile.into_iter()
                     .enumerate()
+                    .filter(|(_, p)| p.is_valid_room_position())
                     .filter(|(i, _)| *i as i16 % 2 == parity)
                     .filter(|(_, p)| is_free(room, &p.into_room_pos(&room_name)))
                     .map(|(_, p)| *p),

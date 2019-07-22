@@ -13,8 +13,8 @@ impl HasNeighbour for RoomPosition {
         let y = self.y();
         assert!(x > 0);
         assert!(y > 0);
-        assert!(x < 50);
-        assert!(y < 50);
+        assert!(x < 49);
+        assert!(y < 49);
         let name = self.room_name();
         let name = name.as_str();
         [
