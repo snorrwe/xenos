@@ -118,7 +118,7 @@ where
 
 impl<'a, T: 'a + TaskInput> From<Control<'a, T>> for Task<'a, T> {
     fn from(control: Control<'a, T>) -> Task<'a, T> {
-        control.into()
+        Task::new(move |state| control.tick(state))
     }
 }
 
