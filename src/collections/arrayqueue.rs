@@ -9,10 +9,10 @@ pub enum QueueError {
     Empty,
 }
 
-const SIZE: usize = 32;
+const SIZE: usize = 128;
 
 // Invariant: head <= tail
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct ArrayQueue<Item>
 where
     Item: Clone,
@@ -20,6 +20,20 @@ where
     head: i16,
     tail: i16,
     buff: [Item; SIZE],
+}
+
+impl<T> fmt::Debug for ArrayQueue<T>
+where
+    T: Clone + fmt::Debug,
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Head: {} Tail: {}\nItems: [", self.head, self.tail)?;
+        for i in self.buff.iter() {
+            write!(f, "{:?},", i)?;
+        }
+        write!(f, "]")?;
+        Ok(())
+    }
 }
 
 impl<'de, T, It: Iterator<Item = T>> From<It> for ArrayQueue<T>
