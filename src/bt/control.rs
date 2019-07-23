@@ -139,6 +139,8 @@ mod tests {
 
     #[test]
     fn test_priority_sorting() {
+        js!{}; // Enables error messages in tests
+
         let tasks = [
             Task::new(|state: &mut TestState| {
                 state.results.push('a');

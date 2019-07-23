@@ -13,6 +13,7 @@ extern crate serde_json;
 extern crate lazy_static;
 
 mod bt;
+mod collections;
 mod constructions;
 mod creeps;
 mod flags;
