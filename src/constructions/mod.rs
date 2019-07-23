@@ -150,8 +150,8 @@ impl ConstructionMatrix {
         let n_free = tile
             .iter()
             .enumerate()
-            .filter(|(_, p)| p.is_valid_room_position())
             .filter(|(i, _)| *i != 4) // Skip the middle
+            .filter(|(_, p)| p.is_valid_room_position())
             .filter(|(_, p)| (p.0 + p.1) % 2 != parity)
             .filter(|(_, p)| is_free(room, &p.into_room_pos(&room_name)))
             .count();

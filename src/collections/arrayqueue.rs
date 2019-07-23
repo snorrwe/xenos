@@ -9,6 +9,7 @@ pub enum QueueError {
     Empty,
 }
 
+// TODO: generate multiple sizes of queues
 const SIZE: usize = 128;
 
 // Invariant: head <= tail
