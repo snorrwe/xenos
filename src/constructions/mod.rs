@@ -9,6 +9,7 @@ mod storage;
 use self::point::Point;
 
 use self::construction_state::ConstructionState;
+use crate::collections::arrayqueue::ArrayQueue;
 use crate::prelude::*;
 use crate::CONSTRUCTIONS_SEGMENT;
 use arrayvec::ArrayVec;
@@ -17,7 +18,7 @@ use screeps::{
     objects::{HasPosition, Room, RoomPosition},
     ReturnCode,
 };
-use std::collections::{HashSet, VecDeque};
+use std::collections::HashSet;
 use stdweb::unstable::TryFrom;
 
 /// Represents a room split up into 3×3 squares
@@ -27,11 +28,11 @@ use stdweb::unstable::TryFrom;
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ConstructionMatrix {
     /// 3×3 positions that have not been explored yet
-    todo: VecDeque<Point>,
+    todo: ArrayQueue<Point>,
     /// 3×3 positions that have been explored already
     done: HashSet<Point>,
     /// 1×1 positions that are open for constructions
-    open_positions: VecDeque<Point>,
+    open_positions: ArrayQueue<Point>,
 }
 
 impl ConstructionMatrix {
@@ -43,7 +44,7 @@ impl ConstructionMatrix {
 
     fn reset(&mut self, room: &Room) {
         self.done = HashSet::new();
-        self.open_positions = VecDeque::new();
+        self.open_positions = Default::default();
         let pos = spawns::find_initial_point(room)
             .map(Point::from)
             .unwrap_or(Point(25, 25));
@@ -75,7 +76,9 @@ impl ConstructionMatrix {
             let result = room.create_construction_site(&pos, *ty);
             match result {
                 ReturnCode::InvalidTarget | ReturnCode::Ok => {
-                    self.open_positions.pop_front();
+                    self.open_positions
+                        .try_pop_front()
+                        .map_err(|e| format!("Tried to pop front on an empty queue {:?}", e))?;
                 }
                 ReturnCode::Full => {
                     debug!("cant place construction site {:?}", result);
@@ -92,15 +95,17 @@ impl ConstructionMatrix {
 
     pub fn find_next_pos(&mut self, room: &Room) -> Result<Point, String> {
         let open_position = { self.open_positions.front().map(|x| x.clone()) };
-        if let Some(open_position) = open_position {
+        if let Ok(open_position) = open_position {
             if is_free(room, &open_position.into_room_pos(&room.name())) {
-                self.open_positions.pop_front();
+                self.open_positions
+                    .try_pop_front()
+                    .map_err(|e| format!("Failed to pop front item {:?}", e))?;
                 return Ok(open_position);
             }
         }
         let pos = self
             .process_next_tile(room)
-            .and_then(|_| self.open_positions.front().map(|x| x.clone()))
+            .and_then(|_| self.open_positions.front().map(|x| x.clone()).ok())
             .ok_or_else(|| {
                 self.reset(room);
                 format!("No free space is available in room {}", room.name())
@@ -112,7 +117,7 @@ impl ConstructionMatrix {
     fn process_next_tile(&mut self, room: &Room) -> Option<Point> {
         debug!("Processing next in room {:?}", room.name());
 
-        let pos = self.todo.pop_front()?;
+        let pos = self.todo.try_pop_front().ok()?;
         debug!("Processing tile pos {:?}", pos);
 
         {

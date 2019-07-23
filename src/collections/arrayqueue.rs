@@ -13,17 +13,16 @@ const SIZE: usize = 32;
 
 // Invariant: head <= tail
 #[derive(Clone, Debug)]
-pub struct ArrayQueue<'de, Item>
+pub struct ArrayQueue<Item>
 where
-    Item: Deserialize<'de> + Serialize + Clone,
+    Item: Clone,
 {
     head: i16,
     tail: i16,
     buff: [Item; SIZE],
-    _ph: &'de PhantomData<i8>,
 }
 
-impl<'de, T, It: Iterator<Item = T>> From<It> for ArrayQueue<'de, T>
+impl<'de, T, It: Iterator<Item = T>> From<It> for ArrayQueue<T>
 where
     T: Deserialize<'de> + Serialize + Clone,
 {
@@ -36,9 +35,9 @@ where
     }
 }
 
-impl<'de, T> Default for ArrayQueue<'de, T>
+impl<T> Default for ArrayQueue<T>
 where
-    T: Deserialize<'de> + Serialize + Clone,
+    T: Clone,
 {
     fn default() -> Self {
         let buff = unsafe { MaybeUninit::zeroed().assume_init() };
@@ -46,15 +45,23 @@ where
             head: 0,
             tail: 0,
             buff,
-            _ph: &PhantomData,
         }
     }
 }
 
-impl<'de, T> ArrayQueue<'de, T>
+impl<T> ArrayQueue<T>
 where
-    T: Deserialize<'de> + Serialize + Clone,
+    T: Clone,
 {
+    pub fn extend<It>(&mut self, it: It)
+    where
+        It: Iterator<Item = T>,
+    {
+        for i in it {
+            self.push_back(i);
+        }
+    }
+
     /// Try to push an item, fail if the queue is full
     pub fn try_push_back(&mut self, item: T) -> Result<&mut T, QueueError> {
         let tail = increment_one(self.tail);
@@ -80,6 +87,7 @@ where
     }
 
     /// Pop the first item if any
+    #[allow(unused)]
     pub fn try_pop_front(&mut self) -> Result<T, QueueError> {
         if self.head == self.tail {
             Err(QueueError::Empty)?;
@@ -90,7 +98,8 @@ where
     }
 
     /// Peek the first element
-    pub fn first(&self) -> Result<&T, QueueError> {
+    #[allow(unused)]
+    pub fn front(&self) -> Result<&T, QueueError> {
         if self.head == self.tail {
             Err(QueueError::Empty)?;
         }
@@ -100,7 +109,8 @@ where
     }
 
     /// Peek the last element
-    pub fn last(&self) -> Result<&T, QueueError> {
+    #[allow(unused)]
+    pub fn back(&self) -> Result<&T, QueueError> {
         if self.head == self.tail {
             Err(QueueError::Empty)?;
         }
@@ -110,11 +120,12 @@ where
     }
 
     /// Creates a copy of the queue in a vector
+    #[allow(unused)]
     pub fn as_vec(&self) -> Vec<T> {
         self.iter().cloned().collect()
     }
 
-    pub fn iter<'a>(&'a self) -> QueueIterator<'a, 'de, T> {
+    pub fn iter<'a>(&'a self) -> QueueIterator<'a, T> {
         QueueIterator {
             queue: self,
             head: self.head,
@@ -132,23 +143,24 @@ where
         }
     }
 
+    #[allow(unused)]
     pub fn capacity(&self) -> usize {
         SIZE - 1
     }
 }
 
-pub struct QueueIterator<'a, 'de, T>
+pub struct QueueIterator<'a, T>
 where
-    T: Deserialize<'de> + Serialize + Clone,
+    T: Clone,
 {
-    queue: &'a ArrayQueue<'de, T>,
+    queue: &'a ArrayQueue<T>,
     head: i16,
     tail: i16,
 }
 
-impl<'a, 'de, T> Iterator for QueueIterator<'a, 'de, T>
+impl<'a, T> Iterator for QueueIterator<'a, T>
 where
-    T: Deserialize<'de> + Serialize + Clone,
+    T: Clone,
 {
     type Item = &'a T;
 
@@ -163,9 +175,9 @@ where
     }
 }
 
-impl<'de, T> Serialize for ArrayQueue<'de, T>
+impl<T> Serialize for ArrayQueue<T>
 where
-    T: Deserialize<'de> + Serialize + Clone,
+    T: Clone + Serialize,
 {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -179,9 +191,9 @@ where
     }
 }
 
-impl<'de, T> de::Deserialize<'de> for ArrayQueue<'de, T>
+impl<'de, T> de::Deserialize<'de> for ArrayQueue<T>
 where
-    T: Deserialize<'de> + Serialize + Clone,
+    T: Serialize + Deserialize<'de> + Clone,
 {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
@@ -193,7 +205,7 @@ where
         where
             T: Deserialize<'de> + Serialize + Clone,
         {
-            type Value = ArrayQueue<'de, T>;
+            type Value = ArrayQueue<T>;
 
             fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
                 formatter.write_str("a nonempty sequence of numbers")
@@ -312,8 +324,8 @@ mod tests {
 
         assert_eq!(queue.len(), 9);
 
-        let first = queue.first().expect("Expected queue not to be empty");
-        let last = queue.last().expect("Expected queue not to be empty");
+        let first = queue.front().expect("Expected queue not to be empty");
+        let last = queue.back().expect("Expected queue not to be empty");
         assert_eq!(*first, 1);
         assert_eq!(*last, 9);
 
@@ -323,8 +335,8 @@ mod tests {
                 .expect("Expected more values in the queue");
         }
 
-        let first = queue.first().expect("Expected queue not to be empty");
-        let last = queue.last().expect("Expected queue not to be empty");
+        let first = queue.front().expect("Expected queue not to be empty");
+        let last = queue.back().expect("Expected queue not to be empty");
         assert_eq!(*first, 3);
         assert_eq!(*last, 9);
     }
