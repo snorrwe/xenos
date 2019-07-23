@@ -1,7 +1,8 @@
 use serde::{de, ser::SerializeSeq, Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt;
 use std::marker::PhantomData;
-use std::mem::MaybeUninit;
+use std::mem::{self, MaybeUninit};
+use std::ops::{Add, Sub};
 
 #[derive(Debug, Clone, Copy)]
 pub enum QueueError {
@@ -9,68 +10,150 @@ pub enum QueueError {
     Empty,
 }
 
-// TODO: generate multiple sizes of queues
-const SIZE: usize = 64;
-
-// Invariant: head <= tail
-#[derive(Clone)]
-pub struct ArrayQueue<Item>
-where
-    Item: Clone,
+pub trait Index:
+    Add + Sub + Default + Copy + Clone + Eq + PartialEq + Ord + PartialOrd + fmt::Debug
 {
-    head: i16,
-    tail: i16,
-    buff: [Item; SIZE],
+    fn as_usize(self) -> usize;
+    fn from_usize(s: usize) -> Self;
 }
 
-impl<T> fmt::Debug for ArrayQueue<T>
+pub trait Container {
+    type Item;
+    type Index: Index;
+
+    fn capacity() -> usize;
+
+    fn get(&self, index: Self::Index) -> &Self::Item;
+    fn get_mut(&mut self, index: Self::Index) -> &mut Self::Item;
+    fn set(&mut self, index: Self::Index, item: Self::Item);
+}
+
+impl Index for u8 {
+    #[inline]
+    fn as_usize(self) -> usize {
+        self as usize
+    }
+    #[inline]
+    fn from_usize(s: usize) -> Self {
+        debug_assert!(s < std::u8::MAX as usize);
+        s as u8
+    }
+}
+
+impl<T> Container for [T; 64] {
+    type Item = T;
+    type Index = u8;
+
+    fn capacity() -> usize {
+        64
+    }
+    fn get(&self, index: Self::Index) -> &Self::Item {
+        &self[index.as_usize()]
+    }
+    fn get_mut(&mut self, index: Self::Index) -> &mut Self::Item {
+        &mut self[index.as_usize()]
+    }
+    fn set(&mut self, index: Self::Index, item: Self::Item) {
+        self[index.as_usize()] = item;
+    }
+}
+
+impl<T> Container for [T; 128] {
+    type Item = T;
+    type Index = u8;
+
+    fn capacity() -> usize {
+        128
+    }
+    fn get(&self, index: Self::Index) -> &Self::Item {
+        &self[index.as_usize()]
+    }
+    fn get_mut(&mut self, index: Self::Index) -> &mut Self::Item {
+        &mut self[index.as_usize()]
+    }
+    fn set(&mut self, index: Self::Index, item: Self::Item) {
+        self[index.as_usize()] = item;
+    }
+}
+
+impl<T> Container for [T; 32] {
+    type Item = T;
+    type Index = u8;
+
+    fn capacity() -> usize {
+        32
+    }
+    fn get(&self, index: Self::Index) -> &Self::Item {
+        &self[index.as_usize()]
+    }
+    fn get_mut(&mut self, index: Self::Index) -> &mut Self::Item {
+        &mut self[index.as_usize()]
+    }
+    fn set(&mut self, index: Self::Index, item: Self::Item) {
+        self[index.as_usize()] = item;
+    }
+}
+
+/// Fix sized ring buffering FIFO queue
+// Invariant: head <= tail
+#[derive(Clone)]
+pub struct ArrayQueue<C>
 where
-    T: Clone + fmt::Debug,
+    C: Container,
+{
+    head: C::Index,
+    tail: C::Index,
+    buff: C,
+}
+
+impl<T, C> fmt::Debug for ArrayQueue<C>
+where
+    C: Container<Item = T>,
+    T: fmt::Debug,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Head: {} Tail: {}\nItems: [", self.head, self.tail)?;
-        for i in self.buff.iter() {
-            write!(f, "{:?},", i)?;
+        write!(f, "Head: {:?} Tail: {:?}\nItems: [", self.head, self.tail)?;
+        for i in 0..self.capacity() {
+            write!(f, "{:?},", self.buff.get(C::Index::from_usize(i)))?;
         }
         write!(f, "]")?;
         Ok(())
     }
 }
 
-impl<'de, T, It: Iterator<Item = T>> From<It> for ArrayQueue<T>
+impl<'de, T, It> From<It> for ArrayQueue<T>
 where
-    T: Deserialize<'de> + Serialize + Clone,
+    T: Container,
+    It: Iterator<Item = T::Item>,
 {
     fn from(v: It) -> Self {
         let mut result = Self::default();
-        v.take(SIZE).for_each(|i| {
+        v.take(T::capacity()).for_each(|i| {
             result.push_back(i);
         });
         result
     }
 }
 
-impl<T> Default for ArrayQueue<T>
-where
-    T: Clone,
-{
+impl<T: Container> Default for ArrayQueue<T> {
     fn default() -> Self {
-        let buff = unsafe { MaybeUninit::zeroed().assume_init() };
-        Self {
-            head: 0,
-            tail: 0,
+        let buff: T = unsafe { MaybeUninit::zeroed().assume_init() };
+        let result = Self {
             buff,
-        }
+            head: Default::default(),
+            tail: Default::default(),
+        };
+        result
     }
 }
 
-impl<T> ArrayQueue<T>
+impl<C> ArrayQueue<C>
 where
-    T: Clone,
+    C: Container,
 {
     pub fn extend<It>(&mut self, it: It)
     where
-        It: Iterator<Item = T>,
+        It: Iterator<Item = C::Item>,
     {
         for i in it {
             self.push_back(i);
@@ -78,24 +161,32 @@ where
     }
 
     /// Try to push an item, fail if the queue is full
-    pub fn try_push_back(&mut self, item: T) -> Result<&mut T, QueueError> {
-        let tail = increment_one(self.tail);
+    pub fn try_push_back(&mut self, item: C::Item) -> Result<&mut C::Item, QueueError> {
+        let tail = Self::increment_one(self.tail);
         if self.head == tail {
             Err(QueueError::Full)?;
         }
-        self.buff[self.tail as usize] = item;
-        let result = &mut self.buff[self.tail as usize];
+        self.buff.set(self.tail, item);
+        let result = self.buff.get_mut(self.tail);
         self.tail = tail;
         Ok(result)
     }
 
+    fn increment_one(ind: C::Index) -> C::Index {
+        C::Index::from_usize(increment_one::<C>(ind.as_usize()))
+    }
+
+    fn decrease_one(ind: C::Index) -> C::Index {
+        C::Index::from_usize(decrease_one::<C>(ind.as_usize()))
+    }
+
     /// Push an item, the queue loses the first item if the queue is full
-    pub fn push_back(&mut self, item: T) -> &mut T {
-        let tail = increment_one(self.tail);
-        self.buff[self.tail as usize] = item;
-        let result = &mut self.buff[self.tail as usize];
+    pub fn push_back(&mut self, item: C::Item) -> &mut C::Item {
+        self.buff.set(self.tail, item);
+        let result = self.buff.get_mut(self.tail);
+        let tail = Self::increment_one(self.tail);
         if self.head == tail {
-            self.head = increment_one(self.head);
+            self.head = Self::increment_one(self.head);
         }
         self.tail = tail;
         result
@@ -103,96 +194,97 @@ where
 
     /// Pop the first item if any
     #[allow(unused)]
-    pub fn try_pop_front(&mut self) -> Result<T, QueueError> {
+    pub fn try_pop_front(&mut self) -> Result<C::Item, QueueError> {
         if self.head == self.tail {
             Err(QueueError::Empty)?;
         }
-        let result = self.buff[self.head as usize].clone();
-        self.head = increment_one(self.head);
+        let result = unsafe {
+            // Copy the bits out of the buffer and replace them with zeros
+            let garbage = MaybeUninit::zeroed().assume_init();
+            let result = mem::replace(self.buff.get_mut(self.head), garbage);
+            result
+        };
+        self.head = Self::increment_one(self.head);
         Ok(result)
     }
 
     /// Peek the first element
     #[allow(unused)]
-    pub fn front(&self) -> Result<&T, QueueError> {
+    pub fn front(&self) -> Result<&C::Item, QueueError> {
         if self.head == self.tail {
             Err(QueueError::Empty)?;
         }
 
-        let result = &self.buff[self.head as usize];
+        let result = self.buff.get(self.head);
         Ok(result)
     }
 
     /// Peek the last element
     #[allow(unused)]
-    pub fn back(&self) -> Result<&T, QueueError> {
+    pub fn back(&self) -> Result<&C::Item, QueueError> {
         if self.head == self.tail {
             Err(QueueError::Empty)?;
         }
-
-        let result = &self.buff[decrement_one(self.tail) as usize];
+        let tail = Self::decrease_one(self.tail);
+        let result = self.buff.get(tail);
         Ok(result)
     }
 
-    /// Creates a copy of the queue in a vector
-    #[allow(unused)]
-    pub fn as_vec(&self) -> Vec<T> {
-        self.iter().cloned().collect()
-    }
-
-    pub fn iter<'a>(&'a self) -> QueueIterator<'a, T> {
+    pub fn iter<'a>(&'a self) -> QueueIterator<'a, C> {
         QueueIterator {
-            queue: self,
+            container: &self.buff,
             head: self.head,
             tail: self.tail,
         }
     }
 
     pub fn len(&self) -> usize {
-        let head = self.head as usize;
-        let tail = self.tail as usize;
+        let head = self.head.as_usize();
+        let tail = self.tail.as_usize();
         if head <= tail {
             tail - head
         } else {
-            SIZE - head + tail
+            let b = head - tail; // Skipped items
+            C::capacity() - b
         }
     }
 
     #[allow(unused)]
     pub fn capacity(&self) -> usize {
-        SIZE - 1
+        C::capacity()
     }
 }
 
-pub struct QueueIterator<'a, T>
+pub struct QueueIterator<'a, C>
 where
-    T: Clone,
+    C: Container,
 {
-    queue: &'a ArrayQueue<T>,
-    head: i16,
-    tail: i16,
+    head: C::Index,
+    tail: C::Index,
+    container: &'a C,
 }
 
-impl<'a, T> Iterator for QueueIterator<'a, T>
+impl<'a, C> Iterator for QueueIterator<'a, C>
 where
-    T: Clone,
+    C: Container,
 {
-    type Item = &'a T;
+    type Item = &'a C::Item;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.head == self.tail {
             None
         } else {
-            let res = &self.queue.buff[self.head as usize];
-            self.head = increment_one(self.head);
+            let res = self.container.get(self.head);
+            self.head = ArrayQueue::<C>::increment_one(self.head);
             Some(res)
         }
     }
 }
 
-impl<T> Serialize for ArrayQueue<T>
+impl<T, C> Serialize for ArrayQueue<C>
 where
-    T: Clone + Serialize,
+    T: Serialize,
+    C: Container<Item = T>,
 {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -206,24 +298,26 @@ where
     }
 }
 
-impl<'de, T> de::Deserialize<'de> for ArrayQueue<T>
+impl<'de, T, C> de::Deserialize<'de> for ArrayQueue<C>
 where
-    T: Serialize + Deserialize<'de> + Clone,
+    T: Serialize + Deserialize<'de>,
+    C: Container<Item = T>,
 {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
     {
-        struct Visitor<T>(PhantomData<fn() -> T>);
+        struct Visitor<T, C>(PhantomData<fn() -> (T, C)>);
 
-        impl<'de, T> de::Visitor<'de> for Visitor<T>
+        impl<'de, T, C> de::Visitor<'de> for Visitor<T, C>
         where
-            T: Deserialize<'de> + Serialize + Clone,
+            T: Deserialize<'de> + Serialize,
+            C: Container<Item = T>,
         {
-            type Value = ArrayQueue<T>;
+            type Value = ArrayQueue<C>;
 
             fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-                formatter.write_str("a nonempty sequence of numbers")
+                formatter.write_str("a sequence")
             }
 
             fn visit_seq<S>(self, mut seq: S) -> Result<Self::Value, S::Error>
@@ -244,15 +338,16 @@ where
     }
 }
 
+/// Next element
 #[inline]
-fn increment_one(ind: i16) -> i16 {
-    (ind + 1) % SIZE as i16
+fn increment_one<C: Container>(ind: usize) -> usize {
+    (ind + 1) % C::capacity()
 }
 
-#[allow(unused)]
+/// Prev element
 #[inline]
-fn decrement_one(ind: i16) -> i16 {
-    (ind + SIZE as i16 - 1) % SIZE as i16
+fn decrease_one<C: Container>(ind: usize) -> usize {
+    (ind + C::capacity() - 1) % C::capacity()
 }
 
 #[cfg(test)]
@@ -260,11 +355,14 @@ mod tests {
     use super::*;
     use serde_json;
 
+    const SIZE: usize = 64;
+
     #[test]
     fn test_serialize() {
         js! {}; // Enables error messages in tests
 
-        let queue: ArrayQueue<_> = [1, 2, 3, 4, 5, 6, 7, 8, 9].into_iter().map(|x| *x).into();
+        let queue: ArrayQueue<[usize; SIZE]> =
+            [1, 2, 3, 4, 5, 6, 7, 8, 9].into_iter().map(|x| *x).into();
 
         assert_eq!(queue.len(), 9);
 
@@ -279,7 +377,7 @@ mod tests {
 
         let s = "[6,7,8,9,1,2,3,4,5]";
 
-        let q: ArrayQueue<i32> = serde_json::from_str(s).expect("Failed to deserialize");
+        let q: ArrayQueue<[i32; SIZE]> = serde_json::from_str(s).expect("Failed to deserialize");
 
         assert_eq!(q.len(), 9);
 
@@ -292,7 +390,7 @@ mod tests {
     fn test_len() {
         js! {};
 
-        let mut q = ArrayQueue::default();
+        let mut q = ArrayQueue::<[usize; 64]>::default();
 
         assert_eq!(q.len(), 0);
 
@@ -304,9 +402,8 @@ mod tests {
 
         let expected = SIZE * 2 + 2..SIZE * 3; // Because capacity is 1 less than the size the first value will be 2 past SIZE*2
 
-        for ((x, y), z) in q.iter().zip(q.as_vec().into_iter()).zip(expected) {
+        for (x, y) in q.iter().zip(expected) {
             assert_eq!(*x, y);
-            assert_eq!(y, z);
         }
     }
 
@@ -314,7 +411,8 @@ mod tests {
     fn test_pops() {
         js! {};
 
-        let mut queue: ArrayQueue<_> = [1, 2, 3, 4, 5, 6, 7, 8, 9].into_iter().map(|x| *x).into();
+        let mut queue: ArrayQueue<[i32; SIZE]> =
+            [1, 2, 3, 4, 5, 6, 7, 8, 9].into_iter().map(|x| *x).into();
 
         assert_eq!(queue.len(), 9);
 
@@ -335,7 +433,8 @@ mod tests {
     fn test_peek() {
         js! {};
 
-        let mut queue: ArrayQueue<_> = [1, 2, 3, 4, 5, 6, 7, 8, 9].into_iter().map(|x| *x).into();
+        let mut queue: ArrayQueue<[i32; SIZE]> =
+            [1, 2, 3, 4, 5, 6, 7, 8, 9].into_iter().map(|x| *x).into();
 
         assert_eq!(queue.len(), 9);
 
@@ -355,5 +454,6 @@ mod tests {
         assert_eq!(*first, 3);
         assert_eq!(*last, 9);
     }
+
 }
 

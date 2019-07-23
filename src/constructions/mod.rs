@@ -28,11 +28,11 @@ use stdweb::unstable::TryFrom;
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ConstructionMatrix {
     /// 3×3 positions that have not been explored yet
-    todo: ArrayQueue<Point>,
+    todo: ArrayQueue<[Point; 32]>, // TODO: The capacities are pretty strict numbers, let's see how they work out
     /// 3×3 positions that have been explored already
     done: HashSet<Point>,
     /// 1×1 positions that are open for constructions
-    open_positions: ArrayQueue<Point>,
+    open_positions: ArrayQueue<[Point; 64]>,
 }
 
 impl ConstructionMatrix {
