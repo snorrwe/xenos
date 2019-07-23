@@ -114,4 +114,3 @@ impl SubAssign for Point {
         self.1 -= rhs.1;
     }
 }
-

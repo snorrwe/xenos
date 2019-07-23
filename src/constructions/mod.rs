@@ -317,4 +317,3 @@ pub fn is_free(room: &Room, pos: &RoomPosition) -> bool {
     };
     bool::try_from(result).unwrap_or(false)
 }
-

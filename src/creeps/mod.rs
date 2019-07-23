@@ -447,4 +447,3 @@ pub fn approach_target_room<'a>(
         _ => Ok(()),
     }
 }
-

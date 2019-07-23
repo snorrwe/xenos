@@ -6,4 +6,3 @@ fn main() {
     let now = format!("{}", now);
     fs::write("VERSION", now).expect("Failed to create version file");
 }
-

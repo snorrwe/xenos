@@ -226,4 +226,3 @@ impl GameState {
         result
     }
 }
-

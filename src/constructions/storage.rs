@@ -39,4 +39,3 @@ pub fn find_storage_pos(room: &Room, matrix: &mut ConstructionMatrix) -> Result<
     };
     unimplemented!()
 }
-

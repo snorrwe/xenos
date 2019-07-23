@@ -139,7 +139,7 @@ mod tests {
 
     #[test]
     fn test_priority_sorting() {
-        js!{}; // Enables error messages in tests
+        js! {}; // Enables error messages in tests
 
         let tasks = [
             Task::new(|state: &mut TestState| {
@@ -175,4 +175,3 @@ mod tests {
         assert_eq!(state.results, "cdb");
     }
 }
-

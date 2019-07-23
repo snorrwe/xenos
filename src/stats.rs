@@ -61,4 +61,3 @@ pub fn save_stats(
 
     Ok(())
 }
-

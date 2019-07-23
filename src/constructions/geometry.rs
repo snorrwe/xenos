@@ -69,4 +69,3 @@ mod tests {
         assert_eq!(result.1, 5);
     }
 }
-

@@ -136,4 +136,3 @@ pub fn sign_controller(creep: &Creep, msg: &str) -> ExecutionResult {
         result => Err(format!("failed to sign controller {:?}", result)),
     }
 }
-

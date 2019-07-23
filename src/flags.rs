@@ -2,8 +2,8 @@ use crate::prelude::*;
 use screeps::constants::find;
 use screeps::game::flags;
 use screeps::objects::{Flag, OwnedStructureProperties, Structure};
-use screeps::RoomObjectProperties;
 use screeps::traits::TryInto;
+use screeps::RoomObjectProperties;
 
 pub fn task<'a>() -> Task<'a, GameState> {
     let flags = flags::values();
@@ -57,4 +57,3 @@ fn check_controller(flag: &Flag) -> ExecutionResult {
     }
     Ok(())
 }
-

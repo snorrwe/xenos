@@ -1,7 +1,7 @@
 use super::ConstructionMatrix;
+use crate::CONSTRUCTIONS_SEGMENT;
 use screeps::raw_memory;
 use std::collections::HashMap;
-use crate::CONSTRUCTIONS_SEGMENT;
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct ConstructionState {

@@ -37,4 +37,3 @@ pub fn find_initial_point(room: &Room) -> Result<RoomPosition, String> {
 
     Ok(optimal_point)
 }
-

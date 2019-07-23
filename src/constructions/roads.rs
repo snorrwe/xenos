@@ -104,4 +104,3 @@ fn connect(pos0: &RoomPosition, pos1: &RoomPosition, room: &Room) -> ExecutionRe
         }
     })
 }
-

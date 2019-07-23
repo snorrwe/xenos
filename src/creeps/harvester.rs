@@ -273,4 +273,3 @@ fn harvester_count(state: &mut GameState) -> HashMap<String, i32> {
     });
     result
 }
-

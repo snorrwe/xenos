@@ -141,4 +141,3 @@ fn role_part_max(room: &Room, role: Role) -> Option<usize> {
     };
     result.map(|x| x.min(50))
 }
-

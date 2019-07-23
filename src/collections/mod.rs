@@ -48,4 +48,3 @@ impl Index for u16 {
         s as u16
     }
 }
-

@@ -1,8 +1,8 @@
+use super::{Container, Index};
 use serde::{de, ser::SerializeSeq, Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt;
 use std::marker::PhantomData;
 use std::mem::{self, MaybeUninit};
-use super::{Container, Index};
 
 #[derive(Debug, Clone, Copy)]
 pub enum QueueError {
@@ -167,7 +167,7 @@ where
 
     #[allow(unused)]
     pub fn capacity(&self) -> usize {
-        C::capacity()
+        C::capacity() - 1
     }
 }
 
@@ -223,7 +223,7 @@ where
     where
         D: Deserializer<'de>,
     {
-        struct Visitor<T, C>(PhantomData<fn() -> (T, C)>);
+        struct Visitor<T, C>(PhantomData<fn() -> (T, C) -> (T, C)>);
 
         impl<'de, T, C> de::Visitor<'de> for Visitor<T, C>
         where
@@ -372,4 +372,3 @@ mod tests {
     }
 
 }
-

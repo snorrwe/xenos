@@ -116,4 +116,3 @@ pub fn run_role<'a>(role: Role, creep: &'a Creep) -> Task<'a, GameState> {
     })
     .with_name("Run role")
 }
-

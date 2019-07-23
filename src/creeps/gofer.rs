@@ -261,4 +261,3 @@ fn read_target_container(state: &GameState, creep: &Creep) -> Option<StructureCo
         .creep_memory_string(CreepName(&creep.name()), TARGET)
         .and_then(|id| get_object_typed(id).ok())?
 }
-

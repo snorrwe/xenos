@@ -100,4 +100,3 @@ fn get_build_target(state: &mut GameState, creep: &Creep) -> Option<Construction
                 .ok()
         })
 }
-

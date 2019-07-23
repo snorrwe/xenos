@@ -140,4 +140,3 @@ fn unload<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResult {
     };
     tree.tick(state)
 }
-

@@ -18,5 +18,3 @@ pub type ExecutionResult = Result<(), String>;
 pub trait TaskInput: std::fmt::Debug {
     fn cpu_bucket(&self) -> Option<i16>;
 }
-
-

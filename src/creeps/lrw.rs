@@ -28,9 +28,7 @@ pub fn run<'a>(creep: &'a Creep) -> Task<'a, GameState> {
     .collect();
 
     let tree = Control::Sequence(tasks);
-    Task::from(tree)
-        .with_required_bucket(300)
-        .with_name("LRW")
+    Task::from(tree).with_required_bucket(300).with_name("LRW")
 }
 
 fn approach_target_room(state: &mut GameState, creep: &Creep) -> ExecutionResult {
@@ -85,4 +83,3 @@ fn set_target<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResult {
 
     Ok(())
 }
-
