@@ -10,7 +10,7 @@ pub enum QueueError {
 }
 
 // TODO: generate multiple sizes of queues
-const SIZE: usize = 128;
+const SIZE: usize = 64;
 
 // Invariant: head <= tail
 #[derive(Clone)]

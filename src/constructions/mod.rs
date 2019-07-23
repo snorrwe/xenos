@@ -48,6 +48,7 @@ impl ConstructionMatrix {
         let pos = spawns::find_initial_point(room)
             .map(Point::from)
             .unwrap_or(Point(25, 25));
+        self.todo = Default::default();
         let pos = Self::as_tile_top_left(pos);
         self.todo.push_back(pos);
     }
