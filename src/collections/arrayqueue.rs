@@ -2,96 +2,12 @@ use serde::{de, ser::SerializeSeq, Deserialize, Deserializer, Serialize, Seriali
 use std::fmt;
 use std::marker::PhantomData;
 use std::mem::{self, MaybeUninit};
-use std::ops::{Add, Sub};
+use super::{Container, Index};
 
 #[derive(Debug, Clone, Copy)]
 pub enum QueueError {
     Full,
     Empty,
-}
-
-pub trait Index:
-    Add + Sub + Default + Copy + Clone + Eq + PartialEq + Ord + PartialOrd + fmt::Debug
-{
-    fn as_usize(self) -> usize;
-    fn from_usize(s: usize) -> Self;
-}
-
-pub trait Container {
-    type Item;
-    type Index: Index;
-
-    fn capacity() -> usize;
-
-    fn get(&self, index: Self::Index) -> &Self::Item;
-    fn get_mut(&mut self, index: Self::Index) -> &mut Self::Item;
-    fn set(&mut self, index: Self::Index, item: Self::Item);
-}
-
-impl Index for u8 {
-    #[inline]
-    fn as_usize(self) -> usize {
-        self as usize
-    }
-    #[inline]
-    fn from_usize(s: usize) -> Self {
-        debug_assert!(s < std::u8::MAX as usize);
-        s as u8
-    }
-}
-
-impl<T> Container for [T; 64] {
-    type Item = T;
-    type Index = u8;
-
-    fn capacity() -> usize {
-        64
-    }
-    fn get(&self, index: Self::Index) -> &Self::Item {
-        &self[index.as_usize()]
-    }
-    fn get_mut(&mut self, index: Self::Index) -> &mut Self::Item {
-        &mut self[index.as_usize()]
-    }
-    fn set(&mut self, index: Self::Index, item: Self::Item) {
-        self[index.as_usize()] = item;
-    }
-}
-
-impl<T> Container for [T; 128] {
-    type Item = T;
-    type Index = u8;
-
-    fn capacity() -> usize {
-        128
-    }
-    fn get(&self, index: Self::Index) -> &Self::Item {
-        &self[index.as_usize()]
-    }
-    fn get_mut(&mut self, index: Self::Index) -> &mut Self::Item {
-        &mut self[index.as_usize()]
-    }
-    fn set(&mut self, index: Self::Index, item: Self::Item) {
-        self[index.as_usize()] = item;
-    }
-}
-
-impl<T> Container for [T; 32] {
-    type Item = T;
-    type Index = u8;
-
-    fn capacity() -> usize {
-        32
-    }
-    fn get(&self, index: Self::Index) -> &Self::Item {
-        &self[index.as_usize()]
-    }
-    fn get_mut(&mut self, index: Self::Index) -> &mut Self::Item {
-        &mut self[index.as_usize()]
-    }
-    fn set(&mut self, index: Self::Index, item: Self::Item) {
-        self[index.as_usize()] = item;
-    }
 }
 
 /// Fix sized ring buffering FIFO queue

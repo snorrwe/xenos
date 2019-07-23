@@ -9,7 +9,7 @@ mod storage;
 use self::point::Point;
 
 use self::construction_state::ConstructionState;
-use crate::collections::arrayqueue::ArrayQueue;
+use crate::collections::ArrayQueue;
 use crate::prelude::*;
 use crate::CONSTRUCTIONS_SEGMENT;
 use arrayvec::ArrayVec;
