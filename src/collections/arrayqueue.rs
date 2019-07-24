@@ -88,14 +88,6 @@ where
         Ok(result)
     }
 
-    fn increment_one(ind: C::Index) -> C::Index {
-        C::Index::from_usize(increment_one::<C>(ind.as_usize()))
-    }
-
-    fn decrease_one(ind: C::Index) -> C::Index {
-        C::Index::from_usize(decrease_one::<C>(ind.as_usize()))
-    }
-
     /// Push an item, the queue loses the first item if the queue is full
     pub fn push_back(&mut self, item: C::Item) -> &mut C::Item {
         self.buff.set(self.tail, item);
@@ -169,6 +161,20 @@ where
     pub fn capacity(&self) -> usize {
         C::capacity() - 1
     }
+
+    #[inline]
+    fn increment_one(ind: C::Index) -> C::Index {
+        let ind = ind.as_usize();
+        let ind = (ind + 1) % C::capacity();
+        C::Index::from_usize(ind)
+    }
+
+    #[inline]
+    fn decrease_one(ind: C::Index) -> C::Index {
+        let ind = ind.as_usize();
+        let ind = (ind + C::capacity() - 1) % C::capacity();
+        C::Index::from_usize(ind)
+    }
 }
 
 pub struct QueueIterator<'a, C>
@@ -223,7 +229,7 @@ where
     where
         D: Deserializer<'de>,
     {
-        struct Visitor<T, C>(PhantomData<fn() -> (T, C) -> (T, C)>);
+        struct Visitor<T, C>(PhantomData<fn() -> (T, C)>);
 
         impl<'de, T, C> de::Visitor<'de> for Visitor<T, C>
         where
@@ -252,18 +258,6 @@ where
         let visitor = Visitor(PhantomData);
         deserializer.deserialize_seq(visitor)
     }
-}
-
-/// Next element
-#[inline]
-fn increment_one<C: Container>(ind: usize) -> usize {
-    (ind + 1) % C::capacity()
-}
-
-/// Prev element
-#[inline]
-fn decrease_one<C: Container>(ind: usize) -> usize {
-    (ind + C::capacity() - 1) % C::capacity()
 }
 
 #[cfg(test)]
@@ -372,3 +366,4 @@ mod tests {
     }
 
 }
+
