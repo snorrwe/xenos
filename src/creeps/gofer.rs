@@ -1,7 +1,8 @@
 //! Move resources
 //!
-use super::{move_to, pickup_energy, GET_ENERGY_TARGET, TARGET};
+use super::{move_to, pickup_energy, GET_ENERGY_TARGET, TARGET, TASK};
 use crate::prelude::*;
+use num::FromPrimitive;
 use screeps::{
     constants::ResourceType,
     game::{get_object_erased, get_object_typed},
@@ -17,27 +18,63 @@ use stdweb::{
     Reference,
 };
 
+#[derive(Debug, Clone, Copy, FromPrimitive, ToPrimitive)]
+#[repr(u8)]
+enum GoferState {
+    Idle = 0,
+    PickingUpEnergy,
+    WithdrawingEnergy,
+    Unloading,
+}
+
 pub fn run<'a>(creep: &'a Creep) -> Task<'a, GameState> {
     trace!("Running gofer {}", creep.name());
-    let tasks = [
-        Task::new(move |state| attempt_unload(state, creep)).with_name("Attempt unload"),
-        Task::new(move |state| pickup_energy(state, creep)).with_name("Pickup energy"),
-        Task::new(move |state| get_energy(state, creep)).with_name("Get energy"),
-        Task::new(move |state| attempt_unload(state, creep)).with_name("Attempt unload"),
-    ]
-    .into_iter()
-    .cloned()
-    .collect();
-
-    let tree = Control::Sequence(tasks);
-    Task::new(move |state| {
-        tree.tick(state).map_err(|err| {
+    Task::new(move |state: &mut GameState| {
+        let task = prepare_task(creep, state);
+        task.tick(state).map_err(|err| {
             let memory = state.creep_memory_entry(CreepName(&creep.name()));
             memory.remove(TARGET);
             err
         })
     })
     .with_name("Gofer")
+}
+
+fn prepare_task<'a>(creep: &'a Creep, state: &GameState) -> Task<'a, GameState> {
+    let name = creep.name();
+    let last_task = state
+        .creep_memory_i64(CreepName(name.as_str()), TASK)
+        .unwrap_or(0);
+    let last_task: GoferState = GoferState::from_u32(last_task as u32).unwrap_or(GoferState::Idle);
+
+    let mut priorities = [0, 0, 0];
+
+    match last_task {
+        GoferState::Unloading => priorities[0] += 1,
+        GoferState::WithdrawingEnergy => priorities[1] += 1,
+        GoferState::PickingUpEnergy => priorities[2] += 1,
+        _ => {}
+    }
+
+    let tasks = [
+        Task::new(move |state| get_energy(state, creep))
+            .with_name("Get energy")
+            .with_priority(priorities[1])
+            .with_state_save(name.clone(), GoferState::WithdrawingEnergy),
+        Task::new(move |state| pickup_energy(state, creep))
+            .with_name("Pickup energy")
+            .with_priority(priorities[2])
+            .with_state_save(name.clone(), GoferState::PickingUpEnergy),
+        Task::new(move |state| attempt_unload(state, creep))
+            .with_name("Attempt unload")
+            .with_priority(priorities[0])
+            .with_state_save(name.clone(), GoferState::Unloading),
+    ]
+    .into_iter()
+    .cloned()
+    .collect();
+
+    Control::Sequence(tasks).sorted_by_priority().into()
 }
 
 pub fn attempt_unload<'a>(state: &'a mut GameState, creep: &'a Creep) -> ExecutionResult {

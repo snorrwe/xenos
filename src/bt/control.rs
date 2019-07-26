@@ -103,8 +103,8 @@ impl<'a, T> Control<'a, T>
 where
     T: TaskInput,
 {
-    #[allow(dead_code)]
     /// Sort subtasks by priority
+    /// Higher priority tasks will be moved to the front
     pub fn sorted_by_priority(mut self) -> Self {
         use self::Control::*;
         match &mut self {

@@ -34,6 +34,7 @@ pub const GET_ENERGY_TARGET: &'static str = "GET_ENERGY_TARGET";
 pub const PICKUP_TARGET: &'static str = "pickuptarget";
 pub const CREEP_ROLE: &'static str = "role";
 pub const LOADING: &'static str = "loading";
+pub const TASK: &'static str = "task";
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct CreepExecutionStats {

@@ -1,6 +1,7 @@
 use crate::creeps::roles::Role;
-use crate::creeps::{CreepExecutionStats, CREEP_ROLE, HOME_ROOM};
+use crate::creeps::{CreepExecutionStats, CREEP_ROLE, HOME_ROOM, TASK};
 use crate::prelude::*;
+use num::ToPrimitive;
 use screeps::{raw_memory, Room};
 use serde_json::{self, Map, Value};
 use std::collections::HashMap;
@@ -77,6 +78,7 @@ pub enum RoomIFF {
 /// Used to make sure the right string is passed
 /// to the right parameter when accessing creep memory
 /// It's deliberately verbose
+#[derive(Debug, Clone, Copy)]
 pub struct CreepName<'a>(pub &'a str);
 
 impl Default for RoomIFF {
@@ -144,6 +146,11 @@ impl GameState {
 
     pub fn creep_memory_get(&self, creep: CreepName) -> Option<&serde_json::Map<String, Value>> {
         self.creep_memory.get(creep.0)
+    }
+
+    pub fn creep_memory_set<T: Into<Value>>(&mut self, creep: CreepName, key: &str, value: T) {
+        let val: Value = value.into();
+        self.creep_memory_entry(creep).insert(key.to_owned(), val);
     }
 
     pub fn creep_memory_bool(&self, creep: CreepName, key: &str) -> bool {
@@ -226,3 +233,36 @@ impl GameState {
         result
     }
 }
+
+pub trait WithStateSave<'a> {
+    fn with_state_save<T: ToPrimitive + 'a>(self, creep: String, task_id: T)
+        -> Task<'a, GameState>;
+}
+
+impl<'a> WithStateSave<'a> for Task<'a, GameState> {
+    fn with_state_save<T: ToPrimitive + 'a>(
+        self,
+        creep: String,
+        task_id: T,
+    ) -> Task<'a, GameState> {
+        let tasks = [
+            self,
+            Task::new(move |state: &mut GameState| {
+                state.creep_memory_set(
+                    CreepName(&creep),
+                    TASK,
+                    task_id.to_u32().unwrap_or(0) as i32,
+                );
+                Ok(())
+            }),
+        ]
+        .into_iter()
+        .cloned()
+        .collect();
+
+        // Only save the state if the task succeeded
+        let selector = Control::Selector(tasks);
+        selector.into()
+    }
+}
+

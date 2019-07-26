@@ -10,8 +10,9 @@ pub enum QueueError {
     Empty,
 }
 
-/// Fix sized ring buffering FIFO queue
+/// Fix sized FIFO queue
 // Invariant: head <= tail
+// Uses a ring buffer internally
 #[derive(Clone)]
 pub struct ArrayQueue<C>
 where

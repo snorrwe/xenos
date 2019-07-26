@@ -1,7 +1,8 @@
 //! Build structures
 //!
-use super::{harvest, move_to, pickup_energy, repairer, upgrader, withdraw_energy, TARGET};
+use super::{harvest, move_to, pickup_energy, repairer, upgrader, withdraw_energy, TARGET, TASK};
 use crate::prelude::*;
+use num::FromPrimitive;
 use screeps::{
     constants::find,
     game::get_object_typed,
@@ -10,14 +11,58 @@ use screeps::{
     ReturnCode,
 };
 
+#[derive(Debug, Clone, Copy, FromPrimitive, ToPrimitive)]
+#[repr(u8)]
+enum WorkerState {
+    Idle = 0,
+    Building,
+    PickingUpEnergy,
+    WithdrawingEnergy,
+    Harvesting,
+    Repairing,
+}
+
 pub fn run<'a>(creep: &'a Creep) -> Task<'a, GameState> {
     trace!("Running builder {}", creep.name());
+
+    Task::new(move |state| {
+        let task = prepare_task(creep, state);
+        task.tick(state)
+    })
+    .with_name("Worker")
+}
+
+fn prepare_task<'a>(creep: &'a Creep, state: &GameState) -> Task<'a, GameState> {
+    let name = creep.name();
+    let last_task = state
+        .creep_memory_i64(CreepName(name.as_str()), TASK)
+        .unwrap_or(0);
+    let last_task: WorkerState =
+        WorkerState::from_u32(last_task as u32).unwrap_or(WorkerState::Idle);
+
+    let mut priorities = [0; 5];
+
+    match last_task {
+        WorkerState::Building => priorities[0] += 1,
+        WorkerState::PickingUpEnergy => priorities[1] += 1,
+        WorkerState::WithdrawingEnergy => priorities[2] += 1,
+        WorkerState::Harvesting => priorities[3] += 1,
+        WorkerState::Repairing => priorities[4] += 1,
+        _ => {}
+    }
     let tasks = [
-        Task::new(move |state| attempt_build(state, creep)).with_name("Attempt build"),
-        Task::new(move |state| pickup_energy(state, creep)).with_name("Pickup energy"),
-        Task::new(move |state| withdraw_energy(state, creep)).with_name("Withdraw energy"),
-        Task::new(move |state| harvest(state, creep)).with_name("Harvest"),
-        Task::new(move |state| attempt_build(state, creep)).with_name("Attempt build"),
+        Task::new(move |state| attempt_build(state, creep))
+            .with_name("Attempt build")
+            .with_priority(priorities[0]),
+        Task::new(move |state| pickup_energy(state, creep))
+            .with_name("Pickup energy")
+            .with_priority(priorities[1]),
+        Task::new(move |state| withdraw_energy(state, creep))
+            .with_name("Withdraw energy")
+            .with_priority(priorities[2]),
+        Task::new(move |state| harvest(state, creep))
+            .with_name("Harvest")
+            .with_priority(priorities[3]),
         // If nothing can be built
         Task::new(move |state| {
             if creep
@@ -32,6 +77,7 @@ pub fn run<'a>(creep: &'a Creep) -> Task<'a, GameState> {
             }
         })
         .with_required_bucket(500)
+        .with_priority(priorities[4])
         .with_name("Attempt repair"),
         Task::new(move |state: &mut GameState| {
             state
@@ -46,9 +92,8 @@ pub fn run<'a>(creep: &'a Creep) -> Task<'a, GameState> {
     .into_iter()
     .cloned()
     .collect();
-
     let tree = Control::Sequence(tasks);
-    Task::from(tree).with_name("Worker")
+    tree.sorted_by_priority().into()
 }
 
 pub fn attempt_build<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResult {
@@ -100,3 +145,4 @@ fn get_build_target(state: &mut GameState, creep: &Creep) -> Option<Construction
                 .ok()
         })
 }
+

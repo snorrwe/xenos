@@ -1,6 +1,9 @@
 #![recursion_limit = "256"]
 extern crate fern;
 #[macro_use]
+extern crate num_derive;
+extern crate num;
+#[macro_use]
 extern crate log;
 extern crate screeps;
 #[macro_use]
@@ -83,3 +86,4 @@ fn main() {
         }
     }
 }
+
