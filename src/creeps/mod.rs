@@ -30,8 +30,6 @@ use stdweb::{
 
 pub const HOME_ROOM: &'static str = "home";
 pub const TARGET: &'static str = "target";
-pub const GET_ENERGY_TARGET: &'static str = "GET_ENERGY_TARGET";
-pub const PICKUP_TARGET: &'static str = "pickuptarget";
 pub const CREEP_ROLE: &'static str = "role";
 pub const LOADING: &'static str = "loading";
 pub const TASK: &'static str = "task";
@@ -170,12 +168,12 @@ pub fn pickup_energy(state: &mut GameState, creep: &Creep) -> ExecutionResult {
 
         if creep.carry_total() == creep.carry_capacity() {
             memory.insert(LOADING.into(), false.into());
-            memory.remove(PICKUP_TARGET);
+            memory.remove(TARGET);
             Err("full")?;
         }
 
         memory
-            .get(PICKUP_TARGET)
+            .get(TARGET)
             .map(|x| x.as_str())
             .iter()
             .filter_map(|id| *id)
@@ -183,12 +181,12 @@ pub fn pickup_energy(state: &mut GameState, creep: &Creep) -> ExecutionResult {
             .or_else(|| {
                 find_dropped_energy(creep).map(|target| {
                     let id = target.id();
-                    memory.insert(PICKUP_TARGET.into(), id.into());
+                    memory.insert(TARGET.into(), id.into());
                     target
                 })
             })
             .ok_or_else(|| {
-                memory.remove(PICKUP_TARGET);
+                memory.remove(TARGET);
                 "Can't find energy source"
             })?
     };
@@ -200,7 +198,7 @@ pub fn pickup_energy(state: &mut GameState, creep: &Creep) -> ExecutionResult {
         Task::new(|_| move_to(creep, &target)),
         Task::new(|state: &mut GameState| {
             let memory = state.creep_memory_entry(CreepName(&creep.name()));
-            memory.remove(PICKUP_TARGET);
+            memory.remove(TARGET);
             Ok(())
         }),
     ]
@@ -212,7 +210,7 @@ pub fn pickup_energy(state: &mut GameState, creep: &Creep) -> ExecutionResult {
 
     tree.tick(state).map_err(|_| {
         let memory = state.creep_memory_entry(CreepName(&creep.name()));
-        memory.remove(PICKUP_TARGET);
+        memory.remove(TARGET);
         "can't pick up energy".into()
     })
 }

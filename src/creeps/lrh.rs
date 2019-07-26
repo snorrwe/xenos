@@ -2,20 +2,54 @@
 //! Harvest energy from foreign rooms and move it back to the owning room
 //!
 
-use super::{approach_target_room, gofer, harvester, update_scout_info, HOME_ROOM, TARGET};
+use super::{approach_target_room, gofer, harvester, update_scout_info, HOME_ROOM, TARGET, TASK};
 use crate::game_state::RoomIFF;
 use crate::prelude::*;
 use crate::rooms::neighbours;
+use num::FromPrimitive;
 use screeps::{objects::Creep, prelude::*};
 
 const HARVEST_TARGET_ROOM: &'static str = "harvest_target_room";
 
+#[derive(Debug, Clone, Copy, FromPrimitive, ToPrimitive)]
+#[repr(u8)]
+enum LrhState {
+    Idle = 0,
+    Loading,
+    Unloading,
+}
+
 pub fn run<'a>(creep: &'a Creep) -> Task<'a, GameState> {
     trace!("Running long_range_harvester");
 
+    let task = Task::new(move |state| prepare_task(creep, state).tick(state));
+    task.with_required_bucket(2000).with_name("LRH")
+}
+
+fn prepare_task<'a>(creep: &'a Creep, state: &GameState) -> Task<'a, GameState> {
+    let name = creep.name();
+    let last_task = state
+        .creep_memory_i64(CreepName(name.as_str()), TASK)
+        .unwrap_or(0);
+    let last_task = LrhState::from_u32(last_task as u32).unwrap_or(LrhState::Idle);
+
+    let mut priorities = [0, 0];
+
+    match last_task {
+        LrhState::Unloading => priorities[0] += 1,
+        LrhState::Loading => priorities[1] += 1,
+        _ => {}
+    }
+
     let tasks = [
-        Task::new(move |state| load(state, creep)).with_name("Load"),
-        Task::new(move |state| unload(state, creep)).with_name("Unload"),
+        Task::new(move |state| load(state, creep))
+            .with_name("Load")
+            .with_state_save(name.clone(), LrhState::Loading)
+            .with_priority(priorities[1]),
+        Task::new(move |state| unload(state, creep))
+            .with_name("Unload")
+            .with_state_save(name.clone(), LrhState::Unloading)
+            .with_priority(priorities[0]),
         Task::new(move |state| harvester::unload(state, creep)).with_name("Harvester unload"),
     ]
     .into_iter()
@@ -23,7 +57,7 @@ pub fn run<'a>(creep: &'a Creep) -> Task<'a, GameState> {
     .collect();
 
     let tree = Control::Sequence(tasks);
-    Task::from(tree).with_required_bucket(2000).with_name("LRH")
+    tree.sorted_by_priority().into()
 }
 
 /// Load up on energy from the target room
@@ -140,3 +174,4 @@ fn unload<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResult {
     };
     tree.tick(state)
 }
+

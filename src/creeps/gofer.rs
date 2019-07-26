@@ -1,6 +1,6 @@
 //! Move resources
 //!
-use super::{move_to, pickup_energy, GET_ENERGY_TARGET, TARGET, TASK};
+use super::{move_to, pickup_energy, TARGET, TASK};
 use crate::prelude::*;
 use num::FromPrimitive;
 use screeps::{
@@ -238,7 +238,7 @@ pub fn get_energy<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResul
         let memory = state.creep_memory_entry(CreepName(&creep.name()));
         if creep.carry_total() == creep.carry_capacity() {
             memory.insert("loading".into(), false.into());
-            memory.remove(GET_ENERGY_TARGET);
+            memory.remove(TARGET);
             Err("full")?
         }
     }
@@ -247,7 +247,7 @@ pub fn get_energy<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResul
     let task = withdraw(creep, &target);
     task.tick(state).map_err(|e| {
         let memory = state.creep_memory_entry(CreepName(&creep.name()));
-        memory.remove(GET_ENERGY_TARGET);
+        memory.remove(TARGET);
         e
     })
 }
@@ -285,7 +285,7 @@ fn find_container<'a>(state: &mut GameState, creep: &'a Creep) -> Option<Structu
     read_target_container(state, creep).or_else(|| {
         trace!("Finding new withdraw target");
         let memory = state.creep_memory_entry(CreepName(&creep.name()));
-        memory.remove(GET_ENERGY_TARGET);
+        memory.remove(TARGET);
         let containers = js! {
             let creep = @{creep};
             const containers = creep.room.find(FIND_STRUCTURES, {
@@ -302,7 +302,7 @@ fn find_container<'a>(state: &mut GameState, creep: &'a Creep) -> Option<Structu
             .max_by_key(|i| i.store_of(ResourceType::Energy));
 
         result.map(|c| {
-            memory.insert(GET_ENERGY_TARGET.into(), c.id().into());
+            memory.insert(TARGET.into(), c.id().into());
             c
         })
     })
@@ -310,7 +310,7 @@ fn find_container<'a>(state: &mut GameState, creep: &'a Creep) -> Option<Structu
 
 fn read_target_container(state: &GameState, creep: &Creep) -> Option<StructureContainer> {
     state
-        .creep_memory_string(CreepName(&creep.name()), GET_ENERGY_TARGET)
+        .creep_memory_string(CreepName(&creep.name()), TARGET)
         .and_then(|id| get_object_typed(id).ok())?
 }
 
