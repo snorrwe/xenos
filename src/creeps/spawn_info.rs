@@ -111,7 +111,7 @@ fn role_part_scale<'a>(_room: &Room, role: Role) -> BodyCollection {
     let it = match role {
         Role::Harvester => [Part::Work].into_iter(),
         Role::Conqueror => [].into_iter(),
-        Role::Gofer => [Part::Move, Part::Carry].into_iter(),
+        Role::Gofer => [Part::Move, Part::Carry, Part::Carry].into_iter(),
         Role::Lrh => [Part::Move, Part::Carry, Part::Work, Part::Move].into_iter(),
         _ => [Part::Move, Part::Carry, Part::Work].into_iter(),
     };
@@ -124,9 +124,9 @@ fn role_part_max(room: &Room, role: Role) -> Option<usize> {
 
     let worker_count = {
         if level < 5 {
-            16
-        } else if level < 8 {
             24
+        } else if level < 8 {
+            32
         } else {
             48
         }
@@ -141,3 +141,4 @@ fn role_part_max(room: &Room, role: Role) -> Option<usize> {
     };
     result.map(|x| x.min(50))
 }
+

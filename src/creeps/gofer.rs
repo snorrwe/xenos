@@ -1,6 +1,6 @@
 //! Move resources
 //!
-use super::{move_to, pickup_energy, TARGET};
+use super::{move_to, pickup_energy, GET_ENERGY_TARGET, TARGET};
 use crate::prelude::*;
 use screeps::{
     constants::ResourceType,
@@ -201,39 +201,54 @@ pub fn get_energy<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResul
         let memory = state.creep_memory_entry(CreepName(&creep.name()));
         if creep.carry_total() == creep.carry_capacity() {
             memory.insert("loading".into(), false.into());
-            memory.remove(TARGET);
+            memory.remove(GET_ENERGY_TARGET);
             Err("full")?
         }
     }
 
     let target = find_container(state, creep).ok_or_else(|| "no container found")?;
-    withdraw(creep, &target).map_err(|e| {
+    let task = withdraw(creep, &target);
+    task.tick(state).map_err(|e| {
         let memory = state.creep_memory_entry(CreepName(&creep.name()));
-        memory.remove(TARGET);
+        memory.remove(GET_ENERGY_TARGET);
         e
     })
 }
 
-fn withdraw<'a>(creep: &'a Creep, target: &'a StructureContainer) -> ExecutionResult {
-    if creep.pos().is_near_to(target) {
-        let r = creep.withdraw_all(target, ResourceType::Energy);
-        if r != ReturnCode::Ok {
-            debug!("couldn't withdraw: {:?}", r);
-            Err("can't withdraw")?;
-        }
-    } else if target.store_total() == 0 {
-        Err("Target is empty")?;
-    } else {
-        move_to(creep, target)?;
-    }
-    Ok(())
+fn withdraw<'a>(creep: &'a Creep, target: &'a StructureContainer) -> Task<'a, GameState> {
+    let tasks = [
+        Task::new(move |_| {
+            if creep.pos().is_near_to(target) {
+                let r = creep.withdraw_all(target, ResourceType::Energy);
+                if r != ReturnCode::Ok {
+                    debug!("couldn't withdraw: {:?}", r);
+                    Err("can't withdraw")?;
+                }
+            } else {
+                move_to(creep, target)?;
+            }
+            Ok(())
+        }),
+        Task::new(move |_| {
+            if target.store_total() == 0 {
+                Err("Target is empty")?;
+            }
+            Ok(())
+        }),
+    ]
+    .into_iter()
+    .cloned()
+    .collect();
+
+    let selector = Control::Selector(tasks);
+    selector.into()
 }
 
 fn find_container<'a>(state: &mut GameState, creep: &'a Creep) -> Option<StructureContainer> {
     read_target_container(state, creep).or_else(|| {
         trace!("Finding new withdraw target");
         let memory = state.creep_memory_entry(CreepName(&creep.name()));
-        memory.remove(TARGET);
+        memory.remove(GET_ENERGY_TARGET);
         let containers = js! {
             let creep = @{creep};
             const containers = creep.room.find(FIND_STRUCTURES, {
@@ -250,7 +265,7 @@ fn find_container<'a>(state: &mut GameState, creep: &'a Creep) -> Option<Structu
             .max_by_key(|i| i.store_of(ResourceType::Energy));
 
         result.map(|c| {
-            memory.insert(TARGET.into(), c.id().into());
+            memory.insert(GET_ENERGY_TARGET.into(), c.id().into());
             c
         })
     })
@@ -258,6 +273,7 @@ fn find_container<'a>(state: &mut GameState, creep: &'a Creep) -> Option<Structu
 
 fn read_target_container(state: &GameState, creep: &Creep) -> Option<StructureContainer> {
     state
-        .creep_memory_string(CreepName(&creep.name()), TARGET)
+        .creep_memory_string(CreepName(&creep.name()), GET_ENERGY_TARGET)
         .and_then(|id| get_object_typed(id).ok())?
 }
+

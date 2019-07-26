@@ -30,6 +30,8 @@ use stdweb::{
 
 pub const HOME_ROOM: &'static str = "home";
 pub const TARGET: &'static str = "target";
+pub const GET_ENERGY_TARGET: &'static str = "GET_ENERGY_TARGET";
+pub const PICKUP_TARGET: &'static str = "pickuptarget";
 pub const CREEP_ROLE: &'static str = "role";
 pub const LOADING: &'static str = "loading";
 
@@ -167,12 +169,12 @@ pub fn pickup_energy(state: &mut GameState, creep: &Creep) -> ExecutionResult {
 
         if creep.carry_total() == creep.carry_capacity() {
             memory.insert(LOADING.into(), false.into());
-            memory.remove(TARGET);
+            memory.remove(PICKUP_TARGET);
             Err("full")?;
         }
 
         memory
-            .get(TARGET)
+            .get(PICKUP_TARGET)
             .map(|x| x.as_str())
             .iter()
             .filter_map(|id| *id)
@@ -180,12 +182,12 @@ pub fn pickup_energy(state: &mut GameState, creep: &Creep) -> ExecutionResult {
             .or_else(|| {
                 find_dropped_energy(creep).map(|target| {
                     let id = target.id();
-                    memory.insert(TARGET.into(), id.into());
+                    memory.insert(PICKUP_TARGET.into(), id.into());
                     target
                 })
             })
             .ok_or_else(|| {
-                memory.remove(TARGET);
+                memory.remove(PICKUP_TARGET);
                 "Can't find energy source"
             })?
     };
@@ -197,7 +199,7 @@ pub fn pickup_energy(state: &mut GameState, creep: &Creep) -> ExecutionResult {
         Task::new(|_| move_to(creep, &target)),
         Task::new(|state: &mut GameState| {
             let memory = state.creep_memory_entry(CreepName(&creep.name()));
-            memory.remove(TARGET);
+            memory.remove(PICKUP_TARGET);
             Ok(())
         }),
     ]
@@ -209,7 +211,7 @@ pub fn pickup_energy(state: &mut GameState, creep: &Creep) -> ExecutionResult {
 
     tree.tick(state).map_err(|_| {
         let memory = state.creep_memory_entry(CreepName(&creep.name()));
-        memory.remove(TARGET);
+        memory.remove(PICKUP_TARGET);
         "can't pick up energy".into()
     })
 }
