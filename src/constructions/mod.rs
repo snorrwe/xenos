@@ -131,9 +131,9 @@ fn get_matrix_mut<'a>(state: &'a mut ConstructionState, room: &Room) -> &'a mut 
             .map(Point::from)
             .unwrap_or_else(|e| {
                 debug!("Cant find an optimal point {:?}", e);
-                room.find(find::MY_STRUCTURES)
-                    .iter()
-                    .next()
+                let structs = room.find(find::MY_STRUCTURES);
+                structs
+                    .last()
                     .map(|s| s.pos())
                     .map(|p| {
                         let x = p.x() as i16;

@@ -49,7 +49,7 @@ fn initialize() {
 
 fn main() {
     stdweb::initialize();
-    logging::setup_logging(logging::Debug);
+    logging::setup_logging(logging::Info);
     let dt = *DEPLOYMENT_TIME; // Init deployment time
     info!("Deployed version {} at {}", VERSION, dt);
 

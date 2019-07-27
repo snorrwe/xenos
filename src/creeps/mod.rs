@@ -360,7 +360,7 @@ pub fn find_repair_target<'a>(room: &'a Room) -> Option<Structure> {
             filter: s => {
                 switch (s.structureType) {
                     case STRUCTURE_WALL:
-                        return s.hits < 1*1000*1000;
+                        return s.hits < 10*1000;
                     default:
                         return s.hits < s.hitsMax;
                 }

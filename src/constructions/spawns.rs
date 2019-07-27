@@ -11,7 +11,7 @@ pub fn find_initial_point(room: &Room) -> Result<RoomPosition, String> {
         .controller()
         .map(|c| {
             let result = js! {
-                @{c}.my
+                return @{c}.my;
             };
             result.try_into().unwrap_or(false)
         })
