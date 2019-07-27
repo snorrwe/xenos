@@ -19,7 +19,7 @@ where
     C: Container,
 {
     head: C::Index,
-    tail: C::Index,
+    size: usize,
     buff: C,
 }
 
@@ -29,7 +29,7 @@ where
     T: fmt::Debug,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Head: {:?} Tail: {:?}\nItems: [", self.head, self.tail)?;
+        write!(f, "Head: {:?} Size: {:?}\nItems: [", self.head, self.size)?;
         for i in 0..self.capacity() {
             write!(f, "{:?},", self.buff.get(C::Index::from_usize(i)))?;
         }
@@ -58,7 +58,7 @@ impl<T: Container> Default for ArrayQueue<T> {
         let result = Self {
             buff,
             head: Default::default(),
-            tail: Default::default(),
+            size: Default::default(),
         };
         result
     }
@@ -79,32 +79,36 @@ where
 
     /// Try to push an item, fail if the queue is full
     pub fn try_push_back(&mut self, item: C::Item) -> Result<&mut C::Item, QueueError> {
-        let tail = Self::increment_one(self.tail);
-        if self.head == tail {
+        let size = self.size + 1;
+        if size > self.capacity() {
             Err(QueueError::Full)?;
         }
-        self.buff.set(self.tail, item);
-        let result = self.buff.get_mut(self.tail);
-        self.tail = tail;
+        self.size = size;
+        let tail = self.tail();
+        self.buff.set(tail, item);
+        let result = self.buff.get_mut(tail);
         Ok(result)
     }
 
     /// Push an item, the queue loses the first item if the queue is full
     pub fn push_back(&mut self, item: C::Item) -> &mut C::Item {
-        self.buff.set(self.tail, item);
-        let result = self.buff.get_mut(self.tail);
-        let tail = Self::increment_one(self.tail);
-        if self.head == tail {
+        let size = self.size + 1;
+        if size > self.capacity() {
             self.head = Self::increment_one(self.head);
+        } else {
+            self.size = size;
         }
-        self.tail = tail;
+
+        let tail = self.tail();
+        self.buff.set(tail, item);
+        let result = self.buff.get_mut(tail);
         result
     }
 
     /// Pop the first item if any
     #[allow(unused)]
     pub fn try_pop_front(&mut self) -> Result<C::Item, QueueError> {
-        if self.head == self.tail {
+        if self.size == 0 {
             Err(QueueError::Empty)?;
         }
         let result = unsafe {
@@ -113,6 +117,7 @@ where
             let result = mem::replace(self.buff.get_mut(self.head), garbage);
             result
         };
+        self.size -= 1;
         self.head = Self::increment_one(self.head);
         Ok(result)
     }
@@ -120,7 +125,7 @@ where
     /// Peek the first element
     #[allow(unused)]
     pub fn front(&self) -> Result<&C::Item, QueueError> {
-        if self.head == self.tail {
+        if self.size == 0 {
             Err(QueueError::Empty)?;
         }
 
@@ -131,36 +136,37 @@ where
     /// Peek the last element
     #[allow(unused)]
     pub fn back(&self) -> Result<&C::Item, QueueError> {
-        if self.head == self.tail {
+        if self.size == 0 {
             Err(QueueError::Empty)?;
         }
-        let tail = Self::decrease_one(self.tail);
+        let tail = self.tail();
         let result = self.buff.get(tail);
         Ok(result)
     }
 
     pub fn iter<'a>(&'a self) -> QueueIterator<'a, C> {
-        QueueIterator {
-            container: &self.buff,
-            head: self.head,
-            tail: self.tail,
+        if self.size == 0 {
+            QueueIterator {
+                container: &self.buff,
+                head: self.head,
+                tail: self.head,
+            }
+        } else {
+            QueueIterator {
+                container: &self.buff,
+                head: self.head,
+                tail: Self::increment_one(self.tail()),
+            }
         }
     }
 
     pub fn len(&self) -> usize {
-        let head = self.head.as_usize();
-        let tail = self.tail.as_usize();
-        if head <= tail {
-            tail - head
-        } else {
-            let b = head - tail; // Skipped items
-            C::capacity() - b
-        }
+        self.size
     }
 
     #[allow(unused)]
     pub fn capacity(&self) -> usize {
-        C::capacity() - 1
+        C::capacity()
     }
 
     #[inline]
@@ -170,11 +176,20 @@ where
         C::Index::from_usize(ind)
     }
 
+    #[allow(unused)]
     #[inline]
     fn decrease_one(ind: C::Index) -> C::Index {
         let ind = ind.as_usize();
         let ind = (ind + C::capacity() - 1) % C::capacity();
         C::Index::from_usize(ind)
+    }
+
+    #[inline]
+    fn tail(&self) -> C::Index {
+        debug_assert!(self.size != 0);
+        let tail = self.head.as_usize() + self.size - 1;
+        let tail = tail % self.capacity();
+        C::Index::from_usize(tail)
     }
 }
 
@@ -301,7 +316,7 @@ mod tests {
     fn test_len() {
         js! {};
 
-        let mut q = ArrayQueue::<[usize; 64]>::default();
+        let mut q = ArrayQueue::<[usize; SIZE]>::default();
 
         assert_eq!(q.len(), 0);
 
@@ -309,10 +324,8 @@ mod tests {
             q.push_back(i);
         }
 
-        assert_eq!(q.len(), SIZE - 1); // 1 value is retained as a buffer
-
-        let expected = SIZE * 2 + 2..SIZE * 3; // Because capacity is 1 less than the size the first value will be 2 past SIZE*2
-
+        assert_eq!(q.len(), SIZE);
+        let expected = SIZE * 2 + 1..SIZE * 3;
         for (x, y) in q.iter().zip(expected) {
             assert_eq!(*x, y);
         }

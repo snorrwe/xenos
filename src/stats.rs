@@ -1,7 +1,7 @@
 use super::bt::*;
 use super::creeps;
 use crate::game_state::GameState;
-use crate::{DEPLOYMENT_TIME, STATISTICS_SEGMENT, VERSION};
+use crate::{DEPLOYMENT_TIME, STATISTICS_SEGMENT, VERSION, COLLECT_STATS};
 use screeps::raw_memory;
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -26,6 +26,9 @@ pub fn save_stats(
     bucket: i32,
     state: &GameState,
 ) -> ExecutionResult {
+    if !COLLECT_STATS {
+        Err("Stat collection in disabled")?;
+    }
     let mut stats: Vec<TickStats> = raw_memory::get_segment(STATISTICS_SEGMENT)
         .and_then(|s| serde_json::from_str(s.as_str()).ok())
         .unwrap_or(vec![]);
