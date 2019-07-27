@@ -79,20 +79,18 @@ fn prepare_task<'a>(creep: &'a Creep, state: &GameState) -> Task<'a, GameState> 
 
 pub fn attempt_unload<'a>(state: &'a mut GameState, creep: &'a Creep) -> ExecutionResult {
     trace!("Unloading");
-    {
-        let loading = state.creep_memory_bool(CreepName(&creep.name()), "loading");
-        if loading {
-            Err("loading")?;
-        }
+    let loading = state.creep_memory_bool(CreepName(&creep.name()), "loading");
+    if loading {
+        Err("loading")?;
+    }
 
-        let carry_total = creep.carry_total();
+    let carry_total = creep.carry_total();
 
-        if carry_total == 0 {
-            trace!("Empty");
-            let memory = state.creep_memory_entry(CreepName(&creep.name()));
-            memory.insert("loading".into(), true.into());
-            Err("empty")?;
-        }
+    if carry_total == 0 {
+        trace!("Empty");
+        let memory = state.creep_memory_entry(CreepName(&creep.name()));
+        memory.insert("loading".into(), true.into());
+        Err("empty")?;
     }
 
     let target = find_unload_target(state, creep).ok_or_else(|| "no unload target")?;
