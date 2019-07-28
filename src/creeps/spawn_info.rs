@@ -4,7 +4,7 @@ use arrayvec::ArrayVec;
 use screeps::{
     constants::find,
     game,
-    objects::{HasPosition, Room},
+    objects::{HasPosition, HasStore, Room, StructureContainer},
     Part,
 };
 use stdweb::unstable::TryInto;
@@ -50,14 +50,15 @@ pub fn target_number_of_role_in_room<'a>(role: Role, room: &'a Room) -> i8 {
         })
         .count() as i8;
     let n_sources = room.find(find::SOURCES).len() as i8;
-    let n_containers = js! {
+    let containers = js! {
         const room = @{room};
         return room.find(FIND_STRUCTURES, {
             filter: (s) => s.structureType == STRUCTURE_CONTAINER
-        }).length;
+        });
     };
-    let n_containers: i64 = n_containers.try_into().unwrap();
-    let n_containers = n_containers as i8;
+    let containers: Vec<StructureContainer> = containers.try_into().unwrap();
+    let energy_in_containers = containers.iter().map(|c| c.energy()).sum::<u32>();
+    let n_containers = containers.len() as i8;
     let n_constructions = (room.find(find::CONSTRUCTION_SITES).len()) as i8;
     const UPGRADER_COUNT: i8 = 1;
     const WORKER_COUNT: i8 = 1;
@@ -67,14 +68,16 @@ pub fn target_number_of_role_in_room<'a>(role: Role, room: &'a Room) -> i8 {
         Role::Worker => {
             let mut target_workers = n_constructions.min(2) + WORKER_COUNT;
             if n_containers > 0 {
+                if energy_in_containers > 1000 {
+                    target_workers += 3;
+                }
                 target_workers += UPGRADER_COUNT
             }
 
             if level < 4 {
-                2 * target_workers
-            } else {
-                target_workers
+                target_workers *= 2;
             }
+            target_workers
         }
         Role::Conqueror => n_flags, // TODO: make the closest room spawn it
         Role::Lrh => {

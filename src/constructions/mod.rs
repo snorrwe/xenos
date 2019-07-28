@@ -12,13 +12,12 @@ use self::construction_state::ConstructionState;
 use self::point::Point;
 use crate::prelude::*;
 use crate::CONSTRUCTIONS_SEGMENT;
-use arrayvec::ArrayVec;
 use screeps::{
     constants::{find, StructureType},
     objects::{HasPosition, Room, RoomPosition},
     ReturnCode,
 };
-use stdweb::unstable::TryFrom;
+use stdweb::unstable::{TryFrom, TryInto};
 
 pub fn task<'a>() -> Task<'a, GameState> {
     trace!("Init construction task");
@@ -46,6 +45,16 @@ pub fn task<'a>() -> Task<'a, GameState> {
 
 fn manage_room<'a>(room: &'a Room, state: &mut ConstructionState) -> ExecutionResult {
     info!("Manage constructionSites of room {:?}", room.name());
+    let my = js! {
+        return @{room}.my;
+    };
+    let my: bool = my.try_into().unwrap_or(false);
+    if !my {
+        Err(format!(
+            "Room {:?} is not mine, skipping construction task",
+            room.name()
+        ))?;
+    }
 
     build_structures(room, state).unwrap_or_else(|e| warn!("Failed build_structures {:?}", e));
     containers::build_containers(room).unwrap_or_else(|e| warn!("Failed containers {:?}", e));
