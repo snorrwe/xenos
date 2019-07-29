@@ -10,7 +10,7 @@ pub enum QueueError {
     Empty,
 }
 
-/// Fix sized FIFO queue
+/// Fix sized Deque
 // Invariant: head <= tail
 // Uses a ring buffer internally
 #[derive(Clone)]
@@ -75,6 +75,33 @@ where
         for i in it {
             self.push_back(i);
         }
+    }
+
+    #[allow(unused)]
+    pub fn try_push_front(&mut self, item: C::Item) -> Result<&mut C::Item, QueueError> {
+        let size = self.size + 1;
+        if size > self.capacity() {
+            Err(QueueError::Full)?;
+        }
+        self.size = size;
+        self.head = Self::decrease_one(self.head);
+        self.buff.set(self.head, item);
+        let result = self.buff.get_mut(self.head);
+        Ok(result)
+    }
+
+    #[allow(unused)]
+    /// Push to the front of the queue
+    /// Remove the last element if the queue is full
+    pub fn push_front(&mut self, item: C::Item) -> &mut C::Item {
+        let size = self.size + 1;
+        if size < self.capacity() {
+            self.size = size;
+        }
+        self.head = Self::decrease_one(self.head);
+        self.buff.set(self.head, item);
+        let result = self.buff.get_mut(self.head);
+        result
     }
 
     /// Try to push an item, fail if the queue is full
@@ -164,7 +191,6 @@ where
         self.size
     }
 
-    #[allow(unused)]
     pub fn capacity(&self) -> usize {
         C::capacity()
     }

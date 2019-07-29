@@ -6,7 +6,7 @@ use screeps::{
     objects::{HasPosition, Room},
 };
 
-pub fn find_storage_pos(room: &Room, matrix: &mut ConstructionMatrix) -> Result<Point, String> {
+pub fn find_storage_pos(room: &Room ) -> Result<Point, String> {
     let controller = room.controller().ok_or_else(|| "Room has no controller")?;
     if controller.level() < 4 {
         Err("Can't build Storage before level 4")?;
@@ -37,5 +37,16 @@ pub fn find_storage_pos(room: &Room, matrix: &mut ConstructionMatrix) -> Result<
             Point::from(pos)
         }
     };
-    unimplemented!()
+
+    let mut mat = ConstructionMatrix::default().with_position(pos);
+
+    let mut pos = None;
+    for _ in 0..100 {
+        if let Ok(p) = mat.find_next_pos(room) {
+            pos = Some(p);
+            break
+        }
+    };
+
+    pos.ok_or_else(||"Could not find a proper position for the storage".to_owned())
 }

@@ -39,7 +39,7 @@ pub fn target_number_of_role_in_room<'a>(role: Role, room: &'a Room) -> i8 {
         .filter(|flag| {
             let rn = flag.pos().room_name();
             manhatten_distance(&room_name, &rn)
-                .map(|d| d <= 5)
+                .map(|d| d <= 10)
                 .unwrap_or_else(|e| {
                     error!(
                         "Failed to calculate distance from {:?} to {:?}, {:?}",
@@ -74,7 +74,7 @@ pub fn target_number_of_role_in_room<'a>(role: Role, room: &'a Room) -> i8 {
                 target_workers += UPGRADER_COUNT
             }
 
-            if level < 4 {
+            if level < 3 {
                 target_workers *= 2;
             }
             target_workers
@@ -84,7 +84,7 @@ pub fn target_number_of_role_in_room<'a>(role: Role, room: &'a Room) -> i8 {
             if n_containers == 0 {
                 0
             } else {
-                level.max(4) as i8
+                level.min(3) as i8
             }
         }
         Role::Gofer => n_sources.min(n_containers as i8),
@@ -145,7 +145,7 @@ fn role_part_max(room: &Room, role: Role) -> Option<usize> {
         Role::Harvester => Some(8),
         Role::Lrw | Role::Lrh | Role::Worker | Role::Upgrader => Some(worker_count),
         Role::Conqueror => None,
-        Role::Gofer => Some((worker_count as f32 * 1.5) as usize),
+        Role::Gofer => Some(worker_count * 2),
         Role::Unknown => None,
     };
     result.map(|x| x.min(50))

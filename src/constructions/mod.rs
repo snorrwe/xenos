@@ -14,7 +14,7 @@ use crate::prelude::*;
 use crate::CONSTRUCTIONS_SEGMENT;
 use screeps::{
     constants::{find, StructureType},
-    objects::{HasPosition, OwnedStructureProperties, Room, RoomPosition},
+    objects::{HasPosition, Room, RoomPosition},
     ReturnCode,
 };
 use stdweb::unstable::TryFrom;
@@ -49,15 +49,13 @@ fn manage_room<'a>(room: &'a Room, state: &mut ConstructionState) -> ExecutionRe
     build_structures(room, state).unwrap_or_else(|e| warn!("Failed build_structures {:?}", e));
     containers::build_containers(room).unwrap_or_else(|e| warn!("Failed containers {:?}", e));
     roads::build_roads(room).unwrap_or_else(|e| warn!("Failed roads {:?}", e));
-    // FIXME: finish the implementation
-    // build_storage(room, state).unwrap_or_else(|e| warn!("Failed storage {:?}", e));
+    build_storage(room, state).unwrap_or_else(|e| warn!("Failed storage {:?}", e));
 
     Ok(())
 }
 
-fn build_storage(room: &Room, state: &mut ConstructionState) -> ExecutionResult {
-    let mat = get_matrix_mut(state, room);
-    let pos = storage::find_storage_pos(room, mat)?;
+fn build_storage(room: &Room, _state: &mut ConstructionState) -> ExecutionResult {
+    let pos = storage::find_storage_pos(room)?;
 
     warn!("Building storage at {:?}", pos);
 
@@ -90,7 +88,7 @@ fn build_structures<'a>(room: &'a Room, state: &'a mut ConstructionState) -> Exe
     let matrix = get_matrix_mut(state, room);
     let mut pos = matrix
         .find_next_pos(room)
-        .map_err(|e| format!("Failed to get the next position {}", e))?;
+        .map_err(|e| format!("Failed to get the next position {:?}", e))?;
 
     let name = room.name();
 
@@ -109,7 +107,7 @@ fn build_structures<'a>(room: &'a Room, state: &'a mut ConstructionState) -> Exe
                     .ok_or_else(|| format!("Tried to pop front on an empty queue"))?;
                 pos = matrix
                     .find_next_pos(room)
-                    .map_err(|e| format!("Failed to get the next position {}", e))?;
+                    .map_err(|e| format!("Failed to get the next position {:?}", e))?;
             }
             ReturnCode::Full => {
                 debug!("cant place construction site {:?}", result);

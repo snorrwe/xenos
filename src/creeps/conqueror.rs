@@ -1,6 +1,6 @@
 //! Takes Rooms
 //!
-use super::{move_to, update_scout_info};
+use super::{move_to, move_to_options, update_scout_info, MoveToOptions};
 use crate::prelude::*;
 use screeps::{game, objects::Creep, prelude::*, ReturnCode};
 use stdweb::unstable::TryInto;
@@ -19,6 +19,7 @@ pub fn run<'a>(creep: &'a Creep) -> Task<'a, GameState> {
         .with_name("Update scout info"),
         claim_task(creep),
         Task::new(move |state| set_target(state, creep)).with_name("Set target"),
+        Task::new(move |_state| sign_controller(creep, "Become as Gods")).with_name("Set target"),
     ]
     .into_iter()
     .cloned()
@@ -31,17 +32,7 @@ pub fn run<'a>(creep: &'a Creep) -> Task<'a, GameState> {
 }
 
 fn claim_task<'a>(creep: &'a Creep) -> Task<'a, GameState> {
-    Control::Selector(
-        [
-            Task::new(move |state| claim_target(state, creep)).with_name("Claim target"),
-            Task::new(move |_| sign_controller(creep, "Frenetiq was here")) // TODO: more signatures
-                .with_name("Sign controller"),
-        ]
-        .into_iter()
-        .cloned()
-        .collect(),
-    )
-    .into()
+    Task::new(move |state| claim_target(state, creep)).with_name("Claim target")
 }
 
 fn claim_target<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResult {
@@ -73,7 +64,13 @@ fn claim_target<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResult 
         .map_err(|e| format!("failed to convert result to bool {:?}", e))?;
     if !arrived {
         trace!("approaching target room");
-        return move_to(creep, &flag);
+        return move_to_options(
+            creep,
+            &flag,
+            MoveToOptions {
+                reuse_path: Some(30),
+            },
+        );
     }
 
     let my = js! {
@@ -136,3 +133,4 @@ pub fn sign_controller(creep: &Creep, msg: &str) -> ExecutionResult {
         result => Err(format!("failed to sign controller {:?}", result)),
     }
 }
+

@@ -153,6 +153,34 @@ pub fn move_to<'a>(
     }
 }
 
+pub struct MoveToOptions{
+    reuse_path: Option<i32>
+}
+
+pub fn move_to_options<'a>(
+    creep: &'a Creep,
+    target: &'a impl screeps::RoomObjectProperties,
+    options: MoveToOptions
+) -> ExecutionResult {
+    let reuse_path = options.reuse_path;
+    let res = js! {
+        const creep = @{creep};
+        const target = @{target.pos()};
+        const reusePath = @{reuse_path};
+        return creep.moveTo(target, {reusePath: reusePath});
+    };
+    let res =
+        ReturnCode::try_from(res).map_err(|e| format!("Failed to convert move result {:?}", e))?;
+    match res {
+        ReturnCode::Ok | ReturnCode::Tired => Ok(()),
+        _ => {
+            let error = format!("Move failed {:?}", res);
+            debug!("{}", error);
+            Err(error)
+        }
+    }
+}
+
 /// Find and pick up energy from the ground
 /// # Contracts & Side effects
 /// Required the `loading` flag to be set to true

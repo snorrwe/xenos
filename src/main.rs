@@ -32,8 +32,8 @@ use game_loop::game_loop;
 use screeps::raw_memory;
 
 pub const MAIN_SEGMENT: u32 = 0;
-pub const STATISTICS_SEGMENT: u32 = 1;
-pub const CONSTRUCTIONS_SEGMENT: u32 = 2;
+pub const CONSTRUCTIONS_SEGMENT: u32 = 1;
+pub const STATISTICS_SEGMENT: u32 = 2;
 pub const VERSION: &'static str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/VERSION"));
 pub const COLLECT_STATS: bool = true;
 

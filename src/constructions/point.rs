@@ -32,6 +32,7 @@ impl Point {
         Some(p)
     }
 
+    #[allow(unused)]
     pub fn manhatten_dist(&self, other: &Self) -> u16 {
         let result = *other - *self;
         (result.0.abs() + result.1.abs()) as u16

@@ -7,16 +7,19 @@ use std::collections::HashSet;
 
 /// Represents a room split up into 3×3 squares
 /// Uses breadth frist search to find empty spaces
-/// # Invariants
-/// Always use the same room when calling the same matrix
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ConstructionMatrix {
     /// 3×3 positions that have not been explored yet
-    todo: ArrayQueue<[Point; 32]>,
+    todo: ArrayQueue<[Point; 128]>,
     /// 3×3 positions that have been explored already
     done: HashSet<Point>,
     /// 1×1 positions that are open for constructions
     open_positions: ArrayQueue<[Point; 8]>,
+}
+
+#[derive(Debug, Clone)]
+pub enum ConstructionMatrixError {
+    OutOfSpace(String),
 }
 
 impl ConstructionMatrix {
@@ -29,15 +32,16 @@ impl ConstructionMatrix {
         self.open_positions.try_pop_front().ok()
     }
 
-    pub fn find_next_pos(&mut self, room: &Room) -> Result<Point, String> {
-        js! {debugger; };
+    /// # Invariants
+    /// Always use the same room when calling the same matrix
+    pub fn find_next_pos(&mut self, room: &Room) -> Result<Point, ConstructionMatrixError> {
         let open_position = { self.open_positions.front().map(|x| x.clone()) };
         if let Ok(open_position) = open_position {
             return Ok(open_position);
         }
         let pos = self
             .process_next_tile(room)
-            .ok_or_else(|| format!("No free space is available in room {}", room.name()))?;
+            .ok_or_else(|| ConstructionMatrixError::OutOfSpace(room.name()))?;
         Ok(pos)
     }
 
