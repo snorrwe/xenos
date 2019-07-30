@@ -9,21 +9,16 @@ use std::rc::Rc;
 #[derive(Clone)]
 pub struct Task<'a, T>
 where
-    T: TaskInput,
+    T: TaskInput + 'a,
 {
-    /// How much "cpu bucket" is required for the task to execute
-    /// Useful for turning off tasks when the bucket falls below a threshold
-    pub required_bucket: i16,
     /// Priority of the task, defaults to 0
     /// Higher value means higher priority
+    pub task: Rc<dyn Fn(&mut T) -> ExecutionResult + 'a>,
     pub priority: i8,
-
-    task: Rc<dyn Fn(&mut T) -> ExecutionResult + 'a>,
-
     pub name: String,
 }
 
-impl<'a, T> Display for Task<'a, T>
+impl<'a, T: 'a> Display for Task<'a, T>
 where
     T: TaskInput,
 {
@@ -32,20 +27,16 @@ where
     }
 }
 
-impl<'a, T> Debug for Task<'a, T>
+impl<'a, T: 'a> Debug for Task<'a, T>
 where
     T: TaskInput,
 {
     fn fmt(&self, f: &mut Formatter) -> Result<(), std::fmt::Error> {
-        write!(
-            f,
-            "Task {:?} required_bucket: {:?} priority: {:?}",
-            self.name, self.required_bucket, self.priority
-        )
+        write!(f, "Task {:?} priority: {:?}", self.name, self.priority)
     }
 }
 
-impl<'a, T> Task<'a, T>
+impl<'a, T: 'a> Task<'a, T>
 where
     T: TaskInput,
 {
@@ -55,7 +46,6 @@ where
     {
         Self {
             task: Rc::new(task),
-            required_bucket: -1,
             priority: 0,
             name: "UNNAMED_TASK".to_owned(),
         }
@@ -67,39 +57,29 @@ where
         self
     }
 
-    #[allow(dead_code)]
     pub fn with_priority(mut self, priority: i8) -> Self {
         self.priority = priority;
         self
     }
 
-    pub fn with_required_bucket(mut self, bucket: i16) -> Self {
-        self.required_bucket = bucket;
-        self
-    }
-
-    fn assert_pre_requisites(&self, state: &mut T) -> ExecutionResult {
-        if state
-            .cpu_bucket()
-            .map(|cb| cb < self.required_bucket)
-            .unwrap_or(false)
-        {
-            let message = format!(
-                "Task bucket requirement not met. Required: {:?}",
-                self.required_bucket
-            );
-            Err(message)?;
-        }
-        Ok(())
+    /// How much "cpu bucket" is required for the task to execute
+    /// Useful for turning off tasks when the bucket falls below a threshold
+    pub fn with_required_bucket(self, bucket: i16) -> Self {
+        Self::new(move |state| {
+            if state.cpu_bucket().map(|cb| cb < bucket).unwrap_or(false) {
+                let message = format!("Task bucket requirement not met. Required: {:?}", bucket);
+                Err(message)?;
+            }
+            self.tick(state)
+        })
     }
 }
 
 impl<'a, T> BtNode<T> for Task<'a, T>
 where
-    T: TaskInput,
+    T: TaskInput + 'a,
 {
     fn tick(&self, state: &mut T) -> ExecutionResult {
-        self.assert_pre_requisites(state)?;
         (*self.task)(state).map_err(|e| {
             debug!("Task Error {:?}", e);
             e
