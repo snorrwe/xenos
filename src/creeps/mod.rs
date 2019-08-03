@@ -17,7 +17,7 @@ use screeps::{
     constants::{find, ResourceType},
     game::{self, get_object_erased, get_object_typed},
     objects::{
-        Creep, Resource, RoomObject, RoomObjectProperties, Structure, StructureContainer,
+        Creep, HasId, Resource, RoomObject, RoomObjectProperties, Structure, StructureContainer,
         StructureStorage, Tombstone, Withdrawable,
     },
     prelude::*,
@@ -153,14 +153,14 @@ pub fn move_to<'a>(
     }
 }
 
-pub struct MoveToOptions{
-    reuse_path: Option<i32>
+pub struct MoveToOptions {
+    reuse_path: Option<i32>,
 }
 
 pub fn move_to_options<'a>(
     creep: &'a Creep,
     target: &'a impl screeps::RoomObjectProperties,
-    options: MoveToOptions
+    options: MoveToOptions,
 ) -> ExecutionResult {
     let reuse_path = options.reuse_path;
     let res = js! {
@@ -299,26 +299,25 @@ pub fn withdraw_energy<'a>(state: &'a mut GameState, creep: &'a Creep) -> Execut
         Task::new(|_| try_withdraw::<Tombstone>(creep, &target)),
         Task::new(|_| try_withdraw::<StructureStorage>(creep, &target)),
         Task::new(|_| try_withdraw::<StructureContainer>(creep, &target)),
-        Task::new(|state: &mut GameState| {
-            warn!("Got a target that can not be withdrawn from");
-            let memory = state.creep_memory_entry(CreepName(&creep.name()));
-            memory.remove(TARGET);
-            Ok(())
-        }),
     ]
     .into_iter()
     .cloned()
     .collect();
 
     let tree = Control::Sequence(tasks);
-    tree.tick(state)
+    tree.tick(state).map_err(|_| {
+        warn!("Got a target that can not be withdrawn from");
+        let memory = state.creep_memory_entry(CreepName(&creep.name()));
+        memory.remove(TARGET);
+        "can't withdraw".into()
+    })
 }
 
 fn try_withdraw<'a, T>(creep: &'a Creep, target: &'a RoomObject) -> ExecutionResult
 where
     T: Withdrawable + screeps::traits::TryFrom<&'a Reference>,
 {
-    let target = T::try_from(target.as_ref()).map_err(|_| String::new())?;
+    let target = T::try_from(target.as_ref()).map_err(|_| "Failed to convert target")?;
     withdraw(creep, &target)
 }
 
@@ -342,15 +341,17 @@ fn find_available_energy<'a>(creep: &'a Creep) -> Option<RoomObject> {
     trace!("Finding new withdraw target");
     let result = js! {
         const creep = @{creep};
-        const energy = creep.pos.findClosestByRange(FIND_TOMBSTONES, {
+        const ts = creep.pos.findClosestByRange(FIND_TOMBSTONES, {
             filter: (ts) => ts.creep.my && ts.store[RESOURCE_ENERGY]
         });
-        if (energy) {
-            return energy;
+        if (ts) {
+            return ts;
+        }
+        if (creep.room.storage && creep.room.storage.store[RESOURCE_ENERGY] > 0) {
+            return creep.room.storage;
         }
         const container = creep.pos.findClosestByRange(FIND_STRUCTURES, {
-            filter: (i) => (i.structureType == STRUCTURE_CONTAINER || i.structureType == STRUCTURE_STORAGE)
-                && i.store[RESOURCE_ENERGY] > 0
+            filter: (i) => i.structureType == STRUCTURE_CONTAINER && i.store[RESOURCE_ENERGY] > 0
         });
         return container;
     };
@@ -476,3 +477,4 @@ pub fn approach_target_room<'a>(
         _ => Ok(()),
     }
 }
+
