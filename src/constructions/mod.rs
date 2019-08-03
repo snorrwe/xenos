@@ -57,7 +57,7 @@ fn manage_room<'a>(room: &'a Room, state: &mut ConstructionState) -> ExecutionRe
 fn build_storage(room: &Room, _state: &mut ConstructionState) -> ExecutionResult {
     let pos = storage::find_storage_pos(room)?;
 
-    warn!("Building storage at {:?}", pos);
+    debug!("Building storage at {:?}", pos);
 
     let pos = pos.into_room_pos(&room.name());
     let result = room.create_construction_site(&pos, StructureType::Storage);
