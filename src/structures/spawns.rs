@@ -37,7 +37,8 @@ pub fn task<'a>() -> Task<'a, GameState> {
 fn run_spawn<'a>(state: &'a mut GameState, spawn: &'a StructureSpawn) -> ExecutionResult {
     debug!("Running spawn {}", spawn.name());
 
-    let next_role = next_role(state, &spawn.room());
+    let room = &spawn.room();
+    let next_role = next_role(state, room);
 
     if next_role.is_none() {
         debug!("Skipping spawn due to overpopulation");
@@ -45,6 +46,19 @@ fn run_spawn<'a>(state: &'a mut GameState, spawn: &'a StructureSpawn) -> Executi
     }
 
     let next_role = next_role.unwrap();
+
+    match next_role {
+        Role::Harvester | Role::Gofer => {}
+        _ => {
+            // If the room has enough harvesters and gofers
+            let total = room.energy_capacity_available() as f32;
+            let actual = room.energy_available() as f32;
+
+            if (actual / total) < 0.75 {
+                Err("Wait for more energy before spawning next creep")?;
+            }
+        }
+    }
 
     spawn_creep(state, &spawn, next_role)?;
 
@@ -121,3 +135,4 @@ fn spawn_creep(state: &mut GameState, spawn: &StructureSpawn, role: Role) -> Exe
     }
     Ok(())
 }
+
