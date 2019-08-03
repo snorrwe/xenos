@@ -1,6 +1,6 @@
 //! Upgrade Controllers
 //!
-use super::{move_to, pickup_energy, withdraw_energy};
+use super::{move_to, withdraw_energy};
 use crate::game_state::GameState;
 use crate::prelude::*;
 use screeps::{objects::Creep, prelude::*, ReturnCode};
@@ -10,7 +10,6 @@ pub fn run<'a>(creep: &'a Creep) -> Task<'a, GameState> {
 
     let tasks = [
         Task::new(move |state| attempt_upgrade(state, creep)).with_name("Attempt upgrade"),
-        Task::new(move |state| pickup_energy(state, creep)).with_name("Pickup energy"),
         Task::new(move |state| withdraw_energy(state, creep)).with_name("Withdraw energy"),
         Task::new(move |state| attempt_upgrade(state, creep)).with_name("Attempt upgrade"),
     ]

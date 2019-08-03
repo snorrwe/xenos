@@ -1,6 +1,6 @@
 //! Build structures
 //!
-use super::{harvest, move_to, pickup_energy, repairer, upgrader, withdraw_energy, TARGET, TASK};
+use super::{harvest, move_to, repairer, upgrader, withdraw_energy, TARGET, TASK};
 use crate::prelude::*;
 use num::FromPrimitive;
 use screeps::{
@@ -54,9 +54,6 @@ fn prepare_task<'a>(creep: &'a Creep, state: &GameState) -> Task<'a, GameState> 
         Task::new(move |state| attempt_build(state, creep))
             .with_name("Attempt build")
             .with_priority(priorities[0]),
-        Task::new(move |state| pickup_energy(state, creep))
-            .with_name("Pickup energy")
-            .with_priority(priorities[1]),
         Task::new(move |state| withdraw_energy(state, creep))
             .with_name("Withdraw energy")
             .with_priority(priorities[2]),
