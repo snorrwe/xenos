@@ -1,8 +1,8 @@
-use super::is_free;
 use super::point::Point;
 use crate::collections::ArrayQueue;
 use arrayvec::ArrayVec;
-use screeps::objects::Room;
+use screeps::constants::Terrain;
+use screeps::objects::{LookResult, Room, Structure};
 use std::collections::HashSet;
 
 /// Represents a room split up into 3×3 squares
@@ -82,18 +82,32 @@ impl ConstructionMatrix {
             Point(x - 1, y + 1), Point(x + 0, y + 1), Point(x + 1, y + 1),
         ];
 
-        let room_name = room.name();
-
         const PARITY: i16 = 1;
 
-        // Push + pattern
-        let n_free = tile
-            .iter()
-            .enumerate()
-            .filter(|(i, _)| *i != 4 && i % 2 != PARITY as usize)
-            .filter(|(_, p)| p.is_valid_room_position())
-            .filter(|(_, p)| is_free(room, &p.into_room_pos(&room_name)))
-            .count();
+        let minx = tile[0].0.max(0) as u32;
+        let miny = tile[0].1.max(0) as u32;
+        let maxx = tile[8].0.min(49) as u32;
+        let maxy = tile[8].1.min(49) as u32;
+
+        // Count the number of BAD tiles
+        let n_taken = room
+            .look_at_area(miny, minx, maxy, maxx)
+            .into_iter()
+            .filter(|r| (r.x + r.y) % 2 != PARITY as u32)
+            .filter(|r| match r.look_result {
+                LookResult::Structure(Structure::Road(_)) => false,
+                LookResult::Terrain(Terrain::Wall)
+                | LookResult::ConstructionSite(_)
+                | LookResult::Structure(_) => true,
+                _ => false,
+            })
+            .map(|r| (r.x, r.y))
+            // Every position should have only 1 of the 'true' categories max
+            // But let's make sure there are no duplicates
+            .collect::<HashSet<_>>()
+            .len();
+
+        let n_free = (maxx - minx) * (maxy - miny) - n_taken as u32;
 
         if n_free > 3 {
             self.open_positions.push_back(pos);
@@ -101,9 +115,7 @@ impl ConstructionMatrix {
                 tile.into_iter()
                     .enumerate()
                     .filter(|(i, _)| i % 2 == PARITY as usize)
-                    .filter(|(_, p)| {
-                        p.is_valid_room_position() && is_free(room, &p.into_room_pos(&room_name))
-                    })
+                    .filter(|(_, p)| p.is_valid_room_position())
                     .map(|(_, p)| *p),
             );
             Some(pos)
