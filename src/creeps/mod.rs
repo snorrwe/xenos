@@ -69,6 +69,7 @@ fn run_creep<'a>(state: &mut GameState, creep: Creep) -> ExecutionResult {
                 .map_err(|e| {
                     debug!("Recording failed run {:?}", e);
                     state.creep_stats.idle_creeps += 1;
+                    creep.say("💤", false);
                     e
                 })
                 .map(|_| {
