@@ -120,7 +120,14 @@ pub fn attempt_unload<'a>(state: &'a mut GameState, creep: &'a Creep) -> Executi
 fn find_unload_target<'a>(state: &'a mut GameState, creep: &'a Creep) -> Option<Reference> {
     trace!("Setting unload target");
     if let Some(target) = read_unload_target(state, creep) {
-        return Some(target);
+        let full = js! {
+            const target = @{&target};
+            return !target.energyCapacity || target.energy < target.energyCapacity;
+        };
+        let full: bool = full.try_into().unwrap_or(true);
+        if full {
+            return Some(target);
+        }
     }
     let tasks = [
         Task::new(|state| find_unload_target_by_type(state, creep, "spawn"))
