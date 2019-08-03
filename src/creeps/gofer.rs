@@ -104,13 +104,9 @@ pub fn attempt_unload<'a>(state: &'a mut GameState, creep: &'a Creep) -> Executi
             .with_name("Try transfer to StructureTower"),
         Task::new(|state| try_transfer::<StructureStorage>(state, creep, &target))
             .with_name("Try transfer to StructureStorage"),
-    ]
-    .into_iter()
-    .cloned()
-    .collect();
+    ];
 
-    let tree = Control::Sequence(tasks);
-    tree.tick(state).map_err(|e| {
+    sequence(state, tasks.iter()).map_err(|e| {
         let memory = state.creep_memory_entry(CreepName(&creep.name()));
         memory.remove(TARGET);
         e
@@ -138,12 +134,8 @@ fn find_unload_target<'a>(state: &'a mut GameState, creep: &'a Creep) -> Option<
             .with_name("Find unload target by type extension"),
         Task::new(|state| find_storage(state, creep))
             .with_name("Find unload target by type storage"),
-    ]
-    .into_iter()
-    .cloned()
-    .collect();
-    let tree = Control::Sequence(tasks);
-    match tree.tick(state) {
+    ];
+    match sequence(state, tasks.iter()) {
         Ok(_) => read_unload_target(state, creep),
         Err(e) => {
             debug!("Failed to find unload target {:?}", e);

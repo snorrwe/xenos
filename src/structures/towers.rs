@@ -34,13 +34,8 @@ fn run_tower<'a>(state: &'a mut GameState, tower: &'a StructureTower) -> Executi
     let tasks = [
         Task::new(move |_| attempt_attack(tower)),
         Task::new(move |_| attempt_repair(tower)).with_required_bucket(1000),
-    ]
-    .into_iter()
-    .cloned()
-    .collect();
-
-    let tree = Control::Sequence(tasks);
-    tree.tick(state)
+    ];
+    sequence(state, tasks.iter())
 }
 
 fn attempt_attack<'a>(tower: &'a StructureTower) -> ExecutionResult {
@@ -88,3 +83,4 @@ fn repair<'a>(tower: &'a StructureTower, target: &'a Structure) -> ExecutionResu
         Err(error)
     }
 }
+

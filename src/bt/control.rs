@@ -47,54 +47,62 @@ where
 {
     fn tick(&self, state: &mut T) -> ExecutionResult {
         match self {
-            Control::Selector(nodes) => {
-                let found = nodes
-                    .iter()
-                    .map(|node| (node, node.tick(state)))
-                    .find(|(_node, result)| result.is_err());
-                if let Some(found) = found {
-                    if log_enabled!(Debug) {
-                        Err(format!(
-                            "Task failure in selector {:?} {:?}",
-                            found.1, found.0
-                        ))?;
-                    } else {
-                        Err(format!("A task failed in selector {:?}", found.1))?;
-                    }
-                }
-                Ok(())
-            }
+            Control::Selector(nodes) => selector(state, nodes.iter()),
+            Control::Sequence(nodes) => sequence(state, nodes.iter()),
+        }
+    }
+}
 
-            Control::Sequence(nodes) => {
-                let mut errors: ArrayVec<[String; MAX_TASK_PER_CONTROL]> =
-                    [].into_iter().cloned().collect();
-                let found = nodes.iter().any(|node| {
-                    let result = node.tick(state);
-                    debug!("Task result in sequence {:?} {:?}", node, result);
-                    let ok = result.is_ok();
-                    if let Err(err) = result {
-                        errors.push(err);
-                    }
-                    ok
-                });
-                if found {
-                    Ok(())
-                } else {
-                    if log_enabled!(Debug) {
-                        let mut error_str = String::with_capacity(512);
-                        for (i, error) in errors.iter().enumerate() {
-                            let name = &nodes[i].name;
-                            write!(&mut error_str, "{}: {}\n", name, error).map_err(|e| {
-                                error!("Failed to write to error string, aborting {:?}", e);
-                                "Debug info write failure"
-                            })?;
-                        }
-                        Err(format!("All tasks failed in Sequence node\n{}", error_str))
-                    } else {
-                        Err("All tasks failed in Sequence!")?
-                    }
-                }
+/// Run an iterator of tasks as a Selector
+pub fn selector<'a, T: 'a + TaskInput, It: Iterator<Item = &'a Task<'a, T>>>(
+    state: &'a mut T,
+    tasks: It,
+) -> ExecutionResult {
+    let found = tasks
+        .map(|node| (node, node.tick(state)))
+        .find(|(_node, result)| result.is_err());
+    if let Some(found) = found {
+        if log_enabled!(Debug) {
+            Err(format!(
+                "Task failure in selector {:?} {:?}",
+                found.1, found.0
+            ))?;
+        } else {
+            Err(format!("A task failed in selector {:?}", found.1))?;
+        }
+    }
+    Ok(())
+}
+
+/// Run an iterator of tasks as a Sequence
+pub fn sequence<'a, T: 'a + TaskInput, It: Iterator<Item = &'a Task<'a, T>>>(
+    state: &'a mut T,
+    mut tasks: It,
+) -> ExecutionResult {
+    let mut errors: ArrayVec<[String; MAX_TASK_PER_CONTROL]> = [].into_iter().cloned().collect();
+    let found = tasks.any(|node| {
+        let result = node.tick(state);
+        debug!("Task result in sequence {:?} {:?}", node, result);
+        let ok = result.is_ok();
+        if let Err(err) = result {
+            errors.push(err);
+        }
+        ok
+    });
+    if found {
+        Ok(())
+    } else {
+        if log_enabled!(Debug) {
+            let mut error_str = String::with_capacity(512);
+            for (i, error) in errors.iter().enumerate() {
+                write!(&mut error_str, "{}: {}\n", i, error).map_err(|e| {
+                    error!("Failed to write to error string, aborting {:?}", e);
+                    "Debug info write failure"
+                })?;
             }
+            Err(format!("All tasks failed in Sequence node\n{}", error_str))
+        } else {
+            Err("All tasks failed in Sequence!")?
         }
     }
 }
@@ -175,3 +183,4 @@ mod tests {
         assert_eq!(state.results, "cdb");
     }
 }
+

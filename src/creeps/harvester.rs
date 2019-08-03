@@ -58,13 +58,9 @@ pub fn unload<'a>(state: &'a mut GameState, creep: &'a Creep) -> ExecutionResult
             .with_name("Try transfer container"),
         Task::new(|_| try_transfer::<StructureSpawn>(creep, &target))
             .with_name("Try transfer spawn"),
-    ]
-    .into_iter()
-    .cloned()
-    .collect();
+    ];
 
-    let tree = Control::Sequence(tasks);
-    tree.tick(state).map_err(|error| {
+    sequence(state, tasks.iter()).map_err(|error| {
         let memory = state.creep_memory_entry(CreepName(&creep.name()));
         memory.remove(TARGET);
         debug!("failed to unload {:?}", error);
@@ -79,12 +75,8 @@ fn find_unload_target<'a>(state: &'a mut GameState, creep: &'a Creep) -> Option<
         let tasks = [
             Task::new(|state| find_container(state, creep)).with_name("Find container"),
             Task::new(|state| find_spawn(state, creep)).with_name("Find spawn"),
-        ]
-        .into_iter()
-        .cloned()
-        .collect();
-        let tree = Control::Sequence(tasks);
-        tree.tick(state).unwrap_or_else(|e| {
+        ];
+        sequence(state, tasks.iter()).unwrap_or_else(|e| {
             debug!("Failed to find unload target {:?}", e);
         });
         read_unload_target(state, creep)
@@ -273,3 +265,4 @@ fn harvester_count(state: &mut GameState) -> HashMap<String, i32> {
     });
     result
 }
+

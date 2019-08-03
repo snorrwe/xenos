@@ -67,32 +67,26 @@ fn load<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResult {
     if !state.creep_memory_bool(CreepName(&creep.name()), "loading") {
         Err("not loading")?;
     }
-    let tree = {
-        let memory = state.creep_memory_entry(CreepName(&creep.name()));
-        if creep.carry_total() == creep.carry_capacity() {
-            memory.insert("loading".into(), false.into());
-            memory.remove(TARGET);
-            Err("full")?;
-        }
-        let tasks = [
-            Task::new(move |state| approach_target_room(state, creep, HARVEST_TARGET_ROOM))
-                .with_name("Approach target room"),
-            Task::new(move |state| set_target_room(state, creep)).with_name("Set target room"),
-            Task::new(move |state| {
-                update_scout_info(state, creep)?;
-                Err("continue")?
-            })
-            .with_name("Update scout info"),
-            Task::new(move |state| harvester::attempt_harvest(state, creep, Some(TARGET)))
-                .with_name("Attempt harvest"),
-        ]
-        .into_iter()
-        .cloned()
-        .collect();
+    let memory = state.creep_memory_entry(CreepName(&creep.name()));
+    if creep.carry_total() == creep.carry_capacity() {
+        memory.insert("loading".into(), false.into());
+        memory.remove(TARGET);
+        Err("full")?;
+    }
+    let tasks = [
+        Task::new(move |state| approach_target_room(state, creep, HARVEST_TARGET_ROOM))
+            .with_name("Approach target room"),
+        Task::new(move |state| set_target_room(state, creep)).with_name("Set target room"),
+        Task::new(move |state| {
+            update_scout_info(state, creep)?;
+            Err("continue")?
+        })
+        .with_name("Update scout info"),
+        Task::new(move |state| harvester::attempt_harvest(state, creep, Some(TARGET)))
+            .with_name("Attempt harvest"),
+    ];
 
-        Control::Sequence(tasks)
-    };
-    tree.tick(state)
+    sequence(state, tasks.iter())
 }
 
 fn set_target_room<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResult {
@@ -154,24 +148,18 @@ fn unload<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResult {
     if state.creep_memory_bool(CreepName(&creep.name()), "loading") {
         Err("loading")?;
     }
-    let tree = {
-        let memory = state.creep_memory_entry(CreepName(&creep.name()));
-        if creep.carry_total() == 0 {
-            memory.insert("loading".into(), true.into());
-            memory.remove(TARGET);
-            Err("empty")?;
-        }
-        let tasks = [
-            Task::new(move |state| approach_target_room(state, creep, HOME_ROOM))
-                .with_name("Approach target room"),
-            Task::new(move |state| gofer::attempt_unload(state, creep)).with_name("Attempt unload"),
-        ]
-        .into_iter()
-        .cloned()
-        .collect();
+    let memory = state.creep_memory_entry(CreepName(&creep.name()));
+    if creep.carry_total() == 0 {
+        memory.insert("loading".into(), true.into());
+        memory.remove(TARGET);
+        Err("empty")?;
+    }
+    let tasks = [
+        Task::new(move |state| approach_target_room(state, creep, HOME_ROOM))
+            .with_name("Approach target room"),
+        Task::new(move |state| gofer::attempt_unload(state, creep)).with_name("Attempt unload"),
+    ];
 
-        Control::Sequence(tasks)
-    };
-    tree.tick(state)
+    sequence(state, tasks.iter())
 }
 

@@ -77,14 +77,9 @@ fn run_creep<'a>(state: &mut GameState, creep: Creep) -> ExecutionResult {
                 })
         }),
         Task::new(|state| initialize_creep(state, &creep)),
-    ]
-    .into_iter()
-    .cloned()
-    .collect();
+    ];
 
-    let tree = Control::Sequence(tasks);
-    let result = tree.tick(state);
-    result
+    sequence(state, tasks.iter())
 }
 
 pub fn initialize_creep<'a>(state: &'a mut GameState, creep: &'a Creep) -> ExecutionResult {
@@ -229,14 +224,9 @@ pub fn pickup_energy(state: &mut GameState, creep: &Creep) -> ExecutionResult {
             memory.remove(TARGET);
             Ok(())
         }),
-    ]
-    .into_iter()
-    .cloned()
-    .collect();
+    ];
 
-    let tree = Control::Sequence(tasks);
-
-    tree.tick(state).map_err(|_| {
+    sequence(state, tasks.iter()).map_err(|_| {
         let memory = state.creep_memory_entry(CreepName(&creep.name()));
         memory.remove(TARGET);
         "can't pick up energy".into()
@@ -299,13 +289,8 @@ pub fn withdraw_energy<'a>(state: &'a mut GameState, creep: &'a Creep) -> Execut
         Task::new(|_| try_withdraw::<Tombstone>(creep, &target)),
         Task::new(|_| try_withdraw::<StructureStorage>(creep, &target)),
         Task::new(|_| try_withdraw::<StructureContainer>(creep, &target)),
-    ]
-    .into_iter()
-    .cloned()
-    .collect();
-
-    let tree = Control::Sequence(tasks);
-    tree.tick(state).map_err(|_| {
+    ];
+    sequence(state, tasks.iter()).map_err(|_| {
         warn!("Got a target that can not be withdrawn from");
         let memory = state.creep_memory_entry(CreepName(&creep.name()));
         memory.remove(TARGET);
