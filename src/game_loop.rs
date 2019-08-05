@@ -39,7 +39,7 @@ pub fn game_loop() {
         .map(|_| {
             info!("Statistics saved!");
         })
-        .unwrap_or_else(|e| error!("Failed to save stats {:?}", e));
+        .unwrap_or_else(|e| warn!("Failed to save stats {:?}", e));
     }
 
     // Yes, measure again even after stats save
