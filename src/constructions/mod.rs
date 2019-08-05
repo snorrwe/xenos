@@ -79,9 +79,6 @@ fn build_structures<'a>(room: &'a Room, state: &'a mut ConstructionState) -> Exe
         StructureType::Tower,
         StructureType::Extension,
         StructureType::Extension,
-        StructureType::Extension,
-        StructureType::Extension,
-        StructureType::Extension,
         StructureType::Spawn,
     ];
 
