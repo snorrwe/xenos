@@ -1,17 +1,14 @@
 //! Upgrade Controllers
 //!
-use super::{move_to, withdraw_energy};
-use crate::game_state::GameState;
+use super::{move_to, withdraw_energy, CreepState, LOADING};
 use crate::prelude::*;
-use screeps::{objects::Creep, prelude::*, ReturnCode};
+use screeps::{prelude::*, ReturnCode};
 
-pub fn run<'a>(creep: &'a Creep) -> Task<'a, GameState> {
-    trace!("Running upgrader {}", creep.name());
-
+pub fn task<'a>(state: &'a CreepState) -> Task<'a, CreepState> {
     let tasks = [
-        Task::new(move |state| attempt_upgrade(state, creep)).with_name("Attempt upgrade"),
-        Task::new(move |state| withdraw_energy(state, creep)).with_name("Withdraw energy"),
-        Task::new(move |state| attempt_upgrade(state, creep)).with_name("Attempt upgrade"),
+        Task::new(move |state| attempt_upgrade(state)).with_name("Attempt upgrade"),
+        Task::new(move |state| withdraw_energy(state)).with_name("Withdraw energy"),
+        Task::new(move |state| attempt_upgrade(state)).with_name("Attempt upgrade"),
     ]
     .into_iter()
     .cloned()
@@ -21,15 +18,15 @@ pub fn run<'a>(creep: &'a Creep) -> Task<'a, GameState> {
     Task::from(tree).with_name("Upgrader")
 }
 
-pub fn attempt_upgrade<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResult {
+pub fn attempt_upgrade<'a>(state: &mut CreepState) -> ExecutionResult {
     trace!("Upgrading");
-    let loading = state.creep_memory_bool(CreepName(&creep.name()), "loading");
-    if loading {
+    let loading = state.creep_memory_bool(LOADING);
+    if loading.unwrap_or(false) {
         return Err("loading".into());
     }
-    let memory = state.creep_memory_entry(CreepName(&creep.name()));
+    let creep = state.creep();
     if creep.carry_total() == 0 {
-        memory.insert("loading".into(), true.into());
+        state.creep_memory_set("loading".into(), true.into());
         Err("empty".to_string())?;
     }
     let controller = creep.room().controller().ok_or_else(|| {
@@ -48,3 +45,4 @@ pub fn attempt_upgrade<'a>(state: &mut GameState, creep: &'a Creep) -> Execution
         }
     }
 }
+

@@ -1,23 +1,22 @@
 //! Repair structures
 //!
-use super::{find_repair_target, move_to};
-use crate::game_state::GameState;
+use super::{find_repair_target, move_to, CreepState, LOADING};
 use crate::prelude::*;
 use screeps::{
     objects::{Creep, RoomObjectProperties, Structure},
     ReturnCode,
 };
 
-pub fn attempt_repair<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResult {
+pub fn attempt_repair<'a>(state: &mut CreepState) -> ExecutionResult {
     trace!("Repairing");
 
-    let loading = state.creep_memory_bool(CreepName(&creep.name()), "loading");
-    if loading {
+    let loading = state.creep_memory_bool(LOADING);
+    if loading.unwrap_or(false) {
         return Err("loading".into());
     }
+    let creep = state.creep();
     if creep.carry_total() == 0 {
-        let memory = state.creep_memory_entry(CreepName(&creep.name()));
-        memory.insert("loading".into(), true.into());
+        state.creep_memory_set("loading".into(), true.into());
         Err("empty".into())
     } else {
         trace!("Repairing");
@@ -38,3 +37,4 @@ fn repair<'a>(creep: &'a Creep, target: &'a Structure) -> ExecutionResult {
         _ => Err(format!("Unexpected ReturnCode {:?}", res)),
     }
 }
+

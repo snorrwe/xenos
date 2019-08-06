@@ -8,8 +8,9 @@ use std::collections::HashMap;
 use std::error::Error;
 
 pub type CreepMemory = HashMap<String, Map<String, Value>>;
+pub type CreepMemoryEntry = Map<String, Value>;
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Default, Serialize, Deserialize)]
 /// Holds information about the global state of the game
 pub struct GameState {
     /// CPU bucket available this tick
@@ -49,6 +50,12 @@ pub struct GameState {
     #[serde(skip_deserializing)]
     #[serde(default)]
     pub creep_stats: CreepExecutionStats,
+}
+
+impl Clone for GameState {
+    fn clone(&self) -> Self {
+        panic!("Do not clone GameState objects, the trait impl is provided so the Tasks are cloneable");
+    }
 }
 
 impl TaskInput for GameState {
@@ -235,11 +242,14 @@ impl GameState {
 }
 
 pub trait WithStateSave<'a> {
-    fn with_state_save<T: ToPrimitive + 'a>(self, creep: String, task_id: T)
-        -> Task<'a, GameState>;
+    type State: TaskInput;
+
+    fn with_state_save<T: ToPrimitive + 'a>(self, creep: String, task_id: T) -> Task<'a, Self::State>;
 }
 
 impl<'a> WithStateSave<'a> for Task<'a, GameState> {
+    type State = GameState;
+
     fn with_state_save<T: ToPrimitive + 'a>(
         self,
         creep: String,
