@@ -1,8 +1,9 @@
+use super::creep_state::CreepState;
 pub use super::spawn_info::*;
 use super::{conqueror, gofer, harvester, lrh, lrw, upgrader, worker};
 use crate::prelude::*;
 use arrayvec::ArrayVec;
-use screeps::objects::{Creep, Room};
+use screeps::objects::Room;
 use std::fmt::{self, Display, Formatter};
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, Hash, Eq, PartialEq)]
@@ -93,26 +94,27 @@ pub fn next_role<'a>(state: &'a mut GameState, room: &'a Room) -> Option<Role> {
 }
 
 /// Run the creep according to the given role
-pub fn run_role<'a>(role: Role, creep: &'a Creep) -> Task<'a, GameState> {
-    trace!("Running creep {} by role {}", creep.name(), role);
-
+pub fn run_role<'a>(role: Role, creep: &'a mut CreepState) -> Task<'a, CreepState> {
     let task = match role {
-        Role::Upgrader => upgrader::run(creep),
-        Role::Harvester => harvester::run(creep),
-        Role::Worker => worker::run(creep),
-        Role::Gofer => gofer::run(creep),
-        Role::Conqueror => conqueror::run(creep),
-        Role::Lrh => lrh::run(creep),
-        Role::Lrw => lrw::run(creep),
+        Role::Upgrader => upgrader::task(creep),
+        Role::Harvester => harvester::task(creep),
+        Role::Worker => worker::task(creep),
+        Role::Gofer => gofer::task(creep),
+        Role::Conqueror => conqueror::task(creep),
+        Role::Lrh => lrh::task(creep),
+        Role::Lrw => lrw::task(creep),
         _ => unimplemented!(),
     };
 
     Task::new(move |state| {
+        trace!("Running creep {} by role {}", creep.creep_name().0, role);
+
         task.tick(state).map_err(|e| {
-            let error = format!("Creep {} is idle: {}", creep.name(), e);
+            let error = format!("Creep {} is idle: {}", creep.creep_name().0, e);
             warn!("{}", error);
             error
         })
     })
     .with_name("Run role")
 }
+

@@ -2,12 +2,15 @@
 //! Harvest energy from foreign rooms and move it back to the owning room
 //!
 
-use super::{approach_target_room, gofer, harvester, update_scout_info, HOME_ROOM, TARGET, TASK};
+use super::{
+    approach_target_room, gofer, harvester, update_scout_info, CreepState, HOME_ROOM, LOADING,
+    TARGET, TASK,
+};
 use crate::game_state::RoomIFF;
 use crate::prelude::*;
 use crate::rooms::neighbours;
 use num::FromPrimitive;
-use screeps::{objects::Creep, prelude::*};
+use screeps::prelude::*;
 
 const HARVEST_TARGET_ROOM: &'static str = "harvest_target_room";
 
@@ -19,18 +22,16 @@ enum LrhState {
     Unloading,
 }
 
-pub fn run<'a>(creep: &'a Creep) -> Task<'a, GameState> {
+pub fn task<'a>(state: &'a mut CreepState) -> Task<'a, CreepState> {
     trace!("Running long_range_harvester");
 
-    let task = Task::new(move |state| prepare_task(creep, state).tick(state));
-    task.with_required_bucket(2000).with_name("LRH")
+    Task::new(|state| prepare_task(state).tick(state))
+        .with_required_bucket(2000)
+        .with_name("LRH")
 }
 
-fn prepare_task<'a>(creep: &'a Creep, state: &GameState) -> Task<'a, GameState> {
-    let name = creep.name();
-    let last_task = state
-        .creep_memory_i64(CreepName(name.as_str()), TASK)
-        .unwrap_or(0);
+fn prepare_task<'a>(state: &CreepState) -> Task<'a, CreepState> {
+    let last_task = state.creep_memory_i64(TASK).unwrap_or(0);
     let last_task = LrhState::from_u32(last_task as u32).unwrap_or(LrhState::Idle);
 
     let mut priorities = [0, 0];
@@ -41,16 +42,18 @@ fn prepare_task<'a>(creep: &'a Creep, state: &GameState) -> Task<'a, GameState> 
         _ => {}
     }
 
+    let name = state.creep_name().0.to_owned();
+
     let tasks = [
-        Task::new(move |state| load(state, creep))
+        Task::new(|state| load(state))
             .with_name("Load")
             .with_state_save(name.clone(), LrhState::Loading)
             .with_priority(priorities[1]),
-        Task::new(move |state| unload(state, creep))
+        Task::new(|state| unload(state))
             .with_name("Unload")
             .with_state_save(name.clone(), LrhState::Unloading)
             .with_priority(priorities[0]),
-        Task::new(move |state| harvester::unload(state, creep)).with_name("Harvester unload"),
+        Task::new(|state| harvester::unload(state)).with_name("Harvester unload"),
     ]
     .into_iter()
     .cloned()
@@ -61,53 +64,56 @@ fn prepare_task<'a>(creep: &'a Creep, state: &GameState) -> Task<'a, GameState> 
 }
 
 /// Load up on energy from the target room
-fn load<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResult {
+fn load<'a>(state: &mut CreepState) -> ExecutionResult {
     trace!("Loading");
 
-    if !state.creep_memory_bool(CreepName(&creep.name()), "loading") {
+    if !state.creep_memory_bool(LOADING).unwrap_or(false) {
         Err("not loading")?;
     }
-    let memory = state.creep_memory_entry(CreepName(&creep.name()));
+    let creep = state.creep();
     if creep.carry_total() == creep.carry_capacity() {
-        memory.insert("loading".into(), false.into());
-        memory.remove(TARGET);
+        state.creep_memory_set(LOADING.into(), false.into());
+        state.creep_memory_remove(TARGET);
         Err("full")?;
     }
     let tasks = [
-        Task::new(move |state| approach_target_room(state, creep, HARVEST_TARGET_ROOM))
+        Task::new(|state| approach_target_room(state, HARVEST_TARGET_ROOM))
             .with_name("Approach target room"),
-        Task::new(move |state| set_target_room(state, creep)).with_name("Set target room"),
-        Task::new(move |state| {
-            update_scout_info(state, creep)?;
+        Task::new(|state| set_target_room(state)).with_name("Set target room"),
+        Task::new(|state| {
+            update_scout_info(state)?;
             Err("continue")?
         })
         .with_name("Update scout info"),
-        Task::new(move |state| harvester::attempt_harvest(state, creep, Some(TARGET)))
+        Task::new(|state| harvester::attempt_harvest(state, Some(TARGET)))
             .with_name("Attempt harvest"),
     ];
 
     sequence(state, tasks.iter())
 }
 
-fn set_target_room<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResult {
+fn set_target_room<'a>(state: &'a mut CreepState) -> ExecutionResult {
     {
-        let target = state.creep_memory_string(CreepName(&creep.name()), HARVEST_TARGET_ROOM);
+        let target = state.creep_memory_string(HARVEST_TARGET_ROOM);
         if target.is_some() {
             Err("Already has a target")?;
         }
     }
+
+    let creep = state.creep();
 
     let room = creep.room();
 
     let neighbours = neighbours(&room);
 
     let target = {
-        let counts: &mut _ = state
+        let gs: &'a _ = state.mut_game_state();
+        let counts: &mut _ = gs
             .long_range_harvesters
             .entry(room.name())
             .or_insert_with(|| [0; 4]);
 
-        let scout_intel = &state.scout_intel;
+        let scout_intel = &gs.scout_intel;
 
         let (i, target) = neighbours
             .into_iter()
@@ -135,29 +141,26 @@ fn set_target_room<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResu
         target
     };
 
-    let memory = state.creep_memory_entry(CreepName(&creep.name()));
-    memory.insert(HARVEST_TARGET_ROOM.into(), target.into());
+    state.creep_memory_set(HARVEST_TARGET_ROOM.into(), target.into());
 
     Ok(())
 }
 
 /// Unload energy in the parent room
-fn unload<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResult {
+fn unload<'a>(state: &mut CreepState) -> ExecutionResult {
     trace!("Unloading");
 
-    if state.creep_memory_bool(CreepName(&creep.name()), "loading") {
+    if state.creep_memory_bool(LOADING).unwrap_or(false) {
         Err("loading")?;
     }
-    let memory = state.creep_memory_entry(CreepName(&creep.name()));
-    if creep.carry_total() == 0 {
-        memory.insert("loading".into(), true.into());
-        memory.remove(TARGET);
+    if state.creep().carry_total() == 0 {
+        state.creep_memory_set(LOADING.into(), true.into());
+        state.creep_memory_remove(TARGET);
         Err("empty")?;
     }
     let tasks = [
-        Task::new(move |state| approach_target_room(state, creep, HOME_ROOM))
-            .with_name("Approach target room"),
-        Task::new(move |state| gofer::attempt_unload(state, creep)).with_name("Attempt unload"),
+        Task::new(|state| approach_target_room(state, HOME_ROOM)).with_name("Approach target room"),
+        Task::new(|state| gofer::attempt_unload(state)).with_name("Attempt unload"),
     ];
 
     sequence(state, tasks.iter())

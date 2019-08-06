@@ -1,13 +1,13 @@
 //! Move resources
 //!
-use super::{move_to, pickup_energy, TARGET, TASK};
+use super::{move_to, pickup_energy, CreepState, LOADING, TARGET, TASK};
 use crate::prelude::*;
 use num::FromPrimitive;
 use screeps::{
     constants::ResourceType,
     game::{get_object_erased, get_object_typed},
     objects::{
-        Creep, HasStore, StructureContainer, StructureExtension, StructureSpawn, StructureStorage,
+        HasStore, StructureContainer, StructureExtension, StructureSpawn, StructureStorage,
         StructureTower, Transferable,
     },
     prelude::*,
@@ -27,24 +27,20 @@ enum GoferState {
     Unloading,
 }
 
-pub fn run<'a>(creep: &'a Creep) -> Task<'a, GameState> {
-    trace!("Running gofer {}", creep.name());
-    Task::new(move |state: &mut GameState| {
-        let task = prepare_task(creep, state);
+pub fn task<'a>(creep: &'a CreepState) -> Task<'a, CreepState> {
+    Task::new(move |state: &mut CreepState| {
+        let task = prepare_task(state);
         task.tick(state).map_err(|err| {
-            let memory = state.creep_memory_entry(CreepName(&creep.name()));
-            memory.remove(TARGET);
+            state.creep_memory_remove(TARGET);
             err
         })
     })
     .with_name("Gofer")
 }
 
-fn prepare_task<'a>(creep: &'a Creep, state: &GameState) -> Task<'a, GameState> {
-    let name = creep.name();
-    let last_task = state
-        .creep_memory_i64(CreepName(name.as_str()), TASK)
-        .unwrap_or(0);
+fn prepare_task<'a>(state: &mut CreepState) -> Task<'a, CreepState> {
+    let name = state.creep_name();
+    let last_task = state.creep_memory_i64(TASK).unwrap_or(0);
     let last_task: GoferState = GoferState::from_u32(last_task as u32).unwrap_or(GoferState::Idle);
 
     let mut priorities = [0, 0, 0];
@@ -57,18 +53,18 @@ fn prepare_task<'a>(creep: &'a Creep, state: &GameState) -> Task<'a, GameState> 
     }
 
     let tasks = [
-        Task::new(move |state| get_energy(state, creep))
+        Task::new(|state| get_energy(state))
             .with_name("Get energy")
             .with_priority(priorities[1])
-            .with_state_save(name.clone(), GoferState::WithdrawingEnergy),
-        Task::new(move |state| pickup_energy(state, creep))
+            .with_state_save(name.0.to_owned(), GoferState::WithdrawingEnergy),
+        Task::new(|state| pickup_energy(state))
             .with_name("Pickup energy")
             .with_priority(priorities[2])
-            .with_state_save(name.clone(), GoferState::PickingUpEnergy),
-        Task::new(move |state| attempt_unload(state, creep))
+            .with_state_save(name.0.to_owned(), GoferState::PickingUpEnergy),
+        Task::new(|state| attempt_unload(state))
             .with_name("Attempt unload")
             .with_priority(priorities[0])
-            .with_state_save(name.clone(), GoferState::Unloading),
+            .with_state_save(name.0.to_owned(), GoferState::Unloading),
     ]
     .into_iter()
     .cloned()
@@ -77,45 +73,44 @@ fn prepare_task<'a>(creep: &'a Creep, state: &GameState) -> Task<'a, GameState> 
     Control::Sequence(tasks).sorted_by_priority().into()
 }
 
-pub fn attempt_unload<'a>(state: &'a mut GameState, creep: &'a Creep) -> ExecutionResult {
+pub fn attempt_unload<'a>(state: &mut CreepState) -> ExecutionResult {
     trace!("Unloading");
-    let loading = state.creep_memory_bool(CreepName(&creep.name()), "loading");
+    let loading = state.creep_memory_bool(LOADING).unwrap_or(false);
     if loading {
         Err("loading")?;
     }
 
+    let creep = state.creep();
+
     let carry_total = creep.carry_total();
 
     if carry_total == 0 {
-        trace!("Empty");
-        let memory = state.creep_memory_entry(CreepName(&creep.name()));
-        memory.insert("loading".into(), true.into());
+        state.creep_memory_set(LOADING.into(), true);
         Err("empty")?;
     }
 
-    let target = find_unload_target(state, creep).ok_or_else(|| "no unload target")?;
+    let target = find_unload_target(state).ok_or_else(|| "no unload target")?;
 
     let tasks = [
-        Task::new(|state| try_transfer::<StructureSpawn>(state, creep, &target))
+        Task::new(|state| try_transfer::<StructureSpawn>(state, &target))
             .with_name("Try transfer to StructureSpawn"),
-        Task::new(|state| try_transfer::<StructureExtension>(state, creep, &target))
+        Task::new(|state| try_transfer::<StructureExtension>(state, &target))
             .with_name("Try transfer to StructureExtension"),
-        Task::new(|state| try_transfer::<StructureTower>(state, creep, &target))
+        Task::new(|state| try_transfer::<StructureTower>(state, &target))
             .with_name("Try transfer to StructureTower"),
-        Task::new(|state| try_transfer::<StructureStorage>(state, creep, &target))
+        Task::new(|state| try_transfer::<StructureStorage>(state, &target))
             .with_name("Try transfer to StructureStorage"),
     ];
 
     sequence(state, tasks.iter()).map_err(|e| {
-        let memory = state.creep_memory_entry(CreepName(&creep.name()));
-        memory.remove(TARGET);
+        state.creep_memory_remove(TARGET);
         e
     })
 }
 
-fn find_unload_target<'a>(state: &'a mut GameState, creep: &'a Creep) -> Option<Reference> {
+fn find_unload_target<'a>(state: &mut CreepState) -> Option<Reference> {
     trace!("Setting unload target");
-    if let Some(target) = read_unload_target(state, creep) {
+    if let Some(target) = read_unload_target(state) {
         let full = js! {
             const target = @{&target};
             return !target.energyCapacity || target.energy < target.energyCapacity;
@@ -126,68 +121,58 @@ fn find_unload_target<'a>(state: &'a mut GameState, creep: &'a Creep) -> Option<
         }
     }
     let tasks = [
-        Task::new(|state| find_unload_target_by_type(state, creep, "spawn"))
+        Task::new(|state| find_unload_target_by_type(state, "spawn"))
             .with_name("Find unload target by type spawn"),
-        Task::new(|state| find_unload_target_by_type(state, creep, "tower"))
+        Task::new(|state| find_unload_target_by_type(state, "tower"))
             .with_name("Find unload target by type tower"),
-        Task::new(|state| find_unload_target_by_type(state, creep, "extension"))
+        Task::new(|state| find_unload_target_by_type(state, "extension"))
             .with_name("Find unload target by type extension"),
-        Task::new(|state| find_storage(state, creep))
-            .with_name("Find unload target by type storage"),
+        Task::new(|state| find_storage(state)).with_name("Find unload target by type storage"),
     ];
     match sequence(state, tasks.iter()) {
-        Ok(_) => read_unload_target(state, creep),
+        Ok(_) => read_unload_target(state),
         Err(e) => {
             debug!("Failed to find unload target {:?}", e);
-            let memory = state.creep_memory_entry(CreepName(&creep.name()));
-            memory.remove(TARGET);
+            state.creep_memory_remove(TARGET);
             None
         }
     }
 }
 
-fn read_unload_target(state: &mut GameState, creep: &Creep) -> Option<Reference> {
-    state
-        .creep_memory_string(CreepName(&creep.name()), TARGET)
-        .and_then(|target| {
-            trace!("Validating existing target");
-            get_object_erased(target).map(|target| target.as_ref().clone())
-        })
+fn read_unload_target<'a>(state: &mut CreepState) -> Option<Reference> {
+    state.creep_memory_string(TARGET).and_then(|target| {
+        trace!("Validating existing target");
+        get_object_erased(target).map(|target| target.as_ref().clone())
+    })
 }
 
-fn try_transfer<'a, T>(
-    state: &mut GameState,
-    creep: &'a Creep,
-    target: &'a Reference,
-) -> ExecutionResult
+fn try_transfer<'a, T>(state: &mut CreepState, target: &'a Reference) -> ExecutionResult
 where
     T: Transferable + screeps::traits::TryFrom<&'a Reference>,
 {
     let target = T::try_from(target).map_err(|_| "failed to convert transfer target")?;
-    transfer(state, creep, &target)
+    transfer(state, &target)
 }
 
-fn find_storage<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResult {
-    let storage = creep
+fn find_storage<'a>(state: &mut CreepState) -> ExecutionResult {
+    let storage = state
+        .creep()
         .room()
         .storage()
-        .ok_or_else(|| format!("No storage in room {:?}", creep.room().name()))?;
+        .ok_or_else(|| format!("No storage in room {:?}", state.creep().room().name()))?;
     if storage.store_total() == storage.store_capacity() {
         Err("Storage is full")?;
     }
-    state
-        .creep_memory_entry(CreepName(&creep.name()))
-        .insert(TARGET.into(), storage.id().into());
+    state.creep_memory_set(TARGET.into(), storage.id());
     Ok(())
 }
 
 fn find_unload_target_by_type<'a>(
-    state: &mut GameState,
-    creep: &'a Creep,
+    state: &mut CreepState,
     struct_type: &'a str,
 ) -> ExecutionResult {
     let res = js! {
-        const creep = @{creep};
+        const creep = @{state.creep()};
         const ext = creep.pos.findClosestByRange(FIND_STRUCTURES, {
             filter: function (s) {
                 return s.structureType == @{struct_type} && s.energy < s.energyCapacity;
@@ -196,23 +181,20 @@ fn find_unload_target_by_type<'a>(
         return ext && ext.id;
     };
     let target = String::try_from(res).map_err(|_| "expected string")?;
-    state
-        .creep_memory_entry(CreepName(&creep.name()))
-        .insert(TARGET.into(), target.into());
+    state.creep_memory_set(TARGET.into(), target);
     Ok(())
 }
 
-fn transfer<'a, T>(state: &mut GameState, creep: &'a Creep, target: &'a T) -> ExecutionResult
+fn transfer<'a, T>(state: &mut CreepState, target: &T) -> ExecutionResult
 where
     T: Transferable,
 {
+    let creep = state.creep();
     if creep.pos().is_near_to(target) {
         let r = creep.transfer_all(target, ResourceType::Energy);
         if r != ReturnCode::Ok {
-            trace!("couldn't unload: {:?}", r);
-            state
-                .creep_memory_entry(CreepName(&creep.name()))
-                .remove(TARGET);
+            debug!("couldn't unload: {:?}", r);
+            state.creep_memory_remove(TARGET);
         }
     } else {
         move_to(creep, target)?;
@@ -224,34 +206,31 @@ where
 /// # Contracts & Side effects
 /// Required the `loading` flag to be set to true
 /// If the creep is full sets the `loading` flag to false
-pub fn get_energy<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResult {
-    trace!("Getting energy");
-
+pub fn get_energy<'a>(state: &mut CreepState) -> ExecutionResult {
+    let creep = state.creep();
     {
-        let loading = state.creep_memory_bool(CreepName(&creep.name()), "loading");
+        let loading = state.creep_memory_bool(LOADING).unwrap_or(false);
         if !loading {
             Err("not loading")?;
         }
-        let memory = state.creep_memory_entry(CreepName(&creep.name()));
         if creep.carry_total() == creep.carry_capacity() {
-            memory.insert("loading".into(), false.into());
-            memory.remove(TARGET);
+            state.creep_memory_set(LOADING.into(), false);
+            state.creep_memory_remove(TARGET);
             Err("full")?
         }
     }
 
-    let target = find_container(state, creep).ok_or_else(|| "no container found")?;
-    let task = withdraw(creep, &target);
-    task.tick(state).map_err(|e| {
-        let memory = state.creep_memory_entry(CreepName(&creep.name()));
-        memory.remove(TARGET);
+    let target = find_container(state).ok_or_else(|| "no container found")?;
+    withdraw(state, &target).map_err(|e| {
+        state.creep_memory_remove(TARGET);
         e
     })
 }
 
-fn withdraw<'a>(creep: &'a Creep, target: &'a StructureContainer) -> Task<'a, GameState> {
+fn withdraw<'a>(state: &mut CreepState, target: &'a StructureContainer) -> ExecutionResult {
     let tasks = [
-        Task::new(move |_| {
+        Task::new(move |state: &mut CreepState| {
+            let creep = state.creep();
             if creep.pos().is_near_to(target) {
                 let r = creep.withdraw_all(target, ResourceType::Energy);
                 if r != ReturnCode::Ok {
@@ -269,20 +248,16 @@ fn withdraw<'a>(creep: &'a Creep, target: &'a StructureContainer) -> Task<'a, Ga
             }
             Ok(())
         }),
-    ]
-    .into_iter()
-    .cloned()
-    .collect();
+    ];
 
-    let selector = Control::Selector(tasks);
-    selector.into()
+    selector(state, tasks.iter())
 }
 
-fn find_container<'a>(state: &mut GameState, creep: &'a Creep) -> Option<StructureContainer> {
-    read_target_container(state, creep).or_else(|| {
+fn find_container<'a>(state: &mut CreepState) -> Option<StructureContainer> {
+    read_target_container(state).or_else(|| {
         trace!("Finding new withdraw target");
-        let memory = state.creep_memory_entry(CreepName(&creep.name()));
-        memory.remove(TARGET);
+        state.creep_memory_remove(TARGET);
+        let creep = state.creep();
         let containers = js! {
             let creep = @{creep};
             const containers = creep.room.find(FIND_STRUCTURES, {
@@ -299,15 +274,15 @@ fn find_container<'a>(state: &mut GameState, creep: &'a Creep) -> Option<Structu
             .max_by_key(|i| i.store_of(ResourceType::Energy));
 
         result.map(|c| {
-            memory.insert(TARGET.into(), c.id().into());
+            state.creep_memory_set(TARGET.into(), c.id());
             c
         })
     })
 }
 
-fn read_target_container(state: &GameState, creep: &Creep) -> Option<StructureContainer> {
+fn read_target_container<'a>(state: &CreepState) -> Option<StructureContainer> {
     state
-        .creep_memory_string(CreepName(&creep.name()), TARGET)
+        .creep_memory_string(TARGET)
         .and_then(|id| get_object_typed(id).ok())?
 }
 

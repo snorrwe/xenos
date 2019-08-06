@@ -1,3 +1,4 @@
+pub mod creep_state;
 pub mod roles;
 pub mod spawn_info;
 
@@ -10,6 +11,7 @@ mod repairer;
 mod upgrader;
 mod worker;
 
+use self::creep_state::CreepState;
 pub use self::roles::Role;
 use crate::game_state::{RoomIFF, ScoutInfo};
 use crate::prelude::*;
@@ -47,7 +49,10 @@ pub fn task<'a>() -> Task<'a, GameState> {
 
         screeps::game::creeps::values()
             .into_iter()
-            .for_each(|creep| run_creep(state, creep).unwrap_or(()));
+            .for_each(|creep| {
+                let state = CreepState::new(creep, state);
+                run_creep(&mut state).unwrap_or(())
+            });
 
         let end = game::cpu::get_used();
 
@@ -57,27 +62,31 @@ pub fn task<'a>() -> Task<'a, GameState> {
     })
 }
 
-fn run_creep<'a>(state: &mut GameState, creep: Creep) -> ExecutionResult {
-    debug!("Running creep {}", creep.name());
+fn run_creep<'a>(state: &mut CreepState) -> ExecutionResult {
+    debug!("Running creep {}", state.creep_name().0);
 
-    if creep.spawning() {
+    if state.creep().spawning() {
         return Ok(());
     }
     let tasks = [
-        Task::new(|state| {
-            run_role(state, &creep)
+        Task::new(|state: &mut CreepState| {
+            run_role(state)
                 .map_err(|e| {
                     debug!("Recording failed run {:?}", e);
-                    state.creep_stats.idle_creeps += 1;
-                    creep.say("💤", false);
+                    state.mut_game_state().creep_stats.idle_creeps += 1;
+                    state.creep().say("💤", false);
                     e
                 })
                 .map(|_| {
                     debug!("Recording successful run");
-                    state.creep_stats.working_creeps += 1;
+                    state.mut_game_state().creep_stats.working_creeps += 1;
                 })
         }),
-        Task::new(|state| initialize_creep(state, &creep)),
+        Task::new(|state: &mut CreepState| {
+            let creep = state.creep();
+            let gs = state.mut_game_state();
+            initialize_creep(gs, creep)
+        }),
     ];
 
     sequence(state, tasks.iter())
@@ -113,17 +122,15 @@ fn assign_role<'a>(state: &'a mut GameState, creep: &'a Creep) -> Option<Role> {
     Some(result)
 }
 
-fn run_role<'a>(state: &'a mut GameState, creep: &'a Creep) -> ExecutionResult {
+fn run_role<'a>(state: &'a mut CreepState) -> ExecutionResult {
     let task = {
-        let role = state
-            .creep_memory_role(CreepName(&creep.name()), CREEP_ROLE)
-            .ok_or_else(|| {
-                let error = "failed to read creep role";
-                error!("{}", error);
-                error
-            })?;
+        let role = state.creep_memory_role(CREEP_ROLE).ok_or_else(|| {
+            let error = "failed to read creep role";
+            error!("{}", error);
+            error
+        })?;
 
-        roles::run_role(role, creep)
+        roles::run_role(role, state)
     };
     task.tick(state)
 }
@@ -181,55 +188,47 @@ pub fn move_to_options<'a>(
 /// # Contracts & Side effects
 /// Required the `loading` flag to be set to true
 /// If the creep is full sets the `loading` flag to false
-pub fn pickup_energy(state: &mut GameState, creep: &Creep) -> ExecutionResult {
-    trace!("Picking up energy");
-    let target = {
-        if !state.creep_memory_bool(CreepName(&creep.name()), LOADING) {
-            Err("not loading")?;
-        }
+pub fn pickup_energy<'a>(state: &mut CreepState) -> ExecutionResult {
+    let creep = state.creep();
+    if !state.creep_memory_bool(LOADING).unwrap_or(false) {
+        Err("not loading")?;
+    }
 
-        let memory = state.creep_memory_entry(CreepName(&creep.name()));
+    if creep.carry_total() == creep.carry_capacity() {
+        state.creep_memory_set(LOADING.into(), false);
+        state.creep_memory_remove(TARGET);
+        Err("full")?;
+    }
 
-        if creep.carry_total() == creep.carry_capacity() {
-            memory.insert(LOADING.into(), false.into());
-            memory.remove(TARGET);
-            Err("full")?;
-        }
-
-        memory
-            .get(TARGET)
-            .map(|x| x.as_str())
-            .iter()
-            .filter_map(|id| *id)
-            .find_map(|id| get_object_typed::<Resource>(id).unwrap_or(None))
-            .or_else(|| {
-                find_dropped_energy(creep).map(|target| {
-                    let id = target.id();
-                    memory.insert(TARGET.into(), id.into());
-                    target
-                })
+    let target = state
+        .creep_memory_string(TARGET)
+        .and_then(|id| get_object_typed::<Resource>(id).unwrap_or(None))
+        .or_else(|| {
+            find_dropped_energy(creep).map(|target| {
+                let id = target.id();
+                state.creep_memory_set(TARGET.into(), id);
+                target
             })
-            .ok_or_else(|| {
-                memory.remove(TARGET);
-                "Can't find energy source"
-            })?
-    };
+        })
+        .ok_or_else(|| {
+            state.creep_memory_remove(TARGET);
+            "Can't find energy source"
+        })?;
+
     let tasks = [
         Task::new(|_| match creep.pickup(&target) {
             ReturnCode::Ok => Ok(()),
             _ => Err("Can't pick up".to_owned()),
         }),
         Task::new(|_| move_to(creep, &target)),
-        Task::new(|state: &mut GameState| {
-            let memory = state.creep_memory_entry(CreepName(&creep.name()));
-            memory.remove(TARGET);
+        Task::new(|state: &mut CreepState| {
+            state.creep_memory_remove(TARGET);
             Ok(())
         }),
     ];
 
     sequence(state, tasks.iter()).map_err(|_| {
-        let memory = state.creep_memory_entry(CreepName(&creep.name()));
-        memory.remove(TARGET);
+        state.creep_memory_remove(TARGET);
         "can't pick up energy".into()
     })
 }
@@ -247,28 +246,24 @@ pub fn find_dropped_energy(creep: &Creep) -> Option<Resource> {
 /// # Contracts & Side effects
 /// Required the `loading` flag to be set to true
 /// If the creep is full sets the `loading` flag to false
-pub fn withdraw_energy<'a>(state: &'a mut GameState, creep: &'a Creep) -> ExecutionResult {
+pub fn withdraw_energy<'a>(state: &'a mut CreepState) -> ExecutionResult {
     trace!("Getting energy");
 
     let target = {
-        if !state.creep_memory_bool(CreepName(&creep.name()), LOADING) {
+        if !state.creep_memory_bool(LOADING).unwrap_or(false) {
             Err("not loading")?;
         }
 
-        let memory = state.creep_memory_entry(CreepName(&creep.name()));
-
+        let creep = state.creep();
         if creep.carry_total() == creep.carry_capacity() {
-            memory.insert(LOADING.into(), false.into());
-            memory.remove(TARGET);
+            state.creep_memory_set(LOADING.into(), false);
+            state.creep_memory_remove(TARGET);
             Err("full")?;
         }
 
-        memory
-            .get(TARGET)
-            .map(|x| x.as_str())
-            .iter()
-            .filter_map(|id| *id)
-            .find_map(|id| get_object_erased(id))
+        state
+            .creep_memory_string(TARGET)
+            .and_then(|id| get_object_erased(id))
             .or_else(|| {
                 find_available_energy(creep).map(|target| {
                     let id = js! {
@@ -276,41 +271,41 @@ pub fn withdraw_energy<'a>(state: &'a mut GameState, creep: &'a Creep) -> Execut
                     };
                     let id: String = id.try_into().unwrap();
 
-                    memory.insert(TARGET.into(), id.into());
+                    state.creep_memory_set(TARGET.into(), id);
                     target
                 })
             })
             .ok_or_else(|| {
-                memory.remove(TARGET);
+                state.creep_memory_remove(TARGET);
                 "Can't find energy source"
             })?
     };
 
     let tasks = [
-        Task::new(|_| try_withdraw::<Tombstone>(creep, &target)),
-        Task::new(|_| try_withdraw::<StructureStorage>(creep, &target)),
-        Task::new(|_| try_withdraw::<StructureContainer>(creep, &target)),
+        Task::new(|state| try_withdraw::<Tombstone>(state, &target)),
+        Task::new(|state| try_withdraw::<StructureStorage>(state, &target)),
+        Task::new(|state| try_withdraw::<StructureContainer>(state, &target)),
     ];
     sequence(state, tasks.iter()).map_err(|_| {
         warn!("Got a target that can not be withdrawn from");
-        let memory = state.creep_memory_entry(CreepName(&creep.name()));
-        memory.remove(TARGET);
+        state.creep_memory_remove(TARGET);
         "can't withdraw".into()
     })
 }
 
-fn try_withdraw<'a, T>(creep: &'a Creep, target: &'a RoomObject) -> ExecutionResult
+fn try_withdraw<'a, T>(state: &mut CreepState, target: &'a RoomObject) -> ExecutionResult
 where
-    T: Withdrawable + screeps::traits::TryFrom<&'a Reference>,
+    T:'a + Withdrawable + screeps::traits::TryFrom<&'a Reference>,
 {
     let target = T::try_from(target.as_ref()).map_err(|_| "Failed to convert target")?;
-    withdraw(creep, &target)
+    withdraw(state, &target)
 }
 
-fn withdraw<'a, T>(creep: &'a Creep, target: &'a T) -> ExecutionResult
+fn withdraw<'a, T>(state: &mut CreepState, target: &'a T) -> ExecutionResult
 where
     T: Withdrawable,
 {
+    let creep = state.creep();
     if creep.pos().is_near_to(target) {
         let r = creep.withdraw_all(target, ResourceType::Energy);
         if r != ReturnCode::Ok {
@@ -347,23 +342,23 @@ fn find_available_energy<'a>(creep: &'a Creep) -> Option<RoomObject> {
 /// Fallback harvest, method for a worker to harvest energy temporary
 /// ## Contracts:
 /// - Should not interfere with the harvester::harvest functionality
-pub fn harvest<'a>(state: &mut GameState, creep: &'a Creep) -> ExecutionResult {
+pub fn harvest<'a>(state: &mut CreepState) -> ExecutionResult {
     trace!("Worker harvesting");
 
     {
-        let loading = state.creep_memory_bool(CreepName(&creep.name()), LOADING);
-        if !loading {
+        let loading = state.creep_memory_bool(LOADING);
+        if !loading.unwrap_or(false) {
             Err("not loading")?;
         }
-        let memory = state.creep_memory_entry(CreepName(&creep.name()));
+        let creep = state.creep();
         if creep.carry_total() == creep.carry_capacity() {
-            memory.insert(LOADING.into(), false.into());
-            memory.remove(TARGET);
+            state.creep_memory_set(LOADING.into(), false);
+            state.creep_memory_remove(TARGET);
             return Ok(());
         }
     }
 
-    harvester::attempt_harvest(state, creep, Some(TARGET))
+    harvester::attempt_harvest(state, Some(TARGET))
 }
 
 pub fn find_repair_target<'a>(room: &'a Room) -> Option<Structure> {
@@ -395,7 +390,8 @@ pub fn find_repair_target<'a>(room: &'a Room) -> Option<Structure> {
         .min_by_key(|s| s.as_attackable().map(|s| s.hits()).unwrap())
 }
 
-pub fn update_scout_info(state: &mut GameState, creep: &Creep) -> ExecutionResult {
+pub fn update_scout_info<'a>(state: &mut CreepState) -> ExecutionResult {
+    let creep = state.creep();
     let room = creep.room();
 
     let n_sources = room.find(find::SOURCES).len() as u8;
@@ -425,20 +421,21 @@ pub fn update_scout_info(state: &mut GameState, creep: &Creep) -> ExecutionResul
 
     let info = ScoutInfo { n_sources, iff };
 
-    state.scout_intel.insert(room.name(), info);
+    state.mut_game_state().scout_intel.insert(room.name(), info);
 
     Ok(())
 }
 
 /// target_key is a memory entry key
 pub fn approach_target_room<'a>(
-    state: &mut GameState,
-    creep: &'a Creep,
+    state: &mut CreepState,
     target_key: &str,
 ) -> ExecutionResult {
     let target = state
-        .creep_memory_string(CreepName(&creep.name()), target_key)
+        .creep_memory_string(target_key)
         .ok_or("no target")?;
+
+    let creep = state.creep();
 
     let room = creep.room();
     let room_name = room.name();
