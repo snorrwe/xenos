@@ -8,6 +8,7 @@ mod harvester;
 mod lrh;
 mod lrw;
 mod repairer;
+mod scout;
 mod upgrader;
 mod worker;
 
@@ -218,10 +219,12 @@ pub fn pickup_energy<'a>(state: &mut CreepState) -> ExecutionResult {
         })?;
 
     let tasks = [
-        Task::new(|state: &mut CreepState| match state.creep().pickup(&target) {
-            ReturnCode::Ok => Ok(()),
-            _ => Err("Can't pick up".to_owned()),
-        }),
+        Task::new(
+            |state: &mut CreepState| match state.creep().pickup(&target) {
+                ReturnCode::Ok => Ok(()),
+                _ => Err("Can't pick up".to_owned()),
+            },
+        ),
         Task::new(|state: &mut CreepState| move_to(state.creep(), &target)),
         Task::new(|state: &mut CreepState| {
             state.creep_memory_remove(TARGET);
@@ -420,7 +423,11 @@ pub fn update_scout_info<'a>(state: &mut CreepState) -> ExecutionResult {
         },
     };
 
-    let info = ScoutInfo { n_sources, iff };
+    let info = ScoutInfo {
+        n_sources,
+        iff,
+        time_of_recording: game::time(),
+    };
 
     unsafe {
         (*state.mut_game_state())

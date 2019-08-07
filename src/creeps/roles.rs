@@ -1,6 +1,6 @@
 use super::creep_state::CreepState;
 pub use super::spawn_info::*;
-use super::{conqueror, gofer, harvester, lrh, lrw, upgrader, worker};
+use super::{conqueror, gofer, harvester, lrh, lrw, upgrader, worker, scout};
 use crate::prelude::*;
 use arrayvec::ArrayVec;
 use screeps::objects::Room;
@@ -17,6 +17,7 @@ pub enum Role {
     Lrh = 5,
     Conqueror = 6,
     Lrw = 7,
+    Scout = 8,
 }
 
 impl From<u8> for Role {
@@ -30,6 +31,7 @@ impl From<u8> for Role {
             5 => Role::Lrh,
             6 => Role::Conqueror,
             7 => Role::Lrw,
+            8 => Role::Scout,
             _ => unimplemented!("Role {} is not unimplemented!", item),
         }
     }
@@ -46,22 +48,25 @@ impl Display for Role {
             Role::Lrh => "Lrh",
             Role::Lrw => "Lrw",
             Role::Conqueror => "Conqueror",
+            Role::Scout => "Scout",
         };
         write!(f, "{}", name)?;
         Ok(())
     }
 }
 
-type RoleArray = [Role; 7];
+type RoleArray = [Role; 8];
 impl Role {
     pub fn all_roles() -> ArrayVec<RoleArray> {
         use self::Role::*;
-        const ROLES: RoleArray = [Upgrader, Harvester, Worker, Gofer, Lrh, Conqueror, Lrw];
+        const ROLES: RoleArray = [
+            Upgrader, Harvester, Worker, Gofer, Lrh, Conqueror, Lrw, Scout,
+        ];
         ROLES
             .into_iter()
             // Trigger compilation error on a new role if it's missing
             .filter_map(|r| match r {
-                Upgrader | Harvester | Worker | Gofer | Lrh | Conqueror | Lrw => Some(*r),
+                Scout | Upgrader | Harvester | Worker | Gofer | Lrh | Conqueror | Lrw => Some(*r),
                 Unknown => None,
             })
             .collect()
@@ -103,6 +108,7 @@ pub fn run_role<'a>(role: Role) -> Task<'a, CreepState> {
         Role::Conqueror => conqueror::task(),
         Role::Lrh => lrh::task(),
         Role::Lrw => lrw::task(),
+        Role::Scout => scout::task(),
         _ => unimplemented!(),
     };
 

@@ -71,6 +71,7 @@ impl TaskInput for GameState {
 pub struct ScoutInfo {
     pub iff: RoomIFF,
     pub n_sources: u8,
+    pub time_of_recording: u32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
@@ -96,10 +97,6 @@ impl Default for RoomIFF {
         RoomIFF::Unknown
     }
 }
-
-js_deserializable!(GameState);
-js_deserializable!(ScoutInfo);
-js_deserializable!(RoomIFF);
 
 impl Drop for GameState {
     fn drop(&mut self) {
@@ -132,7 +129,7 @@ impl GameState {
                     .ok()
             })
             .unwrap_or_default();
-            Box::pin(state)
+        Box::pin(state)
     }
 
     pub fn count_creeps_in_room<'b>(&mut self, room: &'b Room) -> &mut HashMap<Role, i8> {
