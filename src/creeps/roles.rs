@@ -94,23 +94,21 @@ pub fn next_role<'a>(state: &'a mut GameState, room: &'a Room) -> Option<Role> {
 }
 
 /// Run the creep according to the given role
-pub fn run_role<'a>(role: Role, creep: &'a mut CreepState) -> Task<'a, CreepState> {
+pub fn run_role<'a>(role: Role) -> Task<'a, CreepState> {
     let task = match role {
-        Role::Upgrader => upgrader::task(creep),
-        Role::Harvester => harvester::task(creep),
-        Role::Worker => worker::task(creep),
-        Role::Gofer => gofer::task(creep),
-        Role::Conqueror => conqueror::task(creep),
-        Role::Lrh => lrh::task(creep),
-        Role::Lrw => lrw::task(creep),
+        Role::Upgrader => upgrader::task(),
+        Role::Harvester => harvester::task(),
+        Role::Worker => worker::task(),
+        Role::Gofer => gofer::task(),
+        Role::Conqueror => conqueror::task(),
+        Role::Lrh => lrh::task(),
+        Role::Lrw => lrw::task(),
         _ => unimplemented!(),
     };
 
-    Task::new(move |state| {
-        trace!("Running creep {} by role {}", creep.creep_name().0, role);
-
+    Task::new(move |state: &mut CreepState| {
         task.tick(state).map_err(|e| {
-            let error = format!("Creep {} is idle: {}", creep.creep_name().0, e);
+            let error = format!("Creep {} is idle: {}", state.creep_name().0, e);
             warn!("{}", error);
             error
         })

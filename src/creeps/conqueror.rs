@@ -7,8 +7,7 @@ use stdweb::unstable::TryInto;
 
 const CONQUEST_TARGET: &'static str = "conquest_target";
 
-pub fn task<'a>(creep: &'a CreepState) -> Task<'a, CreepState> {
-    trace!("Running conqueror {}", creep.creep_name().0);
+pub fn task<'a>() -> Task<'a, CreepState> {
     let tasks = [
         Task::new(move |state: &mut CreepState| {
             update_scout_info(state).unwrap_or_else(|e| {

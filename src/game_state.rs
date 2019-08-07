@@ -6,6 +6,7 @@ use screeps::{raw_memory, Room};
 use serde_json::{self, Map, Value};
 use std::collections::HashMap;
 use std::error::Error;
+use std::pin::Pin;
 
 pub type CreepMemory = HashMap<String, Map<String, Value>>;
 pub type CreepMemoryEntry = Map<String, Value>;
@@ -54,7 +55,9 @@ pub struct GameState {
 
 impl Clone for GameState {
     fn clone(&self) -> Self {
-        panic!("Do not clone GameState objects, the trait impl is provided so the Tasks are cloneable");
+        panic!(
+            "Do not clone GameState objects, the trait impl is provided so the Tasks are cloneable"
+        );
     }
 }
 
@@ -119,8 +122,8 @@ impl Drop for GameState {
 }
 
 impl GameState {
-    pub fn read_from_segment_or_default(segment: u32) -> Self {
-        raw_memory::get_segment(segment)
+    pub fn read_from_segment_or_default(segment: u32) -> Pin<Box<Self>> {
+        let state = raw_memory::get_segment(segment)
             .and_then(|string| {
                 serde_json::from_str(&string)
                     .map_err(|e| {
@@ -128,7 +131,8 @@ impl GameState {
                     })
                     .ok()
             })
-            .unwrap_or_default()
+            .unwrap_or_default();
+            Box::pin(state)
     }
 
     pub fn count_creeps_in_room<'b>(&mut self, room: &'b Room) -> &mut HashMap<Role, i8> {
@@ -160,6 +164,7 @@ impl GameState {
         self.creep_memory_entry(creep).insert(key.to_owned(), val);
     }
 
+    #[allow(unused)]
     pub fn creep_memory_bool(&self, creep: CreepName, key: &str) -> bool {
         self.creep_memory_get(creep)
             .and_then(|map| map.get(key))
@@ -244,7 +249,11 @@ impl GameState {
 pub trait WithStateSave<'a> {
     type State: TaskInput;
 
-    fn with_state_save<T: ToPrimitive + 'a>(self, creep: String, task_id: T) -> Task<'a, Self::State>;
+    fn with_state_save<T: ToPrimitive + 'a>(
+        self,
+        creep: String,
+        task_id: T,
+    ) -> Task<'a, Self::State>;
 }
 
 impl<'a> WithStateSave<'a> for Task<'a, GameState> {

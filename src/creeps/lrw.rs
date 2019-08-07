@@ -8,7 +8,7 @@ use stdweb::unstable::TryInto;
 
 const TARGET_ROOM: &'static str = "target_room";
 
-pub fn task<'a>(state: &'a mut CreepState) -> Task<'a, CreepState> {
+pub fn task<'a>() -> Task<'a, CreepState> {
     let tasks = [
         Task::new(|state| {
             update_scout_info(state).unwrap_or_else(|e| {
@@ -19,7 +19,7 @@ pub fn task<'a>(state: &'a mut CreepState) -> Task<'a, CreepState> {
         .with_name("Update scout info"),
         Task::new(|state| approach_target_room(state)).with_name("Approach target room"),
         Task::new(|state| set_target(state)).with_name("Set target"),
-        worker::task(state).with_name("Worker run"),
+        worker::task().with_name("Worker run"),
     ]
     .into_iter()
     .cloned()
@@ -71,7 +71,7 @@ fn set_target<'a>(state: &mut CreepState) -> ExecutionResult {
     let flags = game::flags::values();
     let flag = flags.iter().next().ok_or_else(|| "can't find a flag")?;
 
-    state.creep_memory_set(TARGET_ROOM.into(), flag.name().into());
+    state.creep_memory_set(TARGET_ROOM.into(), flag.name());
     debug!("set target to {}", flag.name());
 
     Ok(())
