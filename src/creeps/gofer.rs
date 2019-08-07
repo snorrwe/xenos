@@ -27,7 +27,7 @@ enum GoferState {
     Unloading,
 }
 
-pub fn task<'a>(creep: &'a CreepState) -> Task<'a, CreepState> {
+pub fn task<'a>() -> Task<'a, CreepState> {
     Task::new(move |state: &mut CreepState| {
         let task = prepare_task(state);
         task.tick(state).map_err(|err| {

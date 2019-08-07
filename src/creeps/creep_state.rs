@@ -20,9 +20,11 @@ impl Clone for CreepState {
 }
 
 impl CreepState {
+    /// Contract: GameState must live for the lifetime of this object
     pub fn new(creep: Creep, game_state: &mut GameState) -> Self {
         let creep_name = creep.name();
         let memory = game_state.creep_memory_entry(CreepName(creep_name.as_str())) as *mut _;
+        let game_state = game_state as *mut _;
         Self {
             creep,
             creep_name,
@@ -42,6 +44,7 @@ impl CreepState {
         memory.insert(key.to_owned(), val);
     }
 
+    #[allow(unused)]
     pub fn creep_memory_mut<'a, T>(&'a mut self, key: &str) -> Option<&'a mut T>
     where
         &'a mut T: From<&'a mut Value>,
@@ -50,6 +53,7 @@ impl CreepState {
         memory.get_mut(key).map(|value| value.into())
     }
 
+    #[allow(unused)]
     pub fn creep_memory_get<'a, T>(&'a self, key: &str) -> Option<&'a T>
     where
         &'a T: From<&'a Value>,
@@ -62,8 +66,8 @@ impl CreepState {
         unsafe { &*self.game_state }
     }
 
-    pub fn mut_game_state<'a>(&'a mut self) -> &'a mut GameState {
-        unsafe { &mut *self.game_state }
+    pub fn mut_game_state<'a>(&'a mut self) -> *mut GameState {
+        self.game_state
     }
 
     pub fn creep_name<'a>(&'a self) -> CreepName<'a> {
@@ -121,7 +125,7 @@ impl<'a> WithStateSave<'a> for Task<'a, CreepState> {
     ) -> Task<'a, CreepState> {
         let tasks = [
             self,
-            Task::new(|state: &mut CreepState| {
+            Task::new(move |state: &mut CreepState| {
                 state.creep_memory_set(TASK, task_id.to_u32().unwrap_or(0) as i32);
                 Ok(())
             }),

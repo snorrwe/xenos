@@ -16,7 +16,7 @@ pub fn attempt_repair<'a>(state: &mut CreepState) -> ExecutionResult {
     }
     let creep = state.creep();
     if creep.carry_total() == 0 {
-        state.creep_memory_set("loading".into(), true.into());
+        state.creep_memory_set("loading".into(), true);
         Err("empty".into())
     } else {
         trace!("Repairing");

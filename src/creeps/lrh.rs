@@ -22,9 +22,7 @@ enum LrhState {
     Unloading,
 }
 
-pub fn task<'a>(state: &'a mut CreepState) -> Task<'a, CreepState> {
-    trace!("Running long_range_harvester");
-
+pub fn task<'a>() -> Task<'a, CreepState> {
     Task::new(|state| prepare_task(state).tick(state))
         .with_required_bucket(2000)
         .with_name("LRH")
@@ -72,7 +70,7 @@ fn load<'a>(state: &mut CreepState) -> ExecutionResult {
     }
     let creep = state.creep();
     if creep.carry_total() == creep.carry_capacity() {
-        state.creep_memory_set(LOADING.into(), false.into());
+        state.creep_memory_set(LOADING.into(), false);
         state.creep_memory_remove(TARGET);
         Err("full")?;
     }
@@ -100,14 +98,14 @@ fn set_target_room<'a>(state: &'a mut CreepState) -> ExecutionResult {
         }
     }
 
-    let creep = state.creep();
-
-    let room = creep.room();
-
+    let room = {
+        let creep = state.creep();
+        creep.room()
+    };
     let neighbours = neighbours(&room);
 
     let target = {
-        let gs: &'a _ = state.mut_game_state();
+        let gs: &mut GameState = unsafe { &mut *state.mut_game_state() };
         let counts: &mut _ = gs
             .long_range_harvesters
             .entry(room.name())
@@ -131,8 +129,8 @@ fn set_target_room<'a>(state: &'a mut CreepState) -> ExecutionResult {
             .ok_or_else(|| {
                 warn!(
                     "Failed to set target room of LRH {:?} in room {:?}",
-                    creep.name(),
-                    creep.room().name()
+                    state.creep().name(),
+                    state.creep().room().name()
                 );
                 "Failed to find a target room"
             })?;
@@ -141,7 +139,7 @@ fn set_target_room<'a>(state: &'a mut CreepState) -> ExecutionResult {
         target
     };
 
-    state.creep_memory_set(HARVEST_TARGET_ROOM.into(), target.into());
+    state.creep_memory_set(HARVEST_TARGET_ROOM.into(), target);
 
     Ok(())
 }
@@ -154,7 +152,7 @@ fn unload<'a>(state: &mut CreepState) -> ExecutionResult {
         Err("loading")?;
     }
     if state.creep().carry_total() == 0 {
-        state.creep_memory_set(LOADING.into(), true.into());
+        state.creep_memory_set(LOADING.into(), true);
         state.creep_memory_remove(TARGET);
         Err("empty")?;
     }

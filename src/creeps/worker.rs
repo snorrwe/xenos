@@ -20,7 +20,7 @@ enum WorkerState {
     Repairing,
 }
 
-pub fn task<'a>(state: &mut CreepState) -> Task<'a, CreepState> {
+pub fn task<'a>() -> Task<'a, CreepState> {
     Task::new(move |state| {
         let task = prepare_task(state);
         task.tick(state)
@@ -87,21 +87,20 @@ fn prepare_task<'a>(state: &mut CreepState) -> Task<'a, CreepState> {
 pub fn attempt_build<'a>(state: &mut CreepState) -> ExecutionResult {
     trace!("Building");
 
-    let creep = state.creep();
     let loading = state.creep_memory_bool(LOADING);
     if loading.unwrap_or(false) {
         Err("loading")?;
     }
 
-    if creep.carry_total() == 0 {
-        state.creep_memory_set(LOADING.into(), true.into());
+    if state.creep().carry_total() == 0 {
+        state.creep_memory_set(LOADING.into(), true);
         Err("empty")?
     }
     let target = get_build_target(state).ok_or_else(|| format!("Failed to find build target"))?;
-    let res = creep.build(&target);
+    let res = state.creep().build(&target);
     match res {
         ReturnCode::Ok => Ok(()),
-        ReturnCode::NotInRange => move_to(creep, &target),
+        ReturnCode::NotInRange => move_to(state.creep(), &target),
         _ => {
             let error = format!("Failed to build target {:?} {:?}", res, target.id());
             error!("{}", error);
@@ -122,7 +121,7 @@ fn get_build_target<'a>(state: &mut CreepState) -> Option<ConstructionSite> {
                 .min_by_key(|s| s.progress_total() - s.progress())
                 .ok_or_else(|| debug!("Could not find a build target"))
                 .map(|site| {
-                    state.creep_memory_set(TARGET.into(), site.id().into());
+                    state.creep_memory_set(TARGET.into(), site.id());
                     site
                 })
                 .ok()
