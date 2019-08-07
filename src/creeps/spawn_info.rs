@@ -23,9 +23,10 @@ pub fn role_priority<'a>(_room: &'a Room, role: Role) -> i8 {
         Role::Harvester => 3,
         Role::Gofer => 2,
         Role::Worker => 1,
-        Role::Lrh => -1,
-        Role::Conqueror => -2,
-        Role::Lrw => -3,
+        Role::Scout => -1,
+        Role::Lrh => -2,
+        Role::Conqueror => -3,
+        Role::Lrw => -4,
         _ => 0,
     }
 }
@@ -89,7 +90,8 @@ pub fn target_number_of_role_in_room<'a>(role: Role, room: &'a Room) -> i8 {
         }
         Role::Gofer => n_sources.min(n_containers as i8),
         Role::Lrw => n_flags * 2,
-        _ => unimplemented!(),
+        Role::Scout => 1,
+        Role::Unknown => 0,
     }
 }
 
@@ -110,6 +112,7 @@ fn basic_role_parts<'a>(_room: &Room, role: Role) -> BodyCollection {
         Role::Lrh => [Part::Move, Part::Move, Part::Carry, Part::Work].into_iter(),
         Role::Upgrader | Role::Worker => [Part::Move, Part::Carry, Part::Work].into_iter(),
         Role::Lrw => [Part::Move, Part::Move, Part::Carry, Part::Work].into_iter(),
+        Role::Scout => [Part::Move].into_iter(),
         Role::Unknown => [].into_iter(),
     };
     it.map(|x| *x).collect()
@@ -119,7 +122,7 @@ fn basic_role_parts<'a>(_room: &Room, role: Role) -> BodyCollection {
 fn role_part_scale<'a>(_room: &Room, role: Role) -> BodyCollection {
     let it = match role {
         Role::Harvester => [Part::Work].into_iter(),
-        Role::Conqueror => [].into_iter(),
+        Role::Scout|Role::Conqueror => [].into_iter(),
         Role::Gofer => [Part::Move, Part::Carry, Part::Carry].into_iter(),
         Role::Lrh => [Part::Move, Part::Carry, Part::Work, Part::Move].into_iter(),
         _ => [Part::Move, Part::Carry, Part::Work].into_iter(),
@@ -145,6 +148,7 @@ fn role_part_max(room: &Room, role: Role) -> Option<usize> {
         Role::Harvester => Some(8),
         Role::Lrw | Role::Lrh | Role::Worker | Role::Upgrader => Some(worker_count),
         Role::Conqueror => None,
+        Role::Scout => None,
         Role::Gofer => Some(worker_count * 2),
         Role::Unknown => None,
     };
