@@ -6,7 +6,7 @@ use arrayvec::ArrayVec;
 use screeps::objects::Room;
 use std::fmt::{self, Display, Formatter};
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, Hash, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Hash, Eq, PartialEq, Ord, PartialOrd)]
 #[repr(u8)]
 pub enum Role {
     Unknown = 0,

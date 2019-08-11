@@ -10,6 +10,7 @@ mod storage;
 use self::construction_matrix::ConstructionMatrix;
 use self::construction_state::ConstructionState;
 use self::point::Point;
+use crate::game_state::MemorySentinel;
 use crate::prelude::*;
 use crate::CONSTRUCTIONS_SEGMENT;
 use screeps::{
@@ -32,8 +33,7 @@ pub fn task<'a>() -> Task<'a, GameState> {
         }
 
         let mut state = ConstructionState::read_from_segment_or_default(CONSTRUCTIONS_SEGMENT);
-        state.save_to_memory = Some(true);
-        state.memory_segment = Some(CONSTRUCTIONS_SEGMENT as u8);
+        let _sentinel = MemorySentinel::new(CONSTRUCTIONS_SEGMENT as u8, &state);
 
         let index = time % len;
         let room = &rooms[index as usize];

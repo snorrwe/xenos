@@ -2,15 +2,24 @@ use crate::bt::*;
 use crate::constructions;
 use crate::creeps;
 use crate::flags;
-use crate::game_state::GameState;
+use crate::game_state::{GameState, MemorySentinel};
 use crate::stats::save_stats;
 use crate::structures::{spawns, towers};
 use crate::MAIN_SEGMENT;
 use log::Level::Info;
+use std::pin::Pin;
 use stdweb::unstable::TryFrom;
 
 pub fn game_loop() {
     debug!("Loop starting! CPU: {}", screeps::game::cpu::get_used());
+
+    let mut game_state = GameState::read_from_segment_or_default(MAIN_SEGMENT);
+    let game_state = unsafe {
+        let mut_ref: Pin<&mut GameState> = Pin::as_mut(&mut game_state);
+        Pin::get_unchecked_mut(mut_ref)
+    };
+
+    let _sentinel = MemorySentinel::<GameState>::new(MAIN_SEGMENT as u8, &*game_state);
 
     trace!("Running");
 
@@ -21,9 +30,8 @@ pub fn game_loop() {
 
     let bucket = Option::<i32>::try_from(bucket).expect("Expected bucket to be a number");
 
-    let mut state = GameState::read_from_segment_or_default(MAIN_SEGMENT);
-    state.cpu_bucket = bucket.map(|x| x as i16);
-    run_game_logic(&mut state);
+    game_state.cpu_bucket = bucket.map(|x| x as i16);
+    run_game_logic(game_state);
 
     let bucket = bucket.unwrap_or(-1);
 
@@ -34,7 +42,7 @@ pub fn game_loop() {
             // Note that cpu stats won't take the stats saving into account
             screeps::game::cpu::get_used() as f32,
             bucket,
-            &state,
+            &game_state,
         )
         .map(|_| {
             info!("Statistics saved!");
@@ -53,7 +61,6 @@ pub fn game_loop() {
 
 /// Call subsystems in order of priority
 /// Runs to completion even if a subsystem fails
-/// Consumes the state object
 ///
 /// TODO: GameResult object to return?
 fn run_game_logic(state: &mut GameState) {

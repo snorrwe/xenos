@@ -1,15 +1,19 @@
+pub mod sentinel;
+
+pub use self::sentinel::*;
+
 use crate::creeps::roles::Role;
 use crate::creeps::{CreepExecutionStats, CREEP_ROLE, HOME_ROOM, TASK};
 use crate::prelude::*;
 use num::ToPrimitive;
 use screeps::{raw_memory, Room};
-use serde_json::{self, Map, Value};
-use std::collections::HashMap;
+use serde_json::{self, Value};
+use std::collections::BTreeMap;
 use std::error::Error;
 use std::pin::Pin;
 
-pub type CreepMemory = HashMap<String, Map<String, Value>>;
-pub type CreepMemoryEntry = Map<String, Value>;
+pub type CreepMemoryEntry = BTreeMap<String, Value>;
+pub type CreepMemory = BTreeMap<String, CreepMemoryEntry>;
 
 #[derive(Debug, Default, Serialize, Deserialize)]
 /// Holds information about the global state of the game
@@ -23,24 +27,15 @@ pub struct GameState {
     /// Structure: room -> role -> n
     #[serde(skip_serializing)]
     #[serde(default)]
-    creep_count_by_room: HashMap<String, HashMap<Role, i8>>,
+    creep_count_by_room: BTreeMap<String, BTreeMap<Role, i8>>,
 
     /// Information about rooms
     /// Structure: room -> info
-    pub scout_intel: HashMap<String, ScoutInfo>,
+    pub scout_intel: BTreeMap<String, ScoutInfo>,
 
     /// Number of LRH per room
     /// In directions: [N, W, S, E]
-    pub long_range_harvesters: HashMap<String, [u8; 4]>,
-
-    /// Where to save this state when dropping
-    /// Defaults to 0
-    #[serde(skip_serializing)]
-    #[serde(default)]
-    pub memory_segment: Option<u8>,
-    #[serde(skip_serializing)]
-    #[serde(default)]
-    pub save_to_memory: Option<bool>,
+    pub long_range_harvesters: BTreeMap<String, [u8; 4]>,
 
     /// Holds the creep memory objects
     /// Structure: name -> data
@@ -98,26 +93,6 @@ impl Default for RoomIFF {
     }
 }
 
-impl Drop for GameState {
-    fn drop(&mut self) {
-        if let Some(false) = self.save_to_memory {
-            return;
-        }
-        debug!("Saving GameState");
-
-        let segment = self.memory_segment.unwrap_or(0);
-
-        match serde_json::to_string(self) {
-            Ok(data) => {
-                raw_memory::set_segment(segment as u32, data.as_str());
-            }
-            Err(e) => {
-                error!("Failed to serialize game_state {:?}", e);
-            }
-        }
-    }
-}
-
 impl GameState {
     pub fn read_from_segment_or_default(segment: u32) -> Pin<Box<Self>> {
         let state = raw_memory::get_segment(segment)
@@ -132,7 +107,7 @@ impl GameState {
         Box::pin(state)
     }
 
-    pub fn count_creeps_in_room<'b>(&mut self, room: &'b Room) -> &mut HashMap<Role, i8> {
+    pub fn count_creeps_in_room<'b>(&mut self, room: &'b Room) -> &mut BTreeMap<Role, i8> {
         let name = room.name();
         // TODO: use cached value
         let count = self
@@ -146,13 +121,13 @@ impl GameState {
 
     /// Get an entry in the creep's memory
     /// Inserts and empty map in the creep's name if none is found
-    pub fn creep_memory_entry(&mut self, name: CreepName) -> &mut serde_json::Map<String, Value> {
+    pub fn creep_memory_entry(&mut self, name: CreepName) -> &mut CreepMemoryEntry {
         self.creep_memory
             .entry(name.0.to_owned())
-            .or_insert_with(|| serde_json::Map::default())
+            .or_insert_with(|| Default::default())
     }
 
-    pub fn creep_memory_get(&self, creep: CreepName) -> Option<&serde_json::Map<String, Value>> {
+    pub fn creep_memory_get(&self, creep: CreepName) -> Option<&CreepMemoryEntry> {
         self.creep_memory.get(creep.0)
     }
 
@@ -211,11 +186,11 @@ impl GameState {
         Ok(())
     }
 
-    fn count_roles_in_room(&self, room: &Room) -> HashMap<Role, i8> {
+    fn count_roles_in_room(&self, room: &Room) -> BTreeMap<Role, i8> {
         let mut result = Role::all_roles()
             .into_iter()
             .map(|x| (x, 0))
-            .collect::<HashMap<_, _>>();
+            .collect::<BTreeMap<_, _>>();
 
         self.creep_memory
             .iter()
