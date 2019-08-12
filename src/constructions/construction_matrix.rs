@@ -1,9 +1,9 @@
 use super::point::Point;
-use crate::collections::ArrayQueue;
+use crate::collections::{bitroommap::BitRoomMap, ArrayQueue};
 use arrayvec::ArrayVec;
 use screeps::constants::Terrain;
 use screeps::objects::{LookResult, Room, Structure};
-use std::collections::HashSet;
+use std::collections::BTreeSet;
 
 /// Represents a room split up into 3×3 squares
 /// Uses breadth frist search to find empty spaces
@@ -11,8 +11,8 @@ use std::collections::HashSet;
 pub struct ConstructionMatrix {
     /// 3×3 positions that have not been explored yet
     todo: ArrayQueue<[Point; 128]>,
-    /// 3×3 positions that have been explored already
-    done: HashSet<Point>,
+    /// 1×1 positions that have been explored already
+    done: BitRoomMap,
     /// 1×1 positions that are open for constructions
     open_positions: ArrayQueue<[Point; 8]>,
 }
@@ -58,22 +58,28 @@ impl ConstructionMatrix {
             .ok()?;
         debug!("Processing tile pos {:?}", pos);
 
+        let x = pos.0;
+        let y = pos.1;
+
         {
-            self.done.insert(pos);
+            let x = x as u16 - 1;
+            let y = y as u16 - 1;
+            for i in 0..3 {
+                for j in 0..3 {
+                    self.done.set(x + i, y + j, true);
+                }
+            }
         }
 
         let done = &self.done;
-        let todo: HashSet<_> = self.todo.iter().map(|x| *x).collect();
+        let todo: BTreeSet<_> = self.todo.iter().map(|x| *x).collect();
         self.todo.extend(
             Self::valid_neighbouring_tiles(pos)
                 .into_iter()
-                .filter(|p| !todo.contains(p) && !done.contains(p)),
+                .filter(|p| !todo.contains(p) && !done.get(p.0 as u16, p.1 as u16)),
         );
 
         debug!("Extended todo to a len of {}", self.todo.len());
-
-        let x = pos.0;
-        let y = pos.1;
 
         #[rustfmt::skip]
         let tile = [
@@ -104,7 +110,7 @@ impl ConstructionMatrix {
             .map(|r| (r.x, r.y))
             // Every position should have only 1 of the 'true' categories max
             // But let's make sure there are no duplicates
-            .collect::<HashSet<_>>()
+            .collect::<BTreeSet<_>>()
             .len();
 
         let n_free = (maxx - minx) * (maxy - miny) - n_taken as u32;

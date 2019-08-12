@@ -1,7 +1,7 @@
 use screeps::objects::RoomPosition;
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign};
 
-#[derive(Debug, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Copy, Default)]
+#[derive(Debug, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Copy, Default, Ord, PartialOrd)]
 pub struct Point(pub i16, pub i16);
 
 impl From<RoomPosition> for Point {

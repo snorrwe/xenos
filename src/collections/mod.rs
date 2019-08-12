@@ -1,4 +1,5 @@
 pub mod arrayqueue;
+pub mod bitroommap;
 pub mod trait_impl;
 
 pub use self::arrayqueue::*;
