@@ -3,19 +3,19 @@ const ROW_SIZE: usize = 32 * 8; // Each row holds 32 * 8 = 256 bits of data
 
 /// 50×50 binary flag map
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct BitRoomMap {
+pub struct BitRoomGrid {
     buffer: [[u8; ROW_SIZE / 8]; ROWS],
 }
 
-impl Default for BitRoomMap {
+impl Default for BitRoomGrid {
     fn default() -> Self {
-        BitRoomMap {
+        BitRoomGrid {
             buffer: [[0; ROW_SIZE / 8]; ROWS],
         }
     }
 }
 
-impl BitRoomMap {
+impl BitRoomGrid {
     pub fn get(&self, x: u16, y: u16) -> bool {
         let flat_ind = x * 50 + y;
         let flat_ind = flat_ind as usize;
@@ -61,7 +61,7 @@ mod tests {
 
     #[test]
     fn test_default_bitmap() {
-        let mat = BitRoomMap::default();
+        let mat = BitRoomGrid::default();
         for i in 0..50 {
             for j in 0..50 {
                 assert!(!mat.get(i, j), "{} {}", i, j);
@@ -71,7 +71,7 @@ mod tests {
 
     #[test]
     fn test_set_is_consistent() {
-        let mut mat = BitRoomMap::default();
+        let mut mat = BitRoomGrid::default();
         for i in 0..50 {
             for j in 0..50 {
                 assert!(!mat.get(i, j), "{} {}", i, j);
@@ -94,7 +94,7 @@ mod tests {
     #[test]
     // Test if the indexing is fine and does not set a bit twice
     fn test_setting_is_not_overlapping() {
-        let mut mat = BitRoomMap::default();
+        let mut mat = BitRoomGrid::default();
 
         for i in 0..50 {
             for j in 0..50 {

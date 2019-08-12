@@ -1,5 +1,5 @@
 use super::point::Point;
-use crate::collections::{bitroommap::BitRoomMap, ArrayQueue};
+use crate::collections::{BitRoomGrid, ArrayQueue};
 use arrayvec::ArrayVec;
 use screeps::constants::Terrain;
 use screeps::objects::{LookResult, Room, Structure};
@@ -12,7 +12,7 @@ pub struct ConstructionMatrix {
     /// 3×3 positions that have not been explored yet
     todo: ArrayQueue<[Point; 128]>,
     /// 1×1 positions that have been explored already
-    done: BitRoomMap,
+    done: BitRoomGrid,
     /// 1×1 positions that are open for constructions
     open_positions: ArrayQueue<[Point; 8]>,
 }

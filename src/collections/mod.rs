@@ -1,9 +1,10 @@
 pub mod arrayqueue;
-pub mod bitroommap;
+pub mod bitroomgrid;
 pub mod trait_impl;
 
 pub use self::arrayqueue::*;
 pub use self::trait_impl::*;
+pub use self::bitroomgrid::*;
 
 use std::fmt;
 use std::ops::{Add, Sub};
