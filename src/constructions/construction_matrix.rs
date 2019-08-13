@@ -1,5 +1,5 @@
 use super::point::Point;
-use crate::collections::{BitRoomGrid, ArrayQueue};
+use crate::collections::{ArrayQueue, BitGrid, BitRoomGrid1717};
 use arrayvec::ArrayVec;
 use screeps::constants::Terrain;
 use screeps::objects::{LookResult, Room, Structure};
@@ -12,7 +12,7 @@ pub struct ConstructionMatrix {
     /// 3×3 positions that have not been explored yet
     todo: ArrayQueue<[Point; 128]>,
     /// 1×1 positions that have been explored already
-    done: BitRoomGrid,
+    done: BitRoomGrid1717,
     /// 1×1 positions that are open for constructions
     open_positions: ArrayQueue<[Point; 8]>,
 }
@@ -62,13 +62,9 @@ impl ConstructionMatrix {
         let y = pos.1;
 
         {
-            let x = x as u16 - 1;
-            let y = y as u16 - 1;
-            for i in 0..3 {
-                for j in 0..3 {
-                    self.done.set(x + i, y + j, true);
-                }
-            }
+            let x = x as usize;
+            let y = y as usize;
+            self.done.set(x, y, true);
         }
 
         let done = &self.done;
@@ -76,7 +72,7 @@ impl ConstructionMatrix {
         self.todo.extend(
             Self::valid_neighbouring_tiles(pos)
                 .into_iter()
-                .filter(|p| !todo.contains(p) && !done.get(p.0 as u16, p.1 as u16)),
+                .filter(|p| !todo.contains(p) && !done.get(p.0 as usize, p.1 as usize)),
         );
 
         debug!("Extended todo to a len of {}", self.todo.len());
