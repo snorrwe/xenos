@@ -16,15 +16,7 @@ pub trait BitGrid: Default + Sized {
     fn row_mut(&mut self, ind: usize) -> &mut [u8];
 
     fn get(&self, x: usize, y: usize) -> bool {
-        let row_size = Self::ROW_SIZE * 8;
-
-        let flat_ind = x * Self::ROOM_ROWS + y;
-        let flat_ind = flat_ind as usize;
-        let row = flat_ind / row_size;
-        let col = flat_ind % row_size;
-
-        debug_assert!(row < Self::ROWS);
-        debug_assert!(col < row_size);
+        let (row, col) = Self::get_row_col(x, y);
 
         let row = &self.row(row);
         let cell = row[col / 8];
@@ -35,14 +27,7 @@ pub trait BitGrid: Default + Sized {
     }
 
     fn set(&mut self, x: usize, y: usize, value: bool) {
-        let row_size = Self::ROW_SIZE * 8;
-        let flat_ind = x * Self::ROOM_ROWS + y;
-        let flat_ind = flat_ind as usize;
-        let row = flat_ind / row_size;
-        let col = flat_ind % row_size;
-
-        debug_assert!(row < Self::ROWS);
-        debug_assert!(col < row_size);
+        let (row, col) = Self::get_row_col(x, y);
 
         let row = &mut self.row_mut(row);
         let cell = &mut row[col / 8];
@@ -113,6 +98,19 @@ pub trait BitGrid: Default + Sized {
         }
 
         Ok(res)
+    }
+
+    fn get_row_col(x: usize, y: usize) -> (usize, usize) {
+        let row_size = Self::ROW_SIZE * 8;
+        let flat_ind = x * Self::ROOM_ROWS + y;
+        let flat_ind = flat_ind as usize;
+        let row = flat_ind / row_size;
+        let col = flat_ind % row_size;
+
+        debug_assert!(row < Self::ROWS);
+        debug_assert!(col < row_size);
+
+        (row, col)
     }
 }
 
