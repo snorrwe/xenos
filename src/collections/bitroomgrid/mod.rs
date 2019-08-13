@@ -61,7 +61,7 @@ pub trait BitGrid: Default + Sized {
     /// The compression counts conscutive bytes and records their number
     /// For example `[1, 1, 1, 0]` would become `"1_3-0_1"`
     fn compressed(&self) -> Result<String, fmt::Error> {
-        let mut res = String::with_capacity(320);
+        let mut res = String::with_capacity(Self::ROW_SIZE * Self::ROWS);
         let mut current: u8 = self.row(0).as_ref()[0];
         let mut count: usize = 0;
         for row in 0..Self::ROWS {
@@ -105,7 +105,7 @@ pub trait BitGrid: Default + Sized {
             for _ in 0..count {
                 res.row_mut(row)[col] = value;
                 col += 1;
-                if col >= 32 {
+                if col >= Self::ROW_SIZE {
                     col = 0;
                     row += 1;
                 }
