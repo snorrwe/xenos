@@ -58,6 +58,10 @@ impl BitRoomGrid {
         }
     }
 
+    /// Create a compressed String representation
+    /// Structure: `"([0-9]{1,3})_([0-9]{1,3})-?"`
+    /// The compression counts conscutive bytes and records their number
+    /// For example `[1, 1, 1, 0]` would become `"1_3-0_1"`
     pub fn compressed(&self) -> Result<String, fmt::Error> {
         let mut res = String::with_capacity(320);
         let mut current: u8 = self.buffer[0][0];
@@ -80,6 +84,7 @@ impl BitRoomGrid {
         Ok(res)
     }
 
+    /// Decompress Strings compressed by `compressed` method
     pub fn decompress(value: &str) -> Result<Self, &'static str> {
         let mut res = Self::default();
 
@@ -220,8 +225,6 @@ mod tests {
         }
 
         let compressed = mat.compressed().expect("Failed to serialize");
-
-        let stuff = format!("{} ", compressed);
 
         let mat = BitRoomGrid::decompress(compressed.as_str()).expect("Failed to parse");
 
