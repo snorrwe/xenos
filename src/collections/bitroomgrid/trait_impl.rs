@@ -80,20 +80,20 @@ implement_serde_for_bitgrid!(BitRoomGrid5050);
 /// 17×17 binary flag map
 #[derive(Debug, Clone)]
 pub struct BitRoomGrid1717 {
-    buffer: [[u8; 32]; 2],
+    buffer: [[u8; 16]; 4],
 }
 
 impl Default for BitRoomGrid1717 {
     fn default() -> Self {
         BitRoomGrid1717 {
-            buffer: [Default::default(); 2],
+            buffer: [Default::default(); 4],
         }
     }
 }
 
 impl BitGrid for BitRoomGrid1717 {
-    const ROWS: usize = 2;
-    const ROW_SIZE: usize = 32;
+    const ROWS: usize = 4;
+    const ROW_SIZE: usize = 16;
     const ROOM_ROWS: usize = 17;
     type Row = [u8; 32];
 

@@ -62,8 +62,8 @@ impl ConstructionMatrix {
         let y = pos.1;
 
         {
-            let x = x as usize;
-            let y = y as usize;
+            let x = x as usize / 3;
+            let y = y as usize / 3;
             self.done.set(x, y, true);
         }
 
@@ -72,7 +72,7 @@ impl ConstructionMatrix {
         self.todo.extend(
             Self::valid_neighbouring_tiles(pos)
                 .into_iter()
-                .filter(|p| !todo.contains(p) && !done.get(p.0 as usize, p.1 as usize)),
+                .filter(|p| !todo.contains(p) && !done.get(p.0 as usize / 3, p.1 as usize / 3)),
         );
 
         debug!("Extended todo to a len of {}", self.todo.len());
