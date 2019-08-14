@@ -35,7 +35,7 @@ macro_rules! implement_serde_for_bitgrid {
                     where
                         E: de::Error,
                     {
-                        BitGrid::decompress(value).map_err(|e| de::Error::custom(e))
+                        FlagGrid::decompress(value).map_err(|e| de::Error::custom(e))
                     }
                 }
 
@@ -47,31 +47,29 @@ macro_rules! implement_serde_for_bitgrid {
 
 /// 50×50 binary flag map
 /// With a size of 320 bytes
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct BitRoomGrid5050 {
-    buffer: [[u8; 32]; 10],
+    buffer: Vec<u8>,
 }
 
 impl Default for BitRoomGrid5050 {
     fn default() -> Self {
         BitRoomGrid5050 {
-            buffer: [Default::default(); 10],
+            buffer: vec![0; 2500],
         }
     }
 }
 
-impl BitGrid for BitRoomGrid5050 {
-    const ROWS: usize = 10;
-    const ROW_SIZE: usize = 32;
-    const ROOM_ROWS: usize = 50;
-    type Row = [u8; 32];
+impl FlagGrid for BitRoomGrid5050 {
+    const ROWS: usize = 50;
+    const COLS: usize = 50;
 
-    fn row(&self, ind: usize) -> &[u8] {
-        &self.buffer[ind]
+    fn buffer(&self) -> &[u8] {
+        &self.buffer[..]
     }
 
-    fn row_mut(&mut self, ind: usize) -> &mut [u8] {
-        &mut self.buffer[ind]
+    fn buffer_mut(&mut self) -> &mut [u8] {
+        &mut self.buffer[..]
     }
 }
 
@@ -79,35 +77,32 @@ implement_serde_for_bitgrid!(BitRoomGrid5050);
 
 /// 17×17 binary flag map
 #[derive(Debug, Clone)]
-pub struct BitRoomGrid1717 {
-    buffer: [[u8; 16]; 4],
+pub struct FlagGrid1717 {
+    buffer: Vec<u8>,
 }
 
-impl Default for BitRoomGrid1717 {
+impl Default for FlagGrid1717 {
     fn default() -> Self {
-        BitRoomGrid1717 {
-            buffer: [Default::default(); 4],
+        FlagGrid1717 {
+            buffer: vec![0; 17 * 17],
         }
     }
 }
 
-impl BitGrid for BitRoomGrid1717 {
-    const ROWS: usize = 4;
-    const ROW_SIZE: usize = 16;
-    const ROOM_ROWS: usize = 17;
-    type Row = [u8; 32];
+impl FlagGrid for FlagGrid1717 {
+    const ROWS: usize = 17;
+    const COLS: usize = 17;
 
-    fn row(&self, ind: usize) -> &[u8] {
-        &self.buffer[ind]
+    fn buffer(&self) -> &[u8] {
+        &self.buffer[..]
     }
 
-    fn row_mut(&mut self, ind: usize) -> &mut [u8] {
-        &mut self.buffer[ind]
+    fn buffer_mut(&mut self) -> &mut [u8] {
+        &mut self.buffer[..]
     }
 }
 
-implement_serde_for_bitgrid!(BitRoomGrid1717);
-
+implement_serde_for_bitgrid!(FlagGrid1717);
 
 #[cfg(test)]
 mod tests {
@@ -115,73 +110,73 @@ mod tests {
 
     #[test]
     fn test_default_bitmap() {
-        js!{};
+        js! {};
 
         let mat = BitRoomGrid5050::default();
         for i in 0..50 {
             for j in 0..50 {
-                assert!(!mat.get(i, j), "{} {}", i, j);
+                assert!(mat.get(i, j) == 0, "{} {}", i, j);
             }
         }
     }
 
     #[test]
     fn test_set_is_consistent() {
-        js!{};
+        js! {};
 
         let mut mat = BitRoomGrid5050::default();
         for i in 0..50 {
             for j in 0..50 {
-                assert!(!mat.get(i, j), "{} {}", i, j);
+                assert!(mat.get(i, j) == 0, "{} {}", i, j);
             }
         }
 
-        mat.set(33, 42, true);
+        mat.set(33, 42, 1);
 
         for i in 0..50 {
             for j in 0..50 {
                 if i != 33 || j != 42 {
-                    assert!(!mat.get(i, j), "{} {}", i, j);
+                    assert!(mat.get(i, j) == 0, "{} {}", i, j);
                 }
             }
         }
 
-        assert!(mat.get(33, 42));
+        assert!(mat.get(33, 42) == 1);
     }
 
     #[test]
     // Test if the indexing is fine and does not set a bit twice
     fn test_setting_is_not_overlapping() {
-        js!{};
+        js! {};
 
         let mut mat = BitRoomGrid5050::default();
 
         for i in 0..50 {
             for j in 0..50 {
-                assert!(!mat.get(i, j));
-                mat.set(i, j, true);
+                assert!(mat.get(i, j) == 0);
+                mat.set(i, j, 1);
             }
         }
 
         for i in 0..50 {
             for j in 0..50 {
-                assert!(mat.get(i, j));
-                mat.set(i, j, false);
-                assert!(!mat.get(i, j));
+                assert!(mat.get(i, j) == 1);
+                mat.set(i, j, 0);
+                assert!(mat.get(i, j) == 0);
             }
         }
     }
 
     #[test]
     fn test_serialize_deserialize() {
-        js!{};
+        js! {};
 
         let mut mat = BitRoomGrid5050::default();
 
         for i in (0..50).step_by(2) {
             for j in (0..50).step_by(2) {
-                assert!(!mat.get(i, j));
-                mat.set(i, j, true);
+                assert!(mat.get(i, j) == 0);
+                mat.set(i, j, 1);
             }
         }
 
@@ -191,23 +186,10 @@ mod tests {
 
         for i in 0..50 {
             for j in 0..50 {
-                let val = i % 2 == 0 && j % 2 == 0;
+                let val = if i % 2 == 0 && j % 2 == 0 { 1 } else { 0 };
                 assert!(mat.get(i, j) == val);
             }
         }
     }
-
-    #[test]
-    fn test_size_of_grid() {
-        js!{};
-
-        use std::mem::size_of;
-
-        // Application code can't use doc tests
-        assert_eq!(
-            size_of::<BitRoomGrid5050>(),
-            320,
-            "You forgot to update the doc comment of the struct after changing its size"
-        );
-    }
 }
+

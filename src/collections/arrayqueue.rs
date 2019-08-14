@@ -10,7 +10,7 @@ pub enum QueueError {
     Empty,
 }
 
-/// Fix sized Deque
+/// Fixed size Deque
 // Invariant: head <= tail
 // Uses a ring buffer internally
 #[derive(Clone)]

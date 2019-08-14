@@ -1,10 +1,10 @@
 pub mod arrayqueue;
-pub mod bitroomgrid;
+pub mod flaggrid;
 pub mod trait_impl;
 
 pub use self::arrayqueue::*;
 pub use self::trait_impl::*;
-pub use self::bitroomgrid::*;
+pub use self::flaggrid::*;
 
 use std::fmt;
 use std::ops::{Add, Sub};
