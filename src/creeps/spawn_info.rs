@@ -85,7 +85,7 @@ pub fn target_number_of_role_in_room<'a>(role: Role, room: &'a Room) -> i8 {
             if n_containers == 0 {
                 0
             } else {
-                level.min(3) as i8
+                (level * 2).min(3) as i8
             }
         }
         Role::Gofer => n_sources.min(n_containers as i8),
@@ -122,7 +122,7 @@ fn basic_role_parts<'a>(_room: &Room, role: Role) -> BodyCollection {
 fn role_part_scale<'a>(_room: &Room, role: Role) -> BodyCollection {
     let it = match role {
         Role::Harvester => [Part::Work].into_iter(),
-        Role::Scout|Role::Conqueror => [].into_iter(),
+        Role::Scout | Role::Conqueror => [].into_iter(),
         Role::Gofer => [Part::Move, Part::Carry, Part::Carry].into_iter(),
         Role::Lrh => [Part::Move, Part::Carry, Part::Work, Part::Move].into_iter(),
         _ => [Part::Move, Part::Carry, Part::Work].into_iter(),
