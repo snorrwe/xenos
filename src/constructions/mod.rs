@@ -18,10 +18,10 @@ use screeps::{
     objects::{HasPosition, Room, RoomPosition},
     ReturnCode,
 };
-use stdweb::unstable::TryFrom;
+use stdweb::unstable::{TryFrom, TryInto};
 
 pub fn task<'a>() -> Task<'a, GameState> {
-    trace!("Init construction task");
+    debug!("Init construction task");
 
     Task::new(move |_| {
         let time = screeps::game::time();
@@ -45,6 +45,18 @@ pub fn task<'a>() -> Task<'a, GameState> {
 
 fn manage_room<'a>(room: &'a Room, state: &mut ConstructionState) -> ExecutionResult {
     info!("Manage constructionSites of room {:?}", room.name());
+
+    let my = js! {
+        const room = @{room};
+        return room.controller && room.controller.my || false;
+    };
+    let my: bool = my.try_into().map_err(|e| {
+        error!("Failed to convert bool, {:?}", e);
+        "Conversion error"
+    })?;
+    if !my {
+        Err("Room is not mine")?;
+    }
 
     build_structures(room, state).unwrap_or_else(|e| warn!("Failed build_structures {:?}", e));
     containers::build_containers(room).unwrap_or_else(|e| warn!("Failed containers {:?}", e));
@@ -89,7 +101,7 @@ fn build_structures<'a>(room: &'a Room, state: &'a mut ConstructionState) -> Exe
 
     let name = room.name();
 
-    for structure in structures.iter() {
+    'building: for structure in structures.iter() {
         debug!("Attempting build at position {:?} in room {}", pos, &name);
         let roompos = pos.try_into_room_pos(&name).ok_or_else(|| {
             let err = format!("Failed to cast point {:?} to RoomPosition", pos);
@@ -107,11 +119,12 @@ fn build_structures<'a>(room: &'a Room, state: &'a mut ConstructionState) -> Exe
                     .map_err(|e| format!("Failed to get the next position {:?}", e))?;
             }
             ReturnCode::Full => {
-                debug!("cant place construction site {:?}", result);
+                debug!("Can' t place construction site {:?}", result);
                 Err("Room is full")?;
             }
             _ => {
                 debug!("Can't place construction site {:?}", result);
+                break 'building;
             }
         }
     }

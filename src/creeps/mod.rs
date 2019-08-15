@@ -98,7 +98,6 @@ fn run_creep<'a>(state: &mut CreepState) -> ExecutionResult {
 
 pub fn initialize_creep<'a>(state: &'a mut GameState, creep: &'a Creep) -> ExecutionResult {
     assign_role(state, &creep)
-        .map(|_| {})
         .ok_or_else(|| "Failed to find a role for creep")?;
     let memory = state.creep_memory_entry(CreepName(&creep.name()));
     memory.insert(HOME_ROOM.into(), creep.room().name().into());

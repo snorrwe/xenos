@@ -49,7 +49,7 @@ impl ConstructionMatrix {
 
     /// Return the tile processed if any
     fn process_next_tile(&mut self, room: &Room) -> Option<Point> {
-        debug!("Processing next in room {:?}", room.name());
+        debug!("Processing next tile in room {:?}", room.name());
 
         let pos = self
             .todo
