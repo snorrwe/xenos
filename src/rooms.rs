@@ -59,7 +59,12 @@ pub fn neighbours(room: &Room) -> Vec<String> {
         ];
         return neighbours.filter((r,i) => room.findExitTo(r) == directions[i]);
     };
-    result.try_into().unwrap_or_default()
+    result
+        .try_into()
+        .map_err(|e| {
+            error!("Failed to convert neighbours {:?}", e);
+        })
+        .unwrap_or_default()
 }
 
 impl WorldPosition {
@@ -82,7 +87,7 @@ impl WorldPosition {
             c == 'W' || c == 'E' || c == 'N' || c == 'S'
         }) {
             match c {
-                'E' => x *= -1,
+                'W' => x *= -1,
                 'S' => y *= -1,
                 _ => {}
             }
@@ -104,21 +109,21 @@ impl WorldPosition {
 
     pub fn to_string(&self) -> ArrayString<[u8; 16]> {
         let [x, y] = self.0.clone();
-        let w = if x >= 0 { 'W' } else { 'E' };
+        let w = if x >= 0 { 'E' } else { 'W' };
         let n = if y >= 0 { 'N' } else { 'S' };
 
         let prefixes = [w, n];
         let mut result = ArrayString::default();
 
         for (num, pre) in [x, y].into_iter().zip(prefixes.into_iter()) {
-            let len = len_of_num(*num);
-            let num = num.abs();
+            let num = num.abs() as u16;
+            let len = len_of_num(num);
             result.push(*pre);
             for i in (0..len).rev() {
                 const TEN: u32 = 10;
                 let factor = TEN.pow(i as u32);
                 let num = (num as u32 / factor) % 10;
-                let num = num as u8;
+                let num = num as u8 + '0' as u8;
                 result.push(num as char);
             }
         }
@@ -127,10 +132,10 @@ impl WorldPosition {
     }
 }
 
-fn len_of_num(num: i16) -> i32 {
+fn len_of_num(num: u16) -> i32 {
     let mut i = 1;
     let mut count = 1;
-    while i * 10 < num as i32 {
+    while i * 10 < num {
         i *= 10;
         count += 1;
     }
@@ -149,6 +154,21 @@ mod tests {
         let d = manhatten_distance(a, b).expect("Failed to get the dinstance");
 
         assert_eq!(d, 4);
+    }
+
+    #[test]
+    fn test_string_conversion() {
+        let pos = WorldPosition([12, 12]);
+        let name = pos.to_string();
+        assert_eq!(name.as_str(), "E12N12");
+
+        let pos = WorldPosition([-12, 12]);
+        let name = pos.to_string();
+        assert_eq!(name.as_str(), "W12N12");
+
+        let pos = WorldPosition([1, -8]);
+        let name = pos.to_string();
+        assert_eq!(name.as_str(), "E1S8");
     }
 }
 
