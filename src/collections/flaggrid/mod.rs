@@ -23,6 +23,13 @@ pub trait FlagGrid: Default + Sized {
         self.buffer_mut()[ind] = value;
     }
 
+    /// Sets the flag by applying bitwise or to the old value
+    fn set_or(&mut self, x: usize, y: usize, value: u8) {
+        let ind = Self::get_flat_index(x, y);
+        let val = self.buffer()[ind];
+        self.buffer_mut()[ind] = val | value;
+    }
+
     /// Create a compressed String representation
     /// Structure: `"([0-9]{1,3})_([0-9]{1,3});?"`
     /// The compression counts conscutive bytes and records their number

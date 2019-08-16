@@ -1,4 +1,6 @@
 use super::*;
+use crate::collections::FlagGrid;
+use arrayvec::ArrayVec;
 use screeps::{
     constants::{find, StructureType},
     objects::{Room, RoomPosition, StructureProperties},
@@ -6,10 +8,14 @@ use screeps::{
 };
 use stdweb::unstable::TryFrom;
 
-pub fn build_roads<'a>(room: &'a Room) -> ExecutionResult {
+const CONNECTED_FLAG: u8 = 1;
+
+pub fn build_roads<'a>(room: &'a Room, state: &'a mut ConstructionState) -> ExecutionResult {
     trace!("Building roads in room {}", room.name());
 
     can_continue_building(room)?;
+
+    let matrix = state.connections.entry(room.name()).or_default();
 
     let targets = js! {
         const room = @{room};
@@ -34,8 +40,24 @@ pub fn build_roads<'a>(room: &'a Room) -> ExecutionResult {
     }
 
     let mut targets = targets.into_iter();
-    let center = targets.next().expect("oops");
-    targets.try_for_each(|pos| connect(&center, &pos, room))
+    let center = targets
+        .next()
+        .ok_or_else(|| "No target found for road building")?;
+
+    let c = center.pos();
+    matrix.set_or(c.x() as usize, c.y() as usize, CONNECTED_FLAG);
+
+    // Connect at most 16 positions in a tick
+    let targets: ArrayVec<[_; 16]> = targets
+        .filter(|pos| matrix.get(pos.x() as usize, pos.y() as usize) & CONNECTED_FLAG == 0)
+        .collect();
+    for pos in targets.iter() {
+        connect(&center, &pos, room).and_then(|_| {
+            matrix.set_or(pos.x() as usize, pos.y() as usize, CONNECTED_FLAG);
+            Ok(())
+        })?;
+    }
+    Ok(())
 }
 
 fn can_continue_building(room: &Room) -> ExecutionResult {
@@ -104,3 +126,4 @@ fn connect(pos0: &RoomPosition, pos1: &RoomPosition, room: &Room) -> ExecutionRe
         }
     })
 }
+

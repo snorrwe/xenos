@@ -1,10 +1,12 @@
 use super::ConstructionMatrix;
 use screeps::raw_memory;
 use std::collections::BTreeMap;
+use crate::collections::{FlagGrid5050};
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct ConstructionState {
     pub construction_matrices: BTreeMap<String, ConstructionMatrix>,
+    pub connections: BTreeMap<String, FlagGrid5050>,
 }
 
 impl ConstructionState {

@@ -60,7 +60,7 @@ fn manage_room<'a>(room: &'a Room, state: &mut ConstructionState) -> ExecutionRe
 
     build_structures(room, state).unwrap_or_else(|e| warn!("Failed build_structures {:?}", e));
     containers::build_containers(room).unwrap_or_else(|e| warn!("Failed containers {:?}", e));
-    roads::build_roads(room).unwrap_or_else(|e| warn!("Failed roads {:?}", e));
+    roads::build_roads(room, state).unwrap_or_else(|e| warn!("Failed roads {:?}", e));
     build_storage(room, state).unwrap_or_else(|e| warn!("Failed storage {:?}", e));
 
     Ok(())
@@ -101,7 +101,7 @@ fn build_structures<'a>(room: &'a Room, state: &'a mut ConstructionState) -> Exe
 
     let name = room.name();
 
-    'building: for structure in structures.iter() {
+    for structure in structures.iter() {
         debug!("Attempting build at position {:?} in room {}", pos, &name);
         let roompos = pos.try_into_room_pos(&name).ok_or_else(|| {
             let err = format!("Failed to cast point {:?} to RoomPosition", pos);
@@ -124,7 +124,6 @@ fn build_structures<'a>(room: &'a Room, state: &'a mut ConstructionState) -> Exe
             }
             _ => {
                 debug!("Can't place construction site {:?}", result);
-                break 'building;
             }
         }
     }

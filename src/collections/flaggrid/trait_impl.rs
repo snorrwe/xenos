@@ -1,7 +1,7 @@
 use super::*;
 use serde::de::{self, Deserialize, Deserializer, Visitor};
 use serde::ser::{self, Serialize, Serializer};
-use std::fmt::{self};
+use std::fmt::{self, Debug, Formatter};
 
 macro_rules! implement_serde_for_bitgrid {
     ($name: ident) => {
@@ -48,19 +48,36 @@ macro_rules! implement_serde_for_bitgrid {
 /// 50×50 binary flag map
 /// With a size of 320 bytes
 #[derive(Clone)]
-pub struct BitRoomGrid5050 {
+pub struct FlagGrid5050 {
     buffer: Vec<u8>,
 }
 
-impl Default for BitRoomGrid5050 {
+impl Debug for FlagGrid5050 {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "[")?;
+        let mut it = self.buffer.iter();
+
+        if let Some(i) = it.next() {
+            write!(f, "{}", i)?;
+        }
+
+        for i in it {
+            write!(f, ", {}", i)?;
+        }
+
+        write!(f, "]")
+    }
+}
+
+impl Default for FlagGrid5050 {
     fn default() -> Self {
-        BitRoomGrid5050 {
+        FlagGrid5050 {
             buffer: vec![0; 2500],
         }
     }
 }
 
-impl FlagGrid for BitRoomGrid5050 {
+impl FlagGrid for FlagGrid5050 {
     const ROWS: usize = 50;
     const COLS: usize = 50;
 
@@ -73,7 +90,7 @@ impl FlagGrid for BitRoomGrid5050 {
     }
 }
 
-implement_serde_for_bitgrid!(BitRoomGrid5050);
+implement_serde_for_bitgrid!(FlagGrid5050);
 
 /// 17×17 binary flag map
 #[derive(Debug, Clone)]
@@ -112,7 +129,7 @@ mod tests {
     fn test_default_bitmap() {
         js! {};
 
-        let mat = BitRoomGrid5050::default();
+        let mat = FlagGrid5050::default();
         for i in 0..50 {
             for j in 0..50 {
                 assert!(mat.get(i, j) == 0, "{} {}", i, j);
@@ -124,7 +141,7 @@ mod tests {
     fn test_set_is_consistent() {
         js! {};
 
-        let mut mat = BitRoomGrid5050::default();
+        let mut mat = FlagGrid5050::default();
         for i in 0..50 {
             for j in 0..50 {
                 assert!(mat.get(i, j) == 0, "{} {}", i, j);
@@ -149,7 +166,7 @@ mod tests {
     fn test_setting_is_not_overlapping() {
         js! {};
 
-        let mut mat = BitRoomGrid5050::default();
+        let mut mat = FlagGrid5050::default();
 
         for i in 0..50 {
             for j in 0..50 {
@@ -171,7 +188,7 @@ mod tests {
     fn test_serialize_deserialize() {
         js! {};
 
-        let mut mat = BitRoomGrid5050::default();
+        let mut mat = FlagGrid5050::default();
 
         for i in (0..50).step_by(2) {
             for j in (0..50).step_by(2) {
@@ -182,7 +199,7 @@ mod tests {
 
         let compressed = mat.compressed().expect("Failed to serialize");
 
-        let mat = BitRoomGrid5050::decompress(compressed.as_str()).expect("Failed to parse");
+        let mat = FlagGrid5050::decompress(compressed.as_str()).expect("Failed to parse");
 
         for i in 0..50 {
             for j in 0..50 {
