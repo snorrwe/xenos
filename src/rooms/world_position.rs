@@ -1,10 +1,24 @@
-use arrayvec::{ArrayString, ArrayVec};
-use screeps::traits::TryInto;
+use arrayvec::ArrayString;
 use screeps::Room;
+use serde::de::{self, Deserialize, Deserializer, Visitor};
+use serde::ser::{Serialize, Serializer};
 use std::ops::{Deref, DerefMut};
 
 /// Representing positions of rooms
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Ord, PartialOrd, Default)]
 pub struct WorldPosition([i16; 2]);
+
+impl From<Room> for WorldPosition {
+    fn from(room: Room) -> Self {
+        Self::parse_name(&room.name()).unwrap()
+    }
+}
+
+impl<'a> From<&'a Room> for WorldPosition {
+    fn from(room: &'a Room) -> Self {
+        Self::parse_name(&room.name()).unwrap()
+    }
+}
 
 impl Deref for WorldPosition {
     type Target = [i16; 2];
@@ -17,54 +31,6 @@ impl DerefMut for WorldPosition {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }
-}
-
-pub fn manhatten_distance(one: &str, other: &str) -> Result<i32, &'static str> {
-    let one = WorldPosition::parse_name(one)?;
-    let other = WorldPosition::parse_name(other)?;
-
-    let x = (one[0] - other[0]).abs() as i32;
-    let y = (one[1] - other[1]).abs() as i32;
-
-    Ok(x + y)
-}
-
-pub fn neighbours(room: &Room) -> Vec<String> {
-    let name = room.name();
-    let coords = WorldPosition::parse_name(name.as_str());
-    match coords {
-        Err(e) => {
-            warn!("Failed to parse room name {} {:?}", name, e);
-            return vec![];
-        }
-        _ => {}
-    }
-    let coords = coords.unwrap();
-    let neighbours = coords
-        .neighbours_in_vectors()
-        .into_iter()
-        .map(|coords| coords.to_string())
-        .collect::<ArrayVec<[_; 8]>>();
-    let names: Vec<&str> = neighbours.iter().map(|n| n.as_str()).collect();
-    let result = js! {
-        const room = @{room};
-        const neighbours = @{names};
-        // Directions in the same order as in neighbours_in_vectors
-        // TODO: return the directions too?
-        const directions = [
-            FIND_EXIT_TOP,
-            FIND_EXIT_LEFT,
-            FIND_EXIT_BOTTOM,
-            FIND_EXIT_RIGHT,
-        ];
-        return neighbours.filter((r,i) => room.findExitTo(r) == directions[i]);
-    };
-    result
-        .try_into()
-        .map_err(|e| {
-            error!("Failed to convert neighbours {:?}", e);
-        })
-        .unwrap_or_default()
 }
 
 impl WorldPosition {
@@ -132,6 +98,40 @@ impl WorldPosition {
     }
 }
 
+impl Serialize for WorldPosition {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let st = self.to_string();
+        serializer.serialize_str(&st)
+    }
+}
+
+impl<'de> Deserialize<'de> for WorldPosition {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct WPVisitor;
+
+        impl<'de> Visitor<'de> for WPVisitor {
+            type Value = WorldPosition;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+                formatter.write_str("a serialized world position")
+            }
+
+            fn visit_str<E: de::Error>(self, string: &str) -> Result<Self::Value, E> {
+                WorldPosition::parse_name(string).map_err(|e| de::Error::custom(e))
+            }
+        }
+
+        let visitor = WPVisitor;
+        deserializer.deserialize_str(visitor)
+    }
+}
+
 fn len_of_num(num: u16) -> i32 {
     let mut i = 1;
     let mut count = 1;
@@ -145,16 +145,6 @@ fn len_of_num(num: u16) -> i32 {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn test_manhatten() {
-        let a = "W43N1";
-        let b = "W45S1";
-
-        let d = manhatten_distance(a, b).expect("Failed to get the dinstance");
-
-        assert_eq!(d, 4);
-    }
 
     #[test]
     fn test_string_conversion() {

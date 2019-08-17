@@ -75,12 +75,9 @@ pub fn target_number_of_role_in_room<'a>(role: Role, room: &'a Room) -> i8 {
                 target_workers += UPGRADER_COUNT
             }
 
-            if level < 3 {
-                target_workers *= 2;
-            }
             target_workers
         }
-        Role::Conqueror => n_flags, // TODO: make the closest room spawn it
+        Role::Conqueror => n_flags,
         Role::Lrh => {
             if n_containers == 0 {
                 0

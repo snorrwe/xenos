@@ -36,20 +36,23 @@ fn set_next_room(state: &mut CreepState) -> ExecutionResult {
     let gs = state.get_game_state();
 
     let mut min = 1 << 30;
-    let mut target_room = "".to_owned();
-    for room_name in neighbours(&room) {
-        if let Some(intel) = gs.scout_intel.get(&room_name) {
+    let mut target_room = WorldPosition::default();
+    for room in neighbours(&room) {
+        if let Some(intel) = gs
+            .scout_intel
+            .get(&room)
+        {
             if intel.time_of_recording < min {
                 min = intel.time_of_recording;
-                target_room = room_name;
+                target_room = room;
             }
         } else {
-            target_room = room_name;
+            target_room = room;
             break;
         }
     }
 
-    state.creep_memory_set(TARGET, target_room);
+    state.creep_memory_set(TARGET, target_room.to_string().as_str());
     Ok(())
 }
 

@@ -48,11 +48,13 @@ fn claim_target<'a>(state: &mut CreepState) -> ExecutionResult {
     let creep = state.creep();
 
     let room = creep.room();
+    let room_name = state.current_room().to_string();
+    let room_name = room_name.as_str();
 
     // The Rust Screeps api may panic here
     let arrived = js! {
         const flag = @{&flag};
-        return @{&room}.name == (flag.room && flag.room.name) || false;
+        return @{&room_name} == (flag.room && flag.room.name) || false;
     };
 
     let arrived: bool = arrived

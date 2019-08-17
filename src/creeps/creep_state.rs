@@ -3,12 +3,14 @@ use crate::game_state::WithStateSave;
 use crate::prelude::*;
 use num::ToPrimitive;
 use screeps::Creep;
+use screeps::RoomObjectProperties;
 use serde_json::Value;
 use std::fmt::{Debug, Formatter};
 
 pub struct CreepState {
     creep: Creep,
     creep_name: String,
+    world_position: WorldPosition,
     memory: *mut CreepMemoryEntry,
     game_state: *mut GameState,
 }
@@ -26,11 +28,16 @@ impl CreepState {
         let memory = game_state.creep_memory_entry(CreepName(creep_name.as_str())) as *mut _;
         let game_state = game_state as *mut _;
         Self {
+            world_position: WorldPosition::from(creep.room()),
             creep,
             creep_name,
             game_state,
             memory,
         }
+    }
+
+    pub fn current_room(&self) -> WorldPosition {
+        self.world_position
     }
 
     pub fn creep_memory_remove(&mut self, key: &str) {

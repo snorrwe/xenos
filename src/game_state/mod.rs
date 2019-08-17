@@ -27,15 +27,15 @@ pub struct GameState {
     /// Structure: room -> role -> n
     #[serde(skip_serializing)]
     #[serde(default)]
-    creep_count_by_room: BTreeMap<String, BTreeMap<Role, i8>>,
+    creep_count_by_room: BTreeMap<WorldPosition, BTreeMap<Role, i8>>,
 
     /// Information about rooms
     /// Structure: room -> info
-    pub scout_intel: BTreeMap<String, ScoutInfo>,
+    pub scout_intel: BTreeMap<WorldPosition, ScoutInfo>,
 
     /// Number of LRH per room
     /// In directions: [N, W, S, E]
-    pub long_range_harvesters: BTreeMap<String, [u8; 4]>,
+    pub long_range_harvesters: BTreeMap<WorldPosition, [u8; 4]>,
 
     /// Holds the creep memory objects
     /// Structure: name -> data
@@ -84,7 +84,7 @@ pub enum RoomIFF {
 /// Used to make sure the right string is passed
 /// to the right parameter when accessing creep memory
 /// It's deliberately verbose
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Ord, PartialEq, PartialOrd, Eq, Hash)]
 pub struct CreepName<'a>(pub &'a str);
 
 impl Default for RoomIFF {
@@ -108,15 +108,15 @@ impl GameState {
     }
 
     pub fn count_creeps_in_room<'b>(&mut self, room: &'b Room) -> &mut BTreeMap<Role, i8> {
-        let name = room.name();
         // TODO: use cached value
         let count = self
             .count_roles_in_room(room)
             .iter()
             .map(|(k, v)| (*k, *v))
             .collect();
-        self.creep_count_by_room.insert(name.clone(), count);
-        self.creep_count_by_room.get_mut(&name).unwrap()
+        let pos = WorldPosition::from(room);
+        self.creep_count_by_room.insert(pos, count);
+        self.creep_count_by_room.get_mut(&pos).unwrap()
     }
 
     /// Get an entry in the creep's memory

@@ -42,7 +42,7 @@ fn check_controller(flag: &Flag) -> ExecutionResult {
     match controller {
         Structure::Controller(ref controller) => {
             let level = controller.level();
-            if controller.my() && level >= 2 {
+            if controller.my() && level >= 3 {
                 let spawn = flag.room().find(find::MY_SPAWNS).len();
                 if spawn > 0 {
                     flag.remove();

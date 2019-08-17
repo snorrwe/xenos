@@ -108,7 +108,7 @@ fn set_target_room<'a>(state: &'a mut CreepState) -> ExecutionResult {
         let gs: &mut GameState = unsafe { &mut *state.mut_game_state() };
         let counts: &mut _ = gs
             .long_range_harvesters
-            .entry(room.name())
+            .entry(WorldPosition::from(room))
             .or_insert_with(|| [0; 4]);
 
         let scout_intel = &gs.scout_intel;
@@ -116,9 +116,9 @@ fn set_target_room<'a>(state: &'a mut CreepState) -> ExecutionResult {
         let (i, target) = neighbours
             .into_iter()
             .enumerate()
-            .filter(|(_, name)| {
+            .filter(|(_, wp)| {
                 scout_intel
-                    .get(name)
+                    .get(&wp)
                     .map(|int| match int.iff {
                         RoomIFF::Unknown | RoomIFF::Neutral => true,
                         _ => false,
@@ -139,7 +139,7 @@ fn set_target_room<'a>(state: &'a mut CreepState) -> ExecutionResult {
         target
     };
 
-    state.creep_memory_set(HARVEST_TARGET_ROOM.into(), target);
+    state.creep_memory_set(HARVEST_TARGET_ROOM.into(), target.to_string().as_str());
 
     Ok(())
 }

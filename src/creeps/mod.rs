@@ -431,7 +431,7 @@ pub fn update_scout_info<'a>(state: &mut CreepState) -> ExecutionResult {
     unsafe {
         (*state.mut_game_state())
             .scout_intel
-            .insert(room.name(), info)
+            .insert(WorldPosition::from(room), info)
     };
 
     Ok(())
