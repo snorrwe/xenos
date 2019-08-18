@@ -1,7 +1,4 @@
-pub mod sentinel;
-
-pub use self::sentinel::*;
-
+use super::WithStateSave;
 use crate::creeps::roles::Role;
 use crate::creeps::{CreepExecutionStats, CREEP_ROLE, HOME_ROOM, TASK};
 use crate::prelude::*;
@@ -216,16 +213,6 @@ impl GameState {
 
         result
     }
-}
-
-pub trait WithStateSave<'a> {
-    type State: TaskInput;
-
-    fn with_state_save<T: ToPrimitive + 'a>(
-        self,
-        creep: String,
-        task_id: T,
-    ) -> Task<'a, Self::State>;
 }
 
 impl<'a> WithStateSave<'a> for Task<'a, GameState> {

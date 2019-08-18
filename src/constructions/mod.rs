@@ -1,5 +1,4 @@
 pub mod construction_matrix;
-mod construction_state;
 mod containers;
 pub mod geometry;
 pub mod point;
@@ -10,7 +9,7 @@ mod storage;
 use self::construction_matrix::ConstructionMatrix;
 use self::construction_state::ConstructionState;
 use self::point::Point;
-use crate::game_state::MemorySentinel;
+use crate::state::MemorySentinel;
 use crate::prelude::*;
 use crate::CONSTRUCTIONS_SEGMENT;
 use screeps::{

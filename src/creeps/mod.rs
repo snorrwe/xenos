@@ -1,4 +1,3 @@
-pub mod creep_state;
 pub mod roles;
 pub mod spawn_info;
 
@@ -12,9 +11,9 @@ mod scout;
 mod upgrader;
 mod worker;
 
-use self::creep_state::CreepState;
+use crate::state::creep_state::CreepState;
 pub use self::roles::Role;
-use crate::game_state::{RoomIFF, ScoutInfo};
+use crate::state::game_state::{RoomIFF, ScoutInfo};
 use crate::prelude::*;
 use screeps::{
     constants::{find, ResourceType},

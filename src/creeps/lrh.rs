@@ -6,7 +6,7 @@ use super::{
     approach_target_room, gofer, harvester, update_scout_info, CreepState, HOME_ROOM, LOADING,
     TARGET, TASK,
 };
-use crate::game_state::RoomIFF;
+use crate::state::game_state::RoomIFF;
 use crate::prelude::*;
 use crate::rooms::neighbours;
 use num::FromPrimitive;

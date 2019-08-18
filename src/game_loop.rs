@@ -2,7 +2,7 @@ use crate::bt::*;
 use crate::constructions;
 use crate::creeps;
 use crate::flags;
-use crate::game_state::{GameState, MemorySentinel};
+use crate::state::{game_state::GameState, MemorySentinel};
 use crate::stats::save_stats;
 use crate::structures::{spawns, towers};
 use crate::MAIN_SEGMENT;

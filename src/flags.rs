@@ -42,7 +42,8 @@ fn check_controller(flag: &Flag) -> ExecutionResult {
     match controller {
         Structure::Controller(ref controller) => {
             let level = controller.level();
-            if controller.my() && level >= 3 {
+            // Help the room until it reaches level 4
+            if controller.my() && level >= 4 {
                 let spawn = flag.room().find(find::MY_SPAWNS).len();
                 if spawn > 0 {
                     flag.remove();

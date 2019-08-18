@@ -1,12 +1,12 @@
 //! Harvest energy and unload it to the appropriate target
 //!
-use super::{move_to, CreepState, TARGET};
+use super::{gofer, move_to, CreepState, TARGET};
 use crate::prelude::*;
 use screeps::{
     constants::ResourceType,
     find, game,
     game::get_object_erased,
-    objects::{Creep, Source, StructureContainer, StructureSpawn, Transferable},
+    objects::{Creep, Source, StructureContainer, Transferable},
     prelude::*,
     ReturnCode,
 };
@@ -21,8 +21,15 @@ const HARVEST_TARGET: &'static str = "harvest_target";
 pub fn task<'a>() -> Task<'a, CreepState> {
     let tasks = [
         Task::new(|state| attempt_harvest(state, None)).with_name("Attempt harvest"),
+        Task::new(|state| {
+            let tasks = [
+                Task::new(|state| unload(state)),
+                Task::new(|state| attempt_harvest(state, None)).with_name("Attempt harvest"),
+            ];
+            // On success attempt to continue harvesting right away
+            selector(state, tasks.iter())
+        }),
         Task::new(|state| unload(state)).with_name("Attempt unload"),
-        Task::new(|state| attempt_harvest(state, None)).with_name("Attempt harvest"),
     ]
     .into_iter()
     .cloned()
@@ -52,8 +59,8 @@ pub fn unload<'a>(state: &mut CreepState) -> ExecutionResult {
             try_transfer::<StructureContainer>(state.creep(), &target)
         })
         .with_name("Try transfer container"),
-        Task::new(|state: &mut CreepState| try_transfer::<StructureSpawn>(state.creep(), &target))
-            .with_name("Try transfer spawn"),
+        Task::new(|state: &mut CreepState| gofer::attempt_unload(state))
+            .with_name("Attempt gofer unload"),
     ];
 
     sequence(state, tasks.iter()).map_err(|error| {

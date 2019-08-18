@@ -21,7 +21,7 @@ mod constructions;
 mod creeps;
 mod flags;
 mod game_loop;
-mod game_state;
+mod state;
 mod logging;
 mod prelude;
 mod rooms;

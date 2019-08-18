@@ -1,6 +1,6 @@
 use super::bt::*;
 use super::creeps;
-use crate::game_state::GameState;
+use crate::state::game_state::GameState;
 use crate::{DEPLOYMENT_TIME, STATISTICS_SEGMENT, VERSION, COLLECT_STATS};
 use screeps::raw_memory;
 

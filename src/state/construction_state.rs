@@ -1,4 +1,4 @@
-use super::ConstructionMatrix;
+use crate::constructions::construction_matrix::ConstructionMatrix;
 use screeps::raw_memory;
 use std::collections::BTreeMap;
 use crate::collections::{FlagGrid5050};
