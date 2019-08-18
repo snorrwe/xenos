@@ -23,6 +23,7 @@ mod flags;
 mod game_loop;
 mod state;
 mod logging;
+mod expansion;
 mod prelude;
 mod rooms;
 mod stats;

@@ -1,9 +1,6 @@
 use crate::prelude::*;
-use screeps::constants::find;
+use screeps::HasPosition;
 use screeps::game::flags;
-use screeps::objects::{Flag, OwnedStructureProperties, Structure};
-use screeps::traits::TryInto;
-use screeps::RoomObjectProperties;
 
 pub fn task<'a>() -> Task<'a, GameState> {
     let flags = flags::values();
@@ -16,45 +13,17 @@ pub fn task<'a>() -> Task<'a, GameState> {
     let tasks = flags
         .into_iter()
         .map(|flag| {
-            let name = flag.name();
-            let name = format!("Flag {}", name);
-            Task::new(move |_game_state| {
-                check_controller(&flag)?;
-                Err("continue")?
+            Task::new(move |state: &mut GameState| {
+                let room = WorldPosition::parse_name(
+                    &flag.pos().room_name()
+                    ).unwrap();
+                flag.remove();
+                state.expansion.push(room);
+                Ok(())
             })
-            .with_name(&name)
         })
         .collect();
-    let seq = Control::Sequence(tasks);
-    Task::new(move |state| seq.tick(state)).with_name("Flags task")
+    let seq = Control::Selector(tasks);
+    Task::from(seq).with_name("Flags task")
 }
 
-fn check_controller(flag: &Flag) -> ExecutionResult {
-    let controller = js! {
-        const flag = @{flag};
-        return flag && flag.room && flag.room.controller;
-    };
-    let controller: Option<Structure> = controller.try_into().map_err(|e| {
-        error!("Failed to convert to structure {:?}", e);
-        "Conversion failure"
-    })?;
-    let controller = controller.ok_or("Controller could not be read")?;
-    match controller {
-        Structure::Controller(ref controller) => {
-            let level = controller.level();
-            // Help the room until it reaches level 4
-            if controller.my() && level >= 4 {
-                let spawn = flag.room().find(find::MY_SPAWNS).len();
-                if spawn > 0 {
-                    flag.remove();
-                }
-            }
-        }
-        _ => {
-            let err = format!("Expected Controller");
-            error!("{}", err);
-            Err(err)?;
-        }
-    }
-    Ok(())
-}

@@ -1,11 +1,11 @@
 use arrayvec::ArrayString;
-use screeps::Room;
+use screeps::{Room, RoomPosition};
 use serde::de::{self, Deserialize, Deserializer, Visitor};
 use serde::ser::{Serialize, Serializer};
 use std::ops::{Deref, DerefMut};
 
 /// Representing positions of rooms
-#[derive(Debug, Clone, Copy, Eq, PartialEq, Ord, PartialOrd, Default)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Ord, PartialOrd, Default, Hash)]
 pub struct WorldPosition([i16; 2]);
 
 impl From<Room> for WorldPosition {
@@ -95,6 +95,10 @@ impl WorldPosition {
         }
 
         result
+    }
+
+    pub fn as_room_center(&self) -> RoomPosition {
+        RoomPosition::new(24, 24, self.to_string().as_str())
     }
 }
 

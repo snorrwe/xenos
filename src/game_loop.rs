@@ -1,6 +1,7 @@
 use crate::bt::*;
 use crate::constructions;
 use crate::creeps;
+use crate::expansion;
 use crate::flags;
 use crate::state::{game_state::GameState, MemorySentinel};
 use crate::stats::save_stats;
@@ -79,6 +80,8 @@ fn run_game_logic(state: &mut GameState) {
     flags::task()
         .tick(state)
         .unwrap_or_else(|e| warn!("Failed to run flags {}", e));
+
+    expansion::run(state).unwrap_or_else(|e| warn!("Failed to expansion {}", e));
 
     if screeps::game::time() % 16 == 0 {
         state.cleanup_memory().unwrap_or_else(|e| {

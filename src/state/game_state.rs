@@ -43,6 +43,9 @@ pub struct GameState {
     #[serde(skip_deserializing)]
     #[serde(default)]
     pub creep_stats: CreepExecutionStats,
+
+    /// Rooms targeted for expansion
+    pub expansion: Vec<WorldPosition>,
 }
 
 impl Clone for GameState {
