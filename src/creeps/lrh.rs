@@ -6,9 +6,9 @@ use super::{
     approach_target_room, gofer, harvester, update_scout_info, CreepState, HOME_ROOM, LOADING,
     TARGET, TASK,
 };
-use crate::state::game_state::RoomIFF;
 use crate::prelude::*;
 use crate::rooms::neighbours;
+use crate::state::game_state::RoomIFF;
 use num::FromPrimitive;
 use screeps::prelude::*;
 
@@ -23,9 +23,7 @@ enum LrhState {
 }
 
 pub fn task<'a>() -> Task<'a, CreepState> {
-    Task::new(|state| prepare_task(state).tick(state))
-        .with_required_bucket(2000)
-        .with_name("LRH")
+    Task::new(|state| prepare_task(state).tick(state)).with_name("LRH")
 }
 
 fn prepare_task<'a>(state: &CreepState) -> Task<'a, CreepState> {
@@ -46,7 +44,8 @@ fn prepare_task<'a>(state: &CreepState) -> Task<'a, CreepState> {
         Task::new(|state| load(state))
             .with_name("Load")
             .with_state_save(name.clone(), LrhState::Loading)
-            .with_priority(priorities[1]),
+            .with_priority(priorities[1])
+            .with_required_bucket(2000),
         Task::new(|state| unload(state))
             .with_name("Unload")
             .with_state_save(name.clone(), LrhState::Unloading)
