@@ -20,7 +20,7 @@ pub fn task<'a>() -> Task<'a, GameState> {
             let name = format!("Flag {}", name);
             Task::new(move |_game_state| {
                 check_controller(&flag)?;
-                Err("continue".to_owned())
+                Err("continue")?
             })
             .with_name(&name)
         })

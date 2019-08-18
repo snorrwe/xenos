@@ -36,7 +36,7 @@ pub fn build_roads<'a>(room: &'a Room, state: &'a mut ConstructionState) -> Exec
         .map_err(|e| format!("Failed to read list of target positions {:?}", e))?;
 
     if targets.is_empty() {
-        return Err(format!("Nothing to connect in room {}", room.name()));
+        Err(format!("Nothing to connect in room {}", room.name()))?;
     }
 
     let mut targets = targets.into_iter();

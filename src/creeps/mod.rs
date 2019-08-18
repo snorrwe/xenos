@@ -151,9 +151,8 @@ pub fn move_to<'a>(
     match res {
         ReturnCode::Ok | ReturnCode::Tired => Ok(()),
         _ => {
-            let error = format!("Move failed {:?}", res);
-            debug!("{}", error);
-            Err(error)
+            debug!("Move failed {:?}", res);
+            Err("Move failed")?
         }
     }
 }
@@ -179,9 +178,8 @@ pub fn move_to_options<'a>(
     match res {
         ReturnCode::Ok | ReturnCode::Tired => Ok(()),
         _ => {
-            let error = format!("Move failed {:?}", res);
-            debug!("{}", error);
-            Err(error)
+            debug!("Move failed {:?}", res);
+            Err("Move failed")?
         }
     }
 }
@@ -220,7 +218,7 @@ pub fn pickup_energy<'a>(state: &mut CreepState) -> ExecutionResult {
         Task::new(
             |state: &mut CreepState| match state.creep().pickup(&target) {
                 ReturnCode::Ok => Ok(()),
-                _ => Err("Can't pick up".to_owned()),
+                _ => Err("Can't pick up")?,
             },
         ),
         Task::new(|state: &mut CreepState| move_to(state.creep(), &target)),
@@ -461,7 +459,7 @@ pub fn approach_target_room<'a>(state: &mut CreepState, target_key: &str) -> Exe
         ReturnCode::try_from(result).map_err(|e| format!("Failed to parse return code {:?}", e))?;
 
     match result {
-        ReturnCode::NoPath | ReturnCode::InvalidTarget => Err("Failed to move".to_owned()),
+        ReturnCode::NoPath | ReturnCode::InvalidTarget => Err("Failed to move")?,
         _ => Ok(()),
     }
 }

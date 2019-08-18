@@ -15,10 +15,10 @@ pub fn build_containers<'a>(room: &'a Room) -> ExecutionResult {
         .into_iter()
         .find(|structure| structure.structure_type() == StructureType::Spawn);
     if spawn.is_none() {
-        return Err(format!(
+        Err(format!(
             "Skipping container build until a spawn is built in room {}",
             room.name()
-        ));
+        ))?;
     }
 
     let sources = room

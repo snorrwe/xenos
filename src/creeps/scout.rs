@@ -15,7 +15,8 @@ pub fn task<'a>() -> Task<'a, CreepState> {
         Task::new(|state| {
             approach_target_room(state, TARGET).map_err(|e| {
                 state.creep_memory_remove(TARGET);
-                format!("Approach failed {}", e)
+                debug!("Approach failed {}", e);
+                e
             })
         }),
         Task::new(|state| set_next_room(state)),
@@ -38,10 +39,7 @@ fn set_next_room(state: &mut CreepState) -> ExecutionResult {
     let mut min = 1 << 30;
     let mut target_room = WorldPosition::default();
     for room in neighbours(&room) {
-        if let Some(intel) = gs
-            .scout_intel
-            .get(&room)
-        {
+        if let Some(intel) = gs.scout_intel.get(&room) {
             if intel.time_of_recording < min {
                 min = intel.time_of_recording;
                 target_room = room;

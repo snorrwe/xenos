@@ -1,6 +1,6 @@
 use super::creep_state::CreepState;
 pub use super::spawn_info::*;
-use super::{conqueror, gofer, harvester, lrh, lrw, upgrader, worker, scout};
+use super::{conqueror, gofer, harvester, lrh, lrw, scout, upgrader, worker};
 use crate::prelude::*;
 use arrayvec::ArrayVec;
 use screeps::objects::Room;
@@ -114,9 +114,8 @@ pub fn run_role<'a>(role: Role) -> Task<'a, CreepState> {
 
     Task::new(move |state: &mut CreepState| {
         task.tick(state).map_err(|e| {
-            let error = format!("Creep {} is idle: {}", state.creep_name().0, e);
-            warn!("{}", error);
-            error
+            warn!("Creep {} is idle: {}", state.creep_name().0, e);
+            ExecutionError::from("Idle")
         })
     })
     .with_name("Run role")

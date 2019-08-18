@@ -45,13 +45,12 @@ fn attempt_attack<'a>(tower: &'a StructureTower) -> ExecutionResult {
         match res {
             ReturnCode::Ok | ReturnCode::RclNotEnough => Ok(()),
             _ => {
-                let error = format!("Failed to attack enemy {:?}", res);
-                error!("{}", error);
-                Err(error)
+                error!("Failed to attack enemy {:?}", res);
+                Err("Failed to attack enemy")?
             }
         }
     } else {
-        Err("no target".into())
+        Err("no target")?
     }
 }
 
@@ -80,7 +79,7 @@ fn repair<'a>(tower: &'a StructureTower, target: &'a Structure) -> ExecutionResu
         Ok(())
     } else {
         let error = format!("Unexpected ReturnCode {:?}", res);
-        Err(error)
+        Err(error)?
     }
 }
 

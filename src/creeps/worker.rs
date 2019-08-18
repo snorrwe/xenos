@@ -102,10 +102,9 @@ pub fn attempt_build<'a>(state: &mut CreepState) -> ExecutionResult {
         ReturnCode::Ok => Ok(()),
         ReturnCode::NotInRange => move_to(state.creep(), &target),
         _ => {
-            let error = format!("Failed to build target {:?} {:?}", res, target.id());
-            error!("{}", error);
+            error!("Failed to build target {:?} {:?}", res, target.id());
             state.creep_memory_remove(TARGET);
-            Err(error)
+            Err("Failed to build target")?
         }
     }
 }

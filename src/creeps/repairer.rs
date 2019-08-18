@@ -34,7 +34,7 @@ fn repair<'a>(creep: &'a Creep, target: &'a Structure) -> ExecutionResult {
     match res {
         ReturnCode::Ok => Ok(()),
         ReturnCode::NotInRange => move_to(creep, target),
-        _ => Err(format!("Unexpected ReturnCode {:?}", res)),
+        _ => Err(format!("Unexpected ReturnCode {:?}", res))?,
     }
 }
 

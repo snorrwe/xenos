@@ -12,7 +12,7 @@ fn main() {
         Version::parse("0.1.0").unwrap()
     };
 
-    version.increment_minor();
+    version.increment_patch();
 
     fs::write("VERSION", format!("{}", version)).expect("Failed to create version file");
 }

@@ -80,7 +80,7 @@ fn claim_target<'a>(state: &mut CreepState) -> ExecutionResult {
         .map_err(|e| format!("failed to convert 'my' to bool {:?}", e))?;
 
     if my {
-        return Err(format!("room is already claimed"));
+        return Err("room is already claimed")?;
     }
 
     let controller = room
@@ -92,7 +92,7 @@ fn claim_target<'a>(state: &mut CreepState) -> ExecutionResult {
     match result {
         ReturnCode::Ok => Ok(()),
         ReturnCode::NotInRange => move_to(creep, &controller),
-        _ => Err(format!("failed to claim controller {:?}", result)),
+        _ => Err(format!("failed to claim controller {:?}", result))?,
     }
 }
 
@@ -101,7 +101,7 @@ fn set_target<'a>(state: &mut CreepState) -> ExecutionResult {
 
     if state.creep_memory_string(CONQUEST_TARGET).is_some() {
         trace!("has target");
-        return Err(String::from("Creep already has a target"));
+        Err("Creep already has a target")?;
     }
     let flags = game::flags::values();
     let flag = flags.iter().next().ok_or_else(|| "can't find a flag")?;
@@ -121,7 +121,7 @@ pub fn sign_controller(creep: &Creep, msg: &str) -> ExecutionResult {
     match creep.sign_controller(&controller, msg) {
         ReturnCode::Ok => Ok(()),
         ReturnCode::NotInRange => move_to(creep, &controller),
-        result => Err(format!("failed to sign controller {:?}", result)),
+        result => Err(format!("failed to sign controller {:?}", result))?,
     }
 }
 

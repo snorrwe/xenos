@@ -38,9 +38,8 @@ pub fn attempt_upgrade<'a>(state: &mut CreepState) -> ExecutionResult {
         ReturnCode::Ok => Ok(()),
         ReturnCode::NotInRange => move_to(state.creep(), &controller),
         _ => {
-            let error = format!("Failed to upgrade controller {:?}", res);
-            error!("{}", error);
-            Err(error)
+            error!("Failed to upgrade controller {:?}", res);
+            Err("Failed to upgrade controller")?
         }
     }
 }

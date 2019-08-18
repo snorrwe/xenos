@@ -122,8 +122,7 @@ fn find_container<'a>(state: &mut CreepState) -> ExecutionResult {
         state.creep_memory_set(TARGET.into(), container.id());
         Ok(())
     } else {
-        let error = format!("No container was found");
-        Err(error)
+        Err("No container was found")?
     }
 }
 

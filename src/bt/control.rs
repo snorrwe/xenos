@@ -1,5 +1,5 @@
 use super::task::*;
-use super::{ExecutionResult, TaskInput, MAX_TASK_PER_CONTROL};
+use super::{ExecutionError, ExecutionResult, TaskInput, MAX_TASK_PER_CONTROL};
 use arrayvec::ArrayVec;
 use log::Level::Debug;
 use std::fmt::Write;
@@ -79,7 +79,8 @@ pub fn sequence<'a, T: 'a + TaskInput, It: Iterator<Item = &'a Task<'a, T>>>(
     state: &'a mut T,
     mut tasks: It,
 ) -> ExecutionResult {
-    let mut errors: ArrayVec<[String; MAX_TASK_PER_CONTROL]> = [].into_iter().cloned().collect();
+    let mut errors: ArrayVec<[ExecutionError; MAX_TASK_PER_CONTROL]> =
+        [].into_iter().cloned().collect();
     let found = tasks.any(|node| {
         let result = node.tick(state);
         debug!("Task result in sequence {:?} {:?}", node, result);
@@ -100,7 +101,7 @@ pub fn sequence<'a, T: 'a + TaskInput, It: Iterator<Item = &'a Task<'a, T>>>(
                     "Debug info write failure"
                 })?;
             }
-            Err(format!("All tasks failed in Sequence node\n{}", error_str))
+            Err(format!("All tasks failed in Sequence node\n{}", error_str))?
         } else {
             Err("All tasks failed in Sequence!")?
         }
