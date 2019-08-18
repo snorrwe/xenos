@@ -14,7 +14,7 @@ use std::fmt::{self, Display, Formatter};
 pub const MAX_TASK_PER_CONTROL: usize = 16;
 
 #[derive(Default, Debug, Clone)]
-pub struct ExecutionError(ArrayString<[u8; 64]>);
+pub struct ExecutionError(ArrayString<[u8; 128]>);
 
 /// Result of a task
 pub type ExecutionResult = Result<(), ExecutionError>;
