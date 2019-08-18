@@ -33,8 +33,7 @@ where
         for i in 0..self.capacity() {
             write!(f, "{:?},", self.buff.get(C::Index::from_usize(i)))?;
         }
-        write!(f, "]")?;
-        Ok(())
+        write!(f, "]")
     }
 }
 

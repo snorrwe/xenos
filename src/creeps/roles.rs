@@ -50,8 +50,7 @@ impl Display for Role {
             Role::Conqueror => "Conqueror",
             Role::Scout => "Scout",
         };
-        write!(f, "{}", name)?;
-        Ok(())
+        write!(f, "{}", name)
     }
 }
 
