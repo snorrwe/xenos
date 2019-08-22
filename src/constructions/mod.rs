@@ -7,7 +7,7 @@ mod spawns;
 mod storage;
 
 use self::construction_matrix::ConstructionMatrix;
-use self::construction_state::ConstructionState;
+use crate::state::ConstructionState;
 use self::point::Point;
 use crate::state::MemorySentinel;
 use crate::prelude::*;

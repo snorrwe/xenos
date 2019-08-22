@@ -1,9 +1,12 @@
-pub mod construction_state;
-pub mod creep_state;
-pub mod game_state;
-pub mod sentinel;
+mod construction_state;
+mod creep_state;
+mod game_state;
+mod sentinel;
 
+pub use self::construction_state::*;
 pub use self::sentinel::*;
+pub use self::creep_state::*;
+pub use self::game_state::*;
 
 use crate::prelude::*;
 use num::ToPrimitive;

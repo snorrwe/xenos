@@ -13,8 +13,6 @@ mod worker;
 
 pub use self::roles::Role;
 use crate::prelude::*;
-use crate::state::creep_state::CreepState;
-use crate::state::game_state::{RoomIFF, ScoutInfo};
 use screeps::{
     constants::{find, ResourceType},
     game::{self, get_object_erased, get_object_typed},

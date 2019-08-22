@@ -1,6 +1,6 @@
 //! Harvest energy and unload it to the appropriate target
 //!
-use super::{gofer, move_to, CreepState, TARGET};
+use super::{gofer, move_to, CreepState, Role, TARGET};
 use crate::prelude::*;
 use screeps::{
     constants::ResourceType,
@@ -59,8 +59,21 @@ pub fn unload<'a>(state: &mut CreepState) -> ExecutionResult {
             try_transfer::<StructureContainer>(state.creep(), &target)
         })
         .with_name("Try transfer container"),
-        Task::new(|state: &mut CreepState| gofer::attempt_unload(state))
-            .with_name("Attempt gofer unload"),
+        Task::new(|state: &mut CreepState| {
+            let n = unsafe {
+                let room = state.creep().room();
+                let state = &mut *state.mut_game_state();
+                state
+                    .count_creeps_in_room(&room)
+                    .get(&Role::Gofer)
+                    .unwrap_or(&0)
+            };
+            if *n > 0 {
+                return Err("Waiting on gofer")?;
+            }
+            gofer::attempt_unload(state)
+        })
+        .with_name("Attempt gofer unload"),
     ];
 
     sequence(state, tasks.iter()).map_err(|error| {
@@ -74,10 +87,7 @@ fn find_unload_target<'a>(state: &mut CreepState) -> Option<Reference> {
     trace!("Setting unload target");
 
     read_unload_target(state).or_else(|| {
-        let tasks = [
-            Task::new(|state| find_container(state)).with_name("Find container"),
-            Task::new(|state| find_spawn(state)).with_name("Find spawn"),
-        ];
+        let tasks = [Task::new(|state| find_container(state)).with_name("Find container")];
         sequence(state, tasks.iter()).unwrap_or_else(|e| {
             debug!("Failed to find unload target {:?}", e);
         });
@@ -124,18 +134,6 @@ fn find_container<'a>(state: &mut CreepState) -> ExecutionResult {
     } else {
         Err("No container was found")?
     }
-}
-
-fn find_spawn<'a>(state: &mut CreepState) -> ExecutionResult {
-    debug!("Finding new unload target");
-
-    let target = state
-        .creep()
-        .pos()
-        .find_closest_by_range(find::MY_SPAWNS)
-        .ok_or_else(|| String::new())?;
-    state.creep_memory_set(TARGET.into(), target.id());
-    Ok(())
 }
 
 fn transfer<'a, T>(creep: &'a Creep, target: &'a T) -> ExecutionResult

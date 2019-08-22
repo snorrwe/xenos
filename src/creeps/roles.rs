@@ -1,4 +1,3 @@
-use super::creep_state::CreepState;
 pub use super::spawn_info::*;
 use super::{conqueror, gofer, harvester, lrh, lrw, scout, upgrader, worker};
 use crate::prelude::*;

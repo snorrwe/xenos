@@ -8,7 +8,7 @@ use super::{
 };
 use crate::prelude::*;
 use crate::rooms::neighbours;
-use crate::state::game_state::RoomIFF;
+use crate::state::RoomIFF;
 use num::FromPrimitive;
 use screeps::prelude::*;
 

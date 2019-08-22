@@ -1,6 +1,6 @@
 use super::roles::Role;
 use crate::prelude::WorldPosition;
-use crate::state::game_state::GameState;
+use crate::state::GameState;
 use arrayvec::ArrayVec;
 use screeps::{
     constants::find,

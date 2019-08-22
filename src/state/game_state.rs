@@ -107,16 +107,17 @@ impl GameState {
         Box::pin(state)
     }
 
-    pub fn count_creeps_in_room<'b>(&mut self, room: &'b Room) -> &BTreeMap<Role, i8> {
-        // TODO: use cached value
-        let count = self
-            .count_roles_in_room(room)
-            .iter()
-            .map(|(k, v)| (*k, *v))
-            .collect();
+    pub fn count_creeps_in_room<'a>(&'a mut self, room: &Room) -> &'a BTreeMap<Role, i8> {
         let pos = WorldPosition::from(room);
-        self.creep_count_by_room.insert(pos, count);
-        self.creep_count_by_room.get_mut(&pos).unwrap()
+        if let None = self.creep_count_by_room.get(&pos) {
+            let count = self
+                .count_roles_in_room(room)
+                .iter()
+                .map(|(k, v)| (*k, *v))
+                .collect();
+            self.creep_count_by_room.insert(pos, count);
+        }
+        self.creep_count_by_room.get(&pos).unwrap()
     }
 
     /// Get an entry in the creep's memory
