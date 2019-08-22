@@ -11,10 +11,10 @@ mod scout;
 mod upgrader;
 mod worker;
 
-use crate::state::creep_state::CreepState;
 pub use self::roles::Role;
-use crate::state::game_state::{RoomIFF, ScoutInfo};
 use crate::prelude::*;
+use crate::state::creep_state::CreepState;
+use crate::state::game_state::{RoomIFF, ScoutInfo};
 use screeps::{
     constants::{find, ResourceType},
     game::{self, get_object_erased, get_object_typed},
@@ -96,8 +96,7 @@ fn run_creep<'a>(state: &mut CreepState) -> ExecutionResult {
 }
 
 pub fn initialize_creep<'a>(state: &'a mut GameState, creep: &'a Creep) -> ExecutionResult {
-    assign_role(state, &creep)
-        .ok_or_else(|| "Failed to find a role for creep")?;
+    assign_role(state, &creep).ok_or_else(|| "Failed to find a role for creep")?;
     let memory = state.creep_memory_entry(CreepName(&creep.name()));
     memory.insert(HOME_ROOM.into(), creep.room().name().into());
     Ok(())
@@ -137,10 +136,10 @@ fn run_role<'a>(state: &'a mut CreepState) -> ExecutionResult {
     task.tick(state)
 }
 
-pub fn move_to<'a>(
-    creep: &'a Creep,
-    target: &'a impl screeps::RoomObjectProperties,
-) -> ExecutionResult {
+pub fn move_to<'a, T>(creep: &'a Creep, target: &'a T) -> ExecutionResult
+where
+    T: screeps::HasPosition,
+{
     let res = js! {
         const creep = @{creep};
         const target = @{target.pos()};
@@ -161,11 +160,14 @@ pub struct MoveToOptions {
     reuse_path: Option<i32>,
 }
 
-pub fn move_to_options<'a>(
+pub fn move_to_options<'a, T>(
     creep: &'a Creep,
-    target: &'a impl screeps::RoomObjectProperties,
+    target: &'a T,
     options: MoveToOptions,
-) -> ExecutionResult {
+) -> ExecutionResult
+where
+    T: screeps::HasPosition,
+{
     let reuse_path = options.reuse_path;
     let res = js! {
         const creep = @{creep};

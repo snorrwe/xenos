@@ -2,7 +2,7 @@
 //!
 use super::{move_to, move_to_options, update_scout_info, CreepState, MoveToOptions};
 use crate::prelude::*;
-use screeps::{game, objects::Creep, prelude::*, ReturnCode};
+use screeps::{objects::Creep, prelude::*, ReturnCode};
 use stdweb::unstable::TryInto;
 
 const CONQUEST_TARGET: &'static str = "conquest_target";
@@ -32,45 +32,35 @@ pub fn task<'a>() -> Task<'a, CreepState> {
 }
 
 fn claim_target<'a>(state: &mut CreepState) -> ExecutionResult {
-    trace!("claiming room");
+    debug!("claiming room");
 
-    let flag = {
-        let flag = state
+    let target_room = {
+        state
             .creep_memory_string(CONQUEST_TARGET)
-            .ok_or_else(|| "no target set")?;
-        game::flags::get(flag)
+            .ok_or_else(|| "no target set")?
     };
 
-    let flag = flag.ok_or_else(|| {
-        state.creep_memory_remove(CONQUEST_TARGET);
-        "target flag does not exist"
-    })?;
     let creep = state.creep();
 
-    let room = creep.room();
     let room_name = state.current_room().to_string();
     let room_name = room_name.as_str();
 
-    // The Rust Screeps api may panic here
-    let arrived = js! {
-        const flag = @{&flag};
-        return @{&room_name} == (flag.room && flag.room.name) || false;
-    };
+    let arrived = room_name == target_room;
 
-    let arrived: bool = arrived
-        .try_into()
-        .map_err(|e| format!("failed to convert result to bool {:?}", e))?;
     if !arrived {
-        trace!("approaching target room");
+        let target_room = WorldPosition::parse_name(target_room)
+            .map_err(|e| format!("Got an invalid room name as conquest target {:?}", e))?
+            .as_room_center();
         return move_to_options(
             creep,
-            &flag,
+            &target_room,
             MoveToOptions {
                 reuse_path: Some(30),
             },
         );
     }
 
+    let room = creep.room();
     let my = js! {
         return @{&room}.controller.my || false;
     };
@@ -103,11 +93,19 @@ fn set_target<'a>(state: &mut CreepState) -> ExecutionResult {
         trace!("has target");
         Err("Creep already has a target")?;
     }
-    let flags = game::flags::values();
-    let flag = flags.iter().next().ok_or_else(|| "can't find a flag")?;
 
-    state.creep_memory_set(CONQUEST_TARGET.into(), flag.name());
-    debug!("set target to {}", flag.name());
+    let flag = {
+        state
+            .get_game_state()
+            .expansion
+            .iter()
+            .next()
+            .ok_or_else(|| "can't find a target")?
+            .clone()
+    };
+
+    state.creep_memory_set(CONQUEST_TARGET.into(), flag.to_string().as_str());
+    debug!("set target to {:?}", flag);
 
     Ok(())
 }
