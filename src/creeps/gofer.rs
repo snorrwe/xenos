@@ -111,12 +111,12 @@ pub fn attempt_unload<'a>(state: &mut CreepState) -> ExecutionResult {
 fn find_unload_target<'a>(state: &mut CreepState) -> Option<Reference> {
     trace!("Setting unload target");
     if let Some(target) = read_unload_target(state) {
-        let full = js! {
+        let notfull = js! {
             const target = @{&target};
             return !target.energyCapacity || target.energy < target.energyCapacity;
         };
-        let full: bool = full.try_into().unwrap_or(true);
-        if full {
+        let notfull: bool = notfull.try_into().unwrap_or(true);
+        if notfull {
             return Some(target);
         }
     }
@@ -146,7 +146,7 @@ fn read_unload_target<'a>(state: &mut CreepState) -> Option<Reference> {
     })
 }
 
-fn try_transfer<'a, T>(state: &mut CreepState, target: &'a Reference) -> ExecutionResult
+pub fn try_transfer<'a, T>(state: &mut CreepState, target: &'a Reference) -> ExecutionResult
 where
     T: Transferable + screeps::traits::TryFrom<&'a Reference>,
 {
@@ -167,10 +167,7 @@ fn find_storage<'a>(state: &mut CreepState) -> ExecutionResult {
     Ok(())
 }
 
-fn find_unload_target_by_type<'a>(
-    state: &mut CreepState,
-    struct_type: &'a str,
-) -> ExecutionResult {
+fn find_unload_target_by_type<'a>(state: &mut CreepState, struct_type: &'a str) -> ExecutionResult {
     let res = js! {
         const creep = @{state.creep()};
         const ext = creep.pos.findClosestByRange(FIND_STRUCTURES, {
@@ -191,10 +188,8 @@ where
 {
     let creep = state.creep();
     if creep.pos().is_near_to(target) {
-        let r = creep.transfer_all(target, ResourceType::Energy);
-        if r != ReturnCode::Ok {
-            debug!("couldn't unload: {:?}", r);
-            state.creep_memory_remove(TARGET);
+        if creep.transfer_all(target, ResourceType::Energy) != ReturnCode::Ok {
+            Err("couldn't unload")?;
         }
     } else {
         move_to(creep, target)?;

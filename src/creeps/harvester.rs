@@ -1,12 +1,14 @@
 //! Harvest energy and unload it to the appropriate target
 //!
-use super::{gofer, move_to, CreepState, Role, TARGET};
+use super::{
+    gofer::{self, try_transfer},
+    move_to, CreepState, Role, TARGET,
+};
 use crate::prelude::*;
 use screeps::{
-    constants::ResourceType,
     find, game,
     game::get_object_erased,
-    objects::{Creep, Source, StructureContainer, Transferable},
+    objects::{Creep, Source, StructureContainer},
     prelude::*,
     ReturnCode,
 };
@@ -47,16 +49,14 @@ pub fn unload<'a>(state: &mut CreepState) -> ExecutionResult {
         Err("empty")?;
     }
 
-    let target = find_unload_target(state).ok_or_else(|| {
-        state.creep_memory_remove(TARGET);
-        let error = String::from("could not find unload target");
-        debug!("{}", error);
-        error
-    })?;
-
     let tasks = [
         Task::new(|state: &mut CreepState| {
-            try_transfer::<StructureContainer>(state.creep(), &target)
+            let target = find_unload_target(state).ok_or_else(|| {
+                state.creep_memory_remove(TARGET);
+                let error = String::from("could not find unload target");
+                error
+            })?;
+            try_transfer::<StructureContainer>(state, &target)
         })
         .with_name("Try transfer container"),
         Task::new(|state: &mut CreepState| {
@@ -66,11 +66,11 @@ pub fn unload<'a>(state: &mut CreepState) -> ExecutionResult {
                 state
                     .count_creeps_in_room(&room)
                     .get(&Role::Gofer)
-                    .map(|x|*x)
+                    .map(|x| *x)
                     .unwrap_or(0)
             };
             if n > 0 {
-                return Err("Waiting on gofer")?;
+                Err("Waiting on gofer")?;
             }
             gofer::attempt_unload(state)
         })
@@ -85,8 +85,6 @@ pub fn unload<'a>(state: &mut CreepState) -> ExecutionResult {
 }
 
 fn find_unload_target<'a>(state: &mut CreepState) -> Option<Reference> {
-    trace!("Setting unload target");
-
     read_unload_target(state).or_else(|| {
         let tasks = [Task::new(|state| find_container(state)).with_name("Find container")];
         sequence(state, tasks.iter()).unwrap_or_else(|e| {
@@ -100,20 +98,11 @@ fn read_unload_target<'a>(state: &mut CreepState) -> Option<Reference> {
     let target = state.creep_memory_string(TARGET);
 
     if let Some(target) = target {
-        trace!("Validating existing target");
         let target = get_object_erased(target)?;
         Some(target.as_ref().clone())
     } else {
         None
     }
-}
-
-fn try_transfer<'a, T>(creep: &'a Creep, target: &'a Reference) -> ExecutionResult
-where
-    T: Transferable + screeps::traits::TryFrom<&'a Reference>,
-{
-    let target = T::try_from(target.as_ref()).map_err(|_| format!("Bad type"))?;
-    transfer(creep, &target)
 }
 
 fn find_container<'a>(state: &mut CreepState) -> ExecutionResult {
@@ -135,22 +124,6 @@ fn find_container<'a>(state: &mut CreepState) -> ExecutionResult {
     } else {
         Err("No container was found")?
     }
-}
-
-fn transfer<'a, T>(creep: &'a Creep, target: &'a T) -> ExecutionResult
-where
-    T: Transferable,
-{
-    if creep.pos().is_near_to(target) {
-        let r = creep.transfer_all(target, ResourceType::Energy);
-        if r != ReturnCode::Ok {
-            debug!("couldn't unload: {:?}", r);
-            Err("")?;
-        }
-    } else {
-        move_to(creep, target)?;
-    }
-    Ok(())
 }
 
 pub fn attempt_harvest<'a>(
