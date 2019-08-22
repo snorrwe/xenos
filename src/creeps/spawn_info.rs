@@ -68,7 +68,7 @@ pub fn target_number_of_role_in_room<'a>(role: Role, room: &'a Room, game_state:
 
             target_workers
         }
-        Role::Conqueror => n_flags,
+        Role::Conqueror => n_flags.max(1),
         Role::Lrh => {
             if n_containers == 0 {
                 0
@@ -77,7 +77,7 @@ pub fn target_number_of_role_in_room<'a>(role: Role, room: &'a Room, game_state:
             }
         }
         Role::Gofer => n_sources.min(n_containers as i8),
-        Role::Lrw => n_flags * 2,
+        Role::Lrw => n_flags.max(1),
         Role::Scout => 1,
         Role::Unknown => 0,
     }

@@ -66,9 +66,10 @@ pub fn unload<'a>(state: &mut CreepState) -> ExecutionResult {
                 state
                     .count_creeps_in_room(&room)
                     .get(&Role::Gofer)
-                    .unwrap_or(&0)
+                    .map(|x|*x)
+                    .unwrap_or(0)
             };
-            if *n > 0 {
+            if n > 0 {
                 return Err("Waiting on gofer")?;
             }
             gofer::attempt_unload(state)
