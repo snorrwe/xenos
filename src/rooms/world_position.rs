@@ -34,6 +34,12 @@ impl DerefMut for WorldPosition {
 }
 
 impl WorldPosition {
+    pub fn dist(&self, other: WorldPosition) -> u16 {
+        let x = (self.0[0] - other.0[0]).abs();
+        let y = (self.0[1] - other.0[1]).abs();
+        (x + y) as u16
+    }
+
     /// Returns the coordinates of the room
     pub fn parse_name(room_name: &str) -> Result<Self, &'static str> {
         let parts = room_name

@@ -5,7 +5,7 @@ use crate::prelude::*;
 use num::ToPrimitive;
 use screeps::{raw_memory, Room};
 use serde_json::{self, Value};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::error::Error;
 use std::pin::Pin;
 
@@ -45,7 +45,7 @@ pub struct GameState {
     pub creep_stats: CreepExecutionStats,
 
     /// Rooms targeted for expansion
-    pub expansion: Vec<WorldPosition>,
+    pub expansion: BTreeSet<WorldPosition>,
 }
 
 impl Clone for GameState {
@@ -107,7 +107,7 @@ impl GameState {
         Box::pin(state)
     }
 
-    pub fn count_creeps_in_room<'b>(&mut self, room: &'b Room) -> &mut BTreeMap<Role, i8> {
+    pub fn count_creeps_in_room<'b>(&mut self, room: &'b Room) -> &BTreeMap<Role, i8> {
         // TODO: use cached value
         let count = self
             .count_roles_in_room(room)

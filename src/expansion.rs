@@ -4,7 +4,7 @@ use crate::prelude::*;
 use screeps::constants::find;
 use screeps::game;
 use screeps::objects::OwnedStructureProperties;
-use std::collections::HashMap;
+use std::collections::{HashMap, BTreeSet};
 
 pub fn run<'a>(state: &'a mut GameState) -> ExecutionResult {
     let tasks = [Task::new(remove_exp_markers)];
@@ -19,7 +19,7 @@ fn remove_exp_markers(state: &mut GameState) -> ExecutionResult {
         .map(|r| (WorldPosition::from(&r), r))
         .collect::<HashMap<_, _>>();
 
-    let mut retain = Vec::with_capacity(state.expansion.len());
+    let mut retain = BTreeSet::new();
 
     for exp in state.expansion.iter().cloned() {
         if let Some(room) = rooms.get(&exp) {
@@ -32,13 +32,13 @@ fn remove_exp_markers(state: &mut GameState) -> ExecutionResult {
             if controller.my() && controller.level() >= 4 {
                 let spawn = room.find(find::MY_SPAWNS).len();
                 if spawn == 0 {
-                    retain.push(exp);
+                    retain.insert(exp);
                 }
             } else {
-                retain.push(exp);
+                retain.insert(exp);
             }
         } else {
-            retain.push(exp);
+            retain.insert(exp);
         }
     }
 

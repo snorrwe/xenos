@@ -87,10 +87,7 @@ fn claim_target<'a>(state: &mut CreepState) -> ExecutionResult {
 }
 
 fn set_target<'a>(state: &mut CreepState) -> ExecutionResult {
-    trace!("finding target");
-
     if state.creep_memory_string(CONQUEST_TARGET).is_some() {
-        trace!("has target");
         Err("Creep already has a target")?;
     }
 
@@ -105,7 +102,6 @@ fn set_target<'a>(state: &mut CreepState) -> ExecutionResult {
     };
 
     state.creep_memory_set(CONQUEST_TARGET.into(), flag.to_string().as_str());
-    debug!("set target to {:?}", flag);
 
     Ok(())
 }

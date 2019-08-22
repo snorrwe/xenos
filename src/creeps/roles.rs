@@ -75,26 +75,26 @@ impl Role {
 // TODO: return an array of all roles to spawn in order of priority
 /// Get the next target role in the given room
 pub fn next_role<'a>(state: &'a mut GameState, room: &'a Room) -> Option<Role> {
-    state.count_creeps_in_room(room).into_iter().fold(
-        None,
-        |result: Option<Role>, (role, actual)| {
-            let expected = target_number_of_role_in_room(*role, room);
-            if expected <= *actual {
+    let creeps = { state.count_creeps_in_room(room).clone() };
+    creeps
+        .into_iter()
+        .fold(None, |result: Option<Role>, (role, actual)| {
+            let expected = target_number_of_role_in_room(role, room, state);
+            if expected <= actual {
                 return result;
             }
             result
                 .map(|result| {
                     let result_prio = role_priority(room, result);
-                    let role_prio = role_priority(room, *role);
+                    let role_prio = role_priority(room, role);
                     if role_prio > result_prio {
-                        *role
+                        role
                     } else {
                         result
                     }
                 })
-                .or_else(|| Some(*role))
-        },
-    )
+                .or_else(|| Some(role))
+        })
 }
 
 /// Run the creep according to the given role

@@ -1,10 +1,10 @@
 use super::roles::Role;
-use crate::rooms::manhatten_distance;
+use crate::prelude::WorldPosition;
+use crate::state::game_state::GameState;
 use arrayvec::ArrayVec;
 use screeps::{
     constants::find,
-    game,
-    objects::{HasPosition, HasStore, Room, StructureContainer},
+    objects::{HasStore, Room, StructureContainer},
     Part,
 };
 use stdweb::unstable::TryInto;
@@ -32,24 +32,15 @@ pub fn role_priority<'a>(_room: &'a Room, role: Role) -> i8 {
 }
 
 /// Max number of creeps of a given role in the given room
-pub fn target_number_of_role_in_room<'a>(role: Role, room: &'a Room) -> i8 {
+pub fn target_number_of_role_in_room<'a>(role: Role, room: &'a Room, game_state: &GameState) -> i8 {
     let level = room.controller().map(|l| l.level()).unwrap_or(0);
-    let room_name = room.name();
-    let n_flags = game::flags::values()
-        .into_iter()
-        .filter(|flag| {
-            let rn = flag.pos().room_name();
-            manhatten_distance(&room_name, &rn)
-                .map(|d| d <= 10)
-                .unwrap_or_else(|e| {
-                    error!(
-                        "Failed to calculate distance from {:?} to {:?}, {:?}",
-                        &room_name, &rn, e
-                    );
-                    false
-                })
-        })
-        .count() as i8;
+    let room_pos = WorldPosition::from(room);
+    let n_flags = game_state
+        .expansion
+        .iter()
+        .filter(|w| w.dist(room_pos) <= 10)
+        .count()
+        .min(255) as i8;
     let n_sources = room.find(find::SOURCES).len() as i8;
     let containers = js! {
         const room = @{room};

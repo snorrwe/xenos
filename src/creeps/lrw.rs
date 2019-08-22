@@ -1,10 +1,8 @@
 //! Long Range Worker
 //! Used to work on other rooms
 //!
-use super::{move_to, update_scout_info, worker, CreepState};
+use super::{move_to_options, update_scout_info, worker, CreepState, MoveToOptions};
 use crate::prelude::*;
-use screeps::{game, prelude::*};
-use stdweb::unstable::TryInto;
 
 const TARGET_ROOM: &'static str = "target_room";
 
@@ -30,49 +28,47 @@ pub fn task<'a>() -> Task<'a, CreepState> {
 }
 
 fn approach_target_room<'a>(state: &mut CreepState) -> ExecutionResult {
-    let flag = {
-        let flag = state
+    let target_room = {
+        state
             .creep_memory_string(TARGET_ROOM)
-            .ok_or_else(|| "no target set")?;
-        game::flags::get(flag)
+            .ok_or_else(|| "no target set")?
     };
-
-    let flag = flag.ok_or_else(|| {
-        state.creep_memory_remove(TARGET_ROOM);
-        "target flag does not exist"
-    })?;
 
     let creep = state.creep();
-    let room = creep.room();
 
-    // The Rust Screeps api may panic here
-    let arrived = js! {
-        const flag = @{&flag};
-        return @{&room}.name == (flag.room && flag.room.name) || false;
-    };
+    let arrived = state.current_room().to_string().as_str() == target_room;
 
-    let arrived: bool = arrived
-        .try_into()
-        .map_err(|e| format!("failed to convert result to bool {:?}", e))?;
     if arrived {
         Err("Already in the room")?;
     }
-    trace!("approaching target room");
-    move_to(creep, &flag)
+    let target_room = WorldPosition::parse_name(target_room)
+        .map_err(|e| format!("Got an invalid room name as conquest target {:?}", e))?
+        .as_room_center();
+    move_to_options(
+        creep,
+        &target_room,
+        MoveToOptions {
+            reuse_path: Some(30),
+        },
+    )
 }
 
 fn set_target<'a>(state: &mut CreepState) -> ExecutionResult {
-    trace!("finding target");
-
     if state.creep_memory_string(TARGET_ROOM).is_some() {
         trace!("has target");
         Err("Creep already has a target")?;
     }
-    let flags = game::flags::values();
-    let flag = flags.iter().next().ok_or_else(|| "can't find a flag")?;
+    let flag = {
+        state
+            .get_game_state()
+            .expansion
+            .iter()
+            .next()
+            .ok_or_else(|| "can't find a target")?
+            .clone()
+    };
 
-    state.creep_memory_set(TARGET_ROOM.into(), flag.name());
-    debug!("set target to {}", flag.name());
+    state.creep_memory_set(TARGET_ROOM.into(), flag.to_string().as_str());
 
     Ok(())
 }

@@ -18,7 +18,7 @@ pub fn task<'a>() -> Task<'a, GameState> {
                     &flag.pos().room_name()
                     ).unwrap();
                 flag.remove();
-                state.expansion.push(room);
+                state.expansion.insert(room);
                 Ok(())
             })
         })

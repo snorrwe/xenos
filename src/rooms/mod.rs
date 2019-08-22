@@ -5,16 +5,6 @@ use arrayvec::ArrayVec;
 use screeps::traits::TryInto;
 use screeps::Room;
 
-pub fn manhatten_distance(one: &str, other: &str) -> Result<i32, &'static str> {
-    let one = WorldPosition::parse_name(one)?;
-    let other = WorldPosition::parse_name(other)?;
-
-    let x = (one[0] - other[0]).abs() as i32;
-    let y = (one[1] - other[1]).abs() as i32;
-
-    Ok(x + y)
-}
-
 pub fn neighbours(room: &Room) -> ArrayVec<[WorldPosition; 8]> {
     let coords = WorldPosition::from(room);
     let neighbours = coords
@@ -47,21 +37,5 @@ pub fn neighbours(room: &Room) -> ArrayVec<[WorldPosition; 8]> {
         .into_iter()
         .map(|x| WorldPosition::parse_name(x.as_str()).unwrap())
         .collect()
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_manhatten() {
-        let a = "W43N1";
-        let b = "W45S1";
-
-        let d = manhatten_distance(a, b).expect("Failed to get the dinstance");
-
-        assert_eq!(d, 4);
-    }
-
 }
 
