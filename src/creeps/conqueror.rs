@@ -1,8 +1,11 @@
 //! Takes Rooms
 //!
-use super::{move_to, move_to_options, update_scout_info, CreepState, MoveToOptions};
+use super::{
+    move_to, move_to_options, sign_controller_stock_msgs, update_scout_info, CreepState,
+    MoveToOptions,
+};
 use crate::prelude::*;
-use screeps::{game, objects::Creep, prelude::*, ReturnCode};
+use screeps::{prelude::*, ReturnCode};
 use stdweb::unstable::TryInto;
 
 const CONQUEST_TARGET: &'static str = "conquest_target";
@@ -18,12 +21,8 @@ pub fn task<'a>() -> Task<'a, CreepState> {
         .with_name("Update scout info"),
         Task::new(move |state| claim_target(state)).with_name("Claim target"),
         Task::new(move |state| set_target(state)).with_name("Set target"),
-        Task::new(move |state: &mut CreepState| {
-            const MESSAGES: &'static [&'static str] = &["Become as Gods", "This cannot continue"];
-            let msg = MESSAGES[game::time() as usize % MESSAGES.len()];
-            sign_controller(state.creep(), msg)
-        })
-        .with_name("Set target"),
+        Task::new(move |state: &mut CreepState| sign_controller_stock_msgs(state.creep()))
+            .with_name("Set target"),
     ]
     .into_iter()
     .cloned()
@@ -108,18 +107,5 @@ fn set_target<'a>(state: &mut CreepState) -> ExecutionResult {
     state.creep_memory_set(CONQUEST_TARGET.into(), flag.to_string().as_str());
 
     Ok(())
-}
-
-pub fn sign_controller(creep: &Creep, msg: &str) -> ExecutionResult {
-    let controller = creep
-        .room()
-        .controller()
-        .ok_or_else(|| "Room has no controller")?;
-
-    match creep.sign_controller(&controller, msg) {
-        ReturnCode::Ok => Ok(()),
-        ReturnCode::NotInRange => move_to(creep, &controller),
-        result => Err(format!("failed to sign controller {:?}", result))?,
-    }
 }
 

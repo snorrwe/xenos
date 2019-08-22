@@ -1,12 +1,20 @@
 //! Upgrade Controllers
 //!
-use super::{move_to, withdraw_energy, CreepState, LOADING};
+use super::{move_to, sign_controller_stock_msgs, withdraw_energy, CreepState, LOADING};
 use crate::prelude::*;
 use screeps::{prelude::*, ReturnCode};
 
 pub fn task<'a>() -> Task<'a, CreepState> {
     let tasks = [
-        Task::new(move |state| attempt_upgrade(state)).with_name("Attempt upgrade"),
+        Task::new(move |state| {
+            let tasks = [
+                Task::new(|state| attempt_upgrade(state)),
+                Task::new(|state: &mut CreepState| sign_controller_stock_msgs(state.creep())),
+            ];
+
+            selector(state, tasks.iter())
+        })
+        .with_name("Attempt upgrade"),
         Task::new(move |state| withdraw_energy(state)).with_name("Withdraw energy"),
         Task::new(move |state| attempt_upgrade(state)).with_name("Attempt upgrade"),
     ]

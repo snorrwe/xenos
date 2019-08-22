@@ -464,3 +464,22 @@ pub fn approach_target_room<'a>(state: &mut CreepState, target_key: &str) -> Exe
     }
 }
 
+pub fn sign_controller_stock_msgs(creep: &Creep) -> ExecutionResult {
+    const MESSAGES: &'static [&'static str] = &["Become as Gods", "This cannot continue"];
+    let msg = MESSAGES[game::time() as usize % MESSAGES.len()];
+    sign_controller(creep, msg)
+}
+
+pub fn sign_controller(creep: &Creep, msg: &str) -> ExecutionResult {
+    let controller = creep
+        .room()
+        .controller()
+        .ok_or_else(|| "Room has no controller")?;
+
+    match creep.sign_controller(&controller, msg) {
+        ReturnCode::Ok => Ok(()),
+        ReturnCode::NotInRange => move_to(creep, &controller),
+        result => Err(format!("failed to sign controller {:?}", result))?,
+    }
+}
+
