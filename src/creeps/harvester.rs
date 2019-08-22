@@ -8,7 +8,7 @@ use crate::prelude::*;
 use screeps::{
     find, game,
     game::get_object_erased,
-    objects::{Creep, Source, StructureContainer},
+    objects::{Source, StructureContainer},
     prelude::*,
     ReturnCode,
 };
