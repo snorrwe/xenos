@@ -1,5 +1,4 @@
 use crate::creeps::{Role, TASK};
-use super::WithStateSave;
 use crate::prelude::*;
 use num::ToPrimitive;
 use screeps::Creep;
@@ -122,14 +121,16 @@ impl Debug for CreepState {
     }
 }
 
+pub trait WithStateSave<'a> {
+    type State: TaskInput;
+
+    fn with_state_save<T: ToPrimitive + 'a>(self, task_id: T) -> Task<'a, Self::State>;
+}
+
 impl<'a> WithStateSave<'a> for Task<'a, CreepState> {
     type State = CreepState;
 
-    fn with_state_save<T: 'a + ToPrimitive>(
-        self,
-        _creep: String,
-        task_id: T,
-    ) -> Task<'a, CreepState> {
+    fn with_state_save<T: 'a + ToPrimitive>(self, task_id: T) -> Task<'a, CreepState> {
         let tasks = [
             self,
             Task::new(move |state: &mut CreepState| {

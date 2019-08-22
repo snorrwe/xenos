@@ -1,8 +1,6 @@
-use super::WithStateSave;
 use crate::creeps::roles::Role;
-use crate::creeps::{CreepExecutionStats, CREEP_ROLE, HOME_ROOM, TASK};
+use crate::creeps::{CreepExecutionStats, CREEP_ROLE, HOME_ROOM};
 use crate::prelude::*;
-use num::ToPrimitive;
 use screeps::{raw_memory, Room};
 use serde_json::{self, Value};
 use std::collections::{BTreeMap, BTreeSet};
@@ -132,6 +130,7 @@ impl GameState {
         self.creep_memory.get(creep.0)
     }
 
+    #[allow(unused)]
     pub fn creep_memory_set<T: Into<Value>>(&mut self, creep: CreepName, key: &str, value: T) {
         let val: Value = value.into();
         self.creep_memory_entry(creep).insert(key.to_owned(), val);
@@ -216,35 +215,6 @@ impl GameState {
             });
 
         result
-    }
-}
-
-impl<'a> WithStateSave<'a> for Task<'a, GameState> {
-    type State = GameState;
-
-    fn with_state_save<T: ToPrimitive + 'a>(
-        self,
-        creep: String,
-        task_id: T,
-    ) -> Task<'a, GameState> {
-        let tasks = [
-            self,
-            Task::new(move |state: &mut GameState| {
-                state.creep_memory_set(
-                    CreepName(&creep),
-                    TASK,
-                    task_id.to_u32().unwrap_or(0) as i32,
-                );
-                Ok(())
-            }),
-        ]
-        .into_iter()
-        .cloned()
-        .collect();
-
-        // Only save the state if the task succeeded
-        let selector = Control::Selector(tasks);
-        selector.into()
     }
 }
 

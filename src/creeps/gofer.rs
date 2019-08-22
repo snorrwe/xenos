@@ -39,7 +39,6 @@ pub fn task<'a>() -> Task<'a, CreepState> {
 }
 
 fn prepare_task<'a>(state: &mut CreepState) -> Task<'a, CreepState> {
-    let name = state.creep_name();
     let last_task = state.creep_memory_i64(TASK).unwrap_or(0);
     let last_task: GoferState = GoferState::from_u32(last_task as u32).unwrap_or(GoferState::Idle);
 
@@ -56,15 +55,15 @@ fn prepare_task<'a>(state: &mut CreepState) -> Task<'a, CreepState> {
         Task::new(|state| get_energy(state))
             .with_name("Get energy")
             .with_priority(priorities[1])
-            .with_state_save(name.0.to_owned(), GoferState::WithdrawingEnergy),
+            .with_state_save(GoferState::WithdrawingEnergy),
         Task::new(|state| pickup_energy(state))
             .with_name("Pickup energy")
             .with_priority(priorities[2])
-            .with_state_save(name.0.to_owned(), GoferState::PickingUpEnergy),
+            .with_state_save(GoferState::PickingUpEnergy),
         Task::new(|state| attempt_unload(state))
             .with_name("Attempt unload")
             .with_priority(priorities[0])
-            .with_state_save(name.0.to_owned(), GoferState::Unloading),
+            .with_state_save(GoferState::Unloading),
     ]
     .into_iter()
     .cloned()

@@ -53,12 +53,11 @@ pub fn target_number_of_role_in_room<'a>(role: Role, room: &'a Room, game_state:
     let n_containers = containers.len() as i8;
     let n_constructions = (room.find(find::CONSTRUCTION_SITES).len()) as i8;
     const UPGRADER_COUNT: i8 = 1;
-    const WORKER_COUNT: i8 = 1;
     match role {
         Role::Upgrader => n_containers.min(UPGRADER_COUNT),
         Role::Harvester => n_sources,
         Role::Worker => {
-            let mut target_workers = n_constructions.min(2) + WORKER_COUNT;
+            let mut target_workers = n_constructions.min(2);
             if n_containers > 0 {
                 if energy_in_containers > 1000 {
                     target_workers += 3;
@@ -73,7 +72,7 @@ pub fn target_number_of_role_in_room<'a>(role: Role, room: &'a Room, game_state:
             if n_containers == 0 {
                 0
             } else {
-                (level * 2).min(3) as i8
+                (level * 2).min(4) as i8
             }
         }
         Role::Gofer => n_sources.min(n_containers as i8),

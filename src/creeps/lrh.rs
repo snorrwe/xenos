@@ -38,17 +38,15 @@ fn prepare_task<'a>(state: &CreepState) -> Task<'a, CreepState> {
         _ => {}
     }
 
-    let name = state.creep_name().0.to_owned();
-
     let tasks = [
         Task::new(|state| load(state))
             .with_name("Load")
-            .with_state_save(name.clone(), LrhState::Loading)
+            .with_state_save(LrhState::Loading)
             .with_priority(priorities[1])
             .with_required_bucket(2000),
         Task::new(|state| unload(state))
             .with_name("Unload")
-            .with_state_save(name.clone(), LrhState::Unloading)
+            .with_state_save(LrhState::Unloading)
             .with_priority(priorities[0]),
         Task::new(|state| harvester::unload(state)).with_name("Harvester unload"),
     ]
