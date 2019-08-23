@@ -22,11 +22,7 @@ enum LrhState {
     Unloading,
 }
 
-pub fn task<'a>() -> Task<'a, CreepState> {
-    Task::new(|state| prepare_task(state).tick(state)).with_name("LRH")
-}
-
-fn prepare_task<'a>(state: &CreepState) -> Task<'a, CreepState> {
+pub fn run<'a>(state: &mut CreepState) -> ExecutionResult {
     let last_task = state.creep_memory_i64(TASK).unwrap_or(0);
     let last_task = LrhState::from_u32(last_task as u32).unwrap_or(LrhState::Idle);
 
@@ -38,7 +34,7 @@ fn prepare_task<'a>(state: &CreepState) -> Task<'a, CreepState> {
         _ => {}
     }
 
-    let tasks = [
+    let mut tasks = [
         Task::new(|state| load(state))
             .with_name("Load")
             .with_state_save(LrhState::Loading)
@@ -49,13 +45,11 @@ fn prepare_task<'a>(state: &CreepState) -> Task<'a, CreepState> {
             .with_state_save(LrhState::Unloading)
             .with_priority(priorities[0]),
         Task::new(|state| harvester::unload(state)).with_name("Harvester unload"),
-    ]
-    .into_iter()
-    .cloned()
-    .collect();
+    ];
 
-    let tree = Control::Sequence(tasks);
-    tree.sorted_by_priority().into()
+    sorted_by_priority(&mut tasks);
+
+    sequence(state, tasks.iter())
 }
 
 /// Load up on energy from the target room

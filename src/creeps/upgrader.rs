@@ -4,9 +4,9 @@ use super::{move_to, sign_controller_stock_msgs, withdraw_energy, CreepState, LO
 use crate::prelude::*;
 use screeps::{prelude::*, ReturnCode};
 
-pub fn task<'a>() -> Task<'a, CreepState> {
+pub fn run<'a>(state: &mut CreepState) -> ExecutionResult {
     let tasks = [
-        Task::new(move |state| {
+        Task::new(|state| {
             let tasks = [
                 Task::new(|state| attempt_upgrade(state)),
                 Task::new(|state: &mut CreepState| sign_controller_stock_msgs(state.creep())),
@@ -15,15 +15,11 @@ pub fn task<'a>() -> Task<'a, CreepState> {
             selector(state, tasks.iter())
         })
         .with_name("Attempt upgrade"),
-        Task::new(move |state| withdraw_energy(state)).with_name("Withdraw energy"),
-        Task::new(move |state| attempt_upgrade(state)).with_name("Attempt upgrade"),
-    ]
-    .into_iter()
-    .cloned()
-    .collect();
+        Task::new(|state| withdraw_energy(state)).with_name("Withdraw energy"),
+        Task::new(|state| attempt_upgrade(state)).with_name("Attempt upgrade"),
+    ];
 
-    let tree = Control::Sequence(tasks);
-    Task::from(tree).with_name("Upgrader")
+    sequence(state, tasks.iter())
 }
 
 pub fn attempt_upgrade<'a>(state: &mut CreepState) -> ExecutionResult {

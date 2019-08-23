@@ -3,7 +3,7 @@ use crate::prelude::*;
 use crate::rooms::neighbours;
 use screeps::prelude::*;
 
-pub fn task<'a>() -> Task<'a, CreepState> {
+pub fn run<'a>(state: &mut CreepState) -> ExecutionResult {
     let tasks = [
         Task::new(|state| {
             update_scout_info(state).unwrap_or_else(|e| {
@@ -20,12 +20,9 @@ pub fn task<'a>() -> Task<'a, CreepState> {
             })
         }),
         Task::new(|state| set_next_room(state)),
-    ]
-    .into_iter()
-    .cloned()
-    .collect();
+    ];
 
-    Task::from(Control::Sequence(tasks)).with_name("Scout")
+    sequence(state, tasks.iter())
 }
 
 fn set_next_room(state: &mut CreepState) -> ExecutionResult {

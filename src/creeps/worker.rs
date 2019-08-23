@@ -20,15 +20,7 @@ enum WorkerState {
     Repairing,
 }
 
-pub fn task<'a>() -> Task<'a, CreepState> {
-    Task::new(move |state| {
-        let task = prepare_task(state);
-        task.tick(state)
-    })
-    .with_name("Worker")
-}
-
-fn prepare_task<'a>(state: &mut CreepState) -> Task<'a, CreepState> {
+pub fn run<'a>(state: &mut CreepState) -> ExecutionResult {
     let last_task = state.creep_memory_i64(TASK).unwrap_or(0);
     let last_task: WorkerState =
         WorkerState::from_u32(last_task as u32).unwrap_or(WorkerState::Idle);
@@ -76,12 +68,9 @@ fn prepare_task<'a>(state: &mut CreepState) -> Task<'a, CreepState> {
         })
         .with_name("Delete target"),
         Task::new(|state| upgrader::attempt_upgrade(state)).with_name("Attempt upgrade"),
-    ]
-    .into_iter()
-    .cloned()
-    .collect();
-    let tree = Control::Sequence(tasks);
-    tree.sorted_by_priority().into()
+    ];
+
+    sequence(state, tasks.iter())
 }
 
 pub fn attempt_build<'a>(state: &mut CreepState) -> ExecutionResult {

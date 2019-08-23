@@ -65,22 +65,16 @@ pub fn game_loop() {
 ///
 /// TODO: GameResult object to return?
 fn run_game_logic(state: &mut GameState) {
-    creeps::task()
-        .tick(state)
-        .unwrap_or_else(|e| warn!("Failed to run creeps {}", e));
-    towers::task()
-        .tick(state)
+    towers::run(state)
         .unwrap_or_else(|e| warn!("Failed to run towers {}", e));
-    spawns::task()
-        .tick(state)
+    creeps::run(state)
+        .unwrap_or_else(|e| warn!("Failed to run creeps {}", e));
+    spawns::run(state)
         .unwrap_or_else(|e| warn!("Failed to run spawns {}", e));
-    constructions::task()
-        .tick(state)
+    constructions::run(state)
         .unwrap_or_else(|e| warn!("Failed to run constructions {}", e));
-    flags::task()
-        .tick(state)
+    flags::run(state)
         .unwrap_or_else(|e| warn!("Failed to run flags {}", e));
-
     expansion::run(state).unwrap_or_else(|e| warn!("Failed to expansion {}", e));
 
     if screeps::game::time() % 16 == 0 {

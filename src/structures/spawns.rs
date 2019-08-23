@@ -11,8 +11,8 @@ use screeps::{
 };
 
 /// Return the BehaviourTree that runs the spawns
-pub fn task<'a>() -> Task<'a, GameState> {
-    Task::new(move |state| {
+pub fn run<'a>(state: &mut GameState) -> ExecutionResult {
+    Task::new(|state| {
         const SPAWN_SKIP: u32 = 5;
 
         let time = game::time();
@@ -32,6 +32,7 @@ pub fn task<'a>() -> Task<'a, GameState> {
         Ok(())
     })
     .with_required_bucket(500)
+    .tick(state)
 }
 
 fn run_spawn<'a>(state: &'a mut GameState, spawn: &'a StructureSpawn) -> ExecutionResult {

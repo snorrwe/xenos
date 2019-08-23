@@ -27,18 +27,7 @@ enum GoferState {
     Unloading,
 }
 
-pub fn task<'a>() -> Task<'a, CreepState> {
-    Task::new(move |state: &mut CreepState| {
-        let task = prepare_task(state);
-        task.tick(state).map_err(|err| {
-            state.creep_memory_remove(TARGET);
-            err
-        })
-    })
-    .with_name("Gofer")
-}
-
-fn prepare_task<'a>(state: &mut CreepState) -> Task<'a, CreepState> {
+pub fn run<'a>(state: &mut CreepState) -> ExecutionResult {
     let last_task = state.creep_memory_i64(TASK).unwrap_or(0);
     let last_task: GoferState = GoferState::from_u32(last_task as u32).unwrap_or(GoferState::Idle);
 
@@ -51,7 +40,7 @@ fn prepare_task<'a>(state: &mut CreepState) -> Task<'a, CreepState> {
         _ => {}
     }
 
-    let tasks = [
+    let mut tasks = [
         Task::new(|state| get_energy(state))
             .with_name("Get energy")
             .with_priority(priorities[1])
@@ -64,12 +53,11 @@ fn prepare_task<'a>(state: &mut CreepState) -> Task<'a, CreepState> {
             .with_name("Attempt unload")
             .with_priority(priorities[0])
             .with_state_save(GoferState::Unloading),
-    ]
-    .into_iter()
-    .cloned()
-    .collect();
+    ];
 
-    Control::Sequence(tasks).sorted_by_priority().into()
+    sorted_by_priority(&mut tasks);
+
+    sequence(state, tasks.iter())
 }
 
 pub fn attempt_unload<'a>(state: &mut CreepState) -> ExecutionResult {
@@ -91,18 +79,28 @@ pub fn attempt_unload<'a>(state: &mut CreepState) -> ExecutionResult {
     let target = find_unload_target(state).ok_or_else(|| "no unload target")?;
 
     let tasks = [
-        Task::new(|state| try_transfer::<StructureSpawn>(state, &target))
-            .with_name("Try transfer to StructureSpawn"),
-        Task::new(|state| try_transfer::<StructureExtension>(state, &target))
-            .with_name("Try transfer to StructureExtension"),
-        Task::new(|state| try_transfer::<StructureTower>(state, &target))
-            .with_name("Try transfer to StructureTower"),
-        Task::new(|state| try_transfer::<StructureStorage>(state, &target))
-            .with_name("Try transfer to StructureStorage"),
+        Task::new(|state: &mut WrappedState<Reference, CreepState>| {
+            try_transfer::<StructureSpawn>(state.state, &state.item)
+        })
+        .with_name("Try transfer to StructureSpawn"),
+        Task::new(|state: &mut WrappedState<Reference, CreepState>| {
+            try_transfer::<StructureExtension>(state.state, &state.item)
+        })
+        .with_name("Try transfer to StructureExtension"),
+        Task::new(|state: &mut WrappedState<Reference, CreepState>| {
+            try_transfer::<StructureTower>(state.state, &state.item)
+        })
+        .with_name("Try transfer to StructureTower"),
+        Task::new(|state: &mut WrappedState<Reference, CreepState>| {
+            try_transfer::<StructureStorage>(state.state, &state.item)
+        })
+        .with_name("Try transfer to StructureStorage"),
     ];
 
-    sequence(state, tasks.iter()).map_err(|e| {
-        state.creep_memory_remove(TARGET);
+    let mut state = WrappedState::new(target, state);
+
+    sequence(&mut state, tasks.iter()).map_err(|e| {
+        state.state.creep_memory_remove(TARGET);
         e
     })
 }
@@ -222,29 +220,20 @@ pub fn get_energy<'a>(state: &mut CreepState) -> ExecutionResult {
 }
 
 fn withdraw<'a>(state: &mut CreepState, target: &'a StructureContainer) -> ExecutionResult {
-    let tasks = [
-        Task::new(move |state: &mut CreepState| {
-            let creep = state.creep();
-            if creep.pos().is_near_to(target) {
-                let r = creep.withdraw_all(target, ResourceType::Energy);
-                if r != ReturnCode::Ok {
-                    debug!("couldn't withdraw: {:?}", r);
-                    Err("can't withdraw")?;
-                }
-            } else {
-                move_to(creep, target)?;
-            }
-            Ok(())
-        }),
-        Task::new(move |_| {
-            if target.store_total() == 0 {
-                Err("Target is empty")?;
-            }
-            Ok(())
-        }),
-    ];
-
-    selector(state, tasks.iter())
+    if target.store_total() == 0 {
+        Err("Target is empty")?;
+    }
+    let creep = state.creep();
+    if creep.pos().is_near_to(target) {
+        let r = creep.withdraw_all(target, ResourceType::Energy);
+        if r != ReturnCode::Ok {
+            debug!("couldn't withdraw: {:?}", r);
+            Err("can't withdraw")?;
+        }
+    } else {
+        move_to(creep, target)?;
+    }
+    Ok(())
 }
 
 fn find_container<'a>(state: &mut CreepState) -> Option<StructureContainer> {

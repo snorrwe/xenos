@@ -20,7 +20,7 @@ use stdweb::{
 
 const HARVEST_TARGET: &'static str = "harvest_target";
 
-pub fn task<'a>() -> Task<'a, CreepState> {
+pub fn run<'a>(state: &mut CreepState) -> ExecutionResult {
     let tasks = [
         Task::new(|state| attempt_harvest(state, None)).with_name("Attempt harvest"),
         Task::new(|state| {
@@ -32,13 +32,9 @@ pub fn task<'a>() -> Task<'a, CreepState> {
             selector(state, tasks.iter())
         }),
         Task::new(|state| unload(state)).with_name("Attempt unload"),
-    ]
-    .into_iter()
-    .cloned()
-    .collect();
+    ];
 
-    let tree = Control::Sequence(tasks);
-    Task::from(tree).with_name("Harvester")
+    sequence(state, tasks.iter())
 }
 
 pub fn unload<'a>(state: &mut CreepState) -> ExecutionResult {

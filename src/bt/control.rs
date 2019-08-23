@@ -1,55 +1,5 @@
 use super::task::*;
-use super::{ExecutionResult, TaskInput, MAX_TASK_PER_CONTROL};
-use arrayvec::ArrayVec;
-use std::fmt::{Display, Formatter};
-
-pub type TaskCollection<'a, T> = ArrayVec<[Task<'a, T>; MAX_TASK_PER_CONTROL]>;
-
-pub trait BtNode<T>: std::fmt::Debug + std::fmt::Display {
-    fn tick(&self, state: &mut T) -> ExecutionResult;
-}
-
-/// Control node in the Behaviour Tree
-#[derive(Clone, Debug)]
-pub enum Control<'a, T>
-where
-    T: TaskInput,
-{
-    /// Runs its child tasks until the first failure
-    Selector(TaskCollection<'a, T>),
-    /// Runs its child tasks until the first success
-    Sequence(TaskCollection<'a, T>),
-}
-
-impl<'a, T> Display for Control<'a, T>
-where
-    T: TaskInput,
-{
-    fn fmt(&self, f: &mut Formatter) -> Result<(), std::fmt::Error> {
-        let tasks: ArrayVec<[&str; MAX_TASK_PER_CONTROL]> = match self {
-            Control::Selector(tasks) | Control::Sequence(tasks) => {
-                tasks.iter().map(|t| t.name.as_str()).collect()
-            }
-        };
-        let name = match self {
-            Control::Selector(_) => "Selector",
-            Control::Sequence(_) => "Sequence",
-        };
-        write!(f, "Control {}, tasks: {:?}", name, tasks)
-    }
-}
-
-impl<'a, T> BtNode<T> for Control<'a, T>
-where
-    T: TaskInput,
-{
-    fn tick(&self, state: &mut T) -> ExecutionResult {
-        match self {
-            Control::Selector(nodes) => selector(state, nodes.iter()),
-            Control::Sequence(nodes) => sequence(state, nodes.iter()),
-        }
-    }
-}
+use super::*;
 
 /// Run an iterator of tasks as a Selector
 pub fn selector<'a, T: 'a + TaskInput, It: Iterator<Item = &'a Task<'a, T>>>(
@@ -72,90 +22,16 @@ pub fn sequence<'a, T: 'a + TaskInput, It: Iterator<Item = &'a Task<'a, T>>>(
 ) -> ExecutionResult {
     let found = tasks.any(|node| {
         let result = node.tick(state);
-        debug!("Task result in sequence {:?} {:?}", node, result);
+        debug!(
+            "Task result in sequence node: {:?} result: {:?}",
+            node, result
+        );
         result.is_ok()
     });
     if found {
         Ok(())
     } else {
         Err("All tasks failed in Sequence!")?
-    }
-}
-
-impl<'a, T> Control<'a, T>
-where
-    T: TaskInput,
-{
-    /// Sort subtasks by priority
-    /// Higher priority tasks will be moved to the front
-    pub fn sorted_by_priority(mut self) -> Self {
-        use self::Control::*;
-        match &mut self {
-            Sequence(ref mut nodes) | Selector(ref mut nodes) => {
-                nodes.sort_by_key(|n| -n.priority);
-            }
-        }
-        self
-    }
-}
-
-impl<'a, T: 'a + TaskInput> From<Control<'a, T>> for Task<'a, T> {
-    fn from(control: Control<'a, T>) -> Task<'a, T> {
-        Task::new(move |state| control.tick(state))
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[derive(Debug, Default, Clone)]
-    struct TestState {
-        results: String,
-    }
-
-    impl TaskInput for TestState {
-        fn cpu_bucket(&self) -> Option<i16> {
-            None
-        }
-    }
-
-    #[test]
-    fn test_priority_sorting() {
-        js! {}; // Enables error messages in tests
-
-        let tasks = [
-            Task::new(|state: &mut TestState| {
-                state.results.push('a');
-                Ok(())
-            })
-            .with_priority(-1),
-            Task::new(|state: &mut TestState| {
-                state.results.push('b');
-                Err("Stop here")?
-            }),
-            Task::new(|state: &mut TestState| {
-                state.results.push('c');
-                Ok(())
-            })
-            .with_priority(5),
-            Task::new(|state: &mut TestState| {
-                state.results.push('d');
-                Ok(())
-            })
-            .with_priority(1),
-        ]
-        .into_iter()
-        .cloned()
-        .collect();
-
-        let mut state = TestState::default();
-
-        let task = Control::Selector::<TestState>(tasks).sorted_by_priority();
-        task.tick(&mut state).expect_err("Should have failed");
-
-        // The order by priority is cdba, but stop the execution at 'b'
-        assert_eq!(state.results, "cdb");
     }
 }
 

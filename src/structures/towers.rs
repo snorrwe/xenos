@@ -7,35 +7,34 @@ use screeps::{
     ReturnCode,
 };
 
-/// Return the BehaviourTree that runs the spawns
-pub fn task<'a>() -> Task<'a, GameState> {
-    Task::new(move |state| {
-        game::structures::values()
-            .into_iter()
-            .filter_map(|s| match s {
-                Structure::Tower(t) => Some(t),
-                _ => None,
-            })
-            .for_each(move |tower| {
-                run_tower(state, &tower)
-                    .map_err(|e| {
-                        debug!("Tower in room {:?} is idle, {:?}", tower.room().name(), e);
-                        e
-                    })
-                    .unwrap_or(())
-            });
-        Ok(())
-    })
+pub fn run<'a>(state: &mut GameState) -> ExecutionResult {
+    game::structures::values()
+        .into_iter()
+        .filter_map(|s| match s {
+            Structure::Tower(t) => Some(t),
+            _ => None,
+        })
+        .for_each(move |tower| {
+            let mut state = WrappedState::new(tower, state);
+            run_tower(&mut state)
+                .map_err(move |e| {
+                    debug!("Tower in room {:?} is idle, {:?}", state.item.room().name(), e);
+                    e
+                })
+                .unwrap_or(())
+        });
+    Ok(())
 }
 
-fn run_tower<'a>(state: &'a mut GameState, tower: &'a StructureTower) -> ExecutionResult {
-    debug!("Running tower {:?}", tower.id());
+fn run_tower<'a>(tower: &mut WrappedState<StructureTower, GameState>) -> ExecutionResult {
+    debug!("Running tower {:?}", tower.item.id());
 
     let tasks = [
-        Task::new(move |_| attempt_attack(tower)),
-        Task::new(move |_| attempt_repair(tower)).with_required_bucket(1000),
+        Task::new(move |tower: &mut WrappedState<StructureTower, GameState>| attempt_attack(&tower.item)),
+        Task::new(move |tower: &mut WrappedState<StructureTower, GameState>| attempt_repair(&tower.item))
+            .with_required_bucket(1000),
     ];
-    sequence(state, tasks.iter())
+    sequence(tower, tasks.iter())
 }
 
 fn attempt_attack<'a>(tower: &'a StructureTower) -> ExecutionResult {

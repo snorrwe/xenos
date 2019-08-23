@@ -10,7 +10,14 @@ use stdweb::unstable::TryInto;
 
 const CONQUEST_TARGET: &'static str = "conquest_target";
 
-pub fn task<'a>() -> Task<'a, CreepState> {
+pub fn run<'a>(state: &mut CreepState) -> ExecutionResult {
+    Task::new(_run)
+        .with_required_bucket(300)
+        .with_name("Conqueror")
+        .tick(state)
+}
+
+fn _run(state: &mut CreepState) -> ExecutionResult {
     let tasks = [
         Task::new(move |state: &mut CreepState| {
             update_scout_info(state).unwrap_or_else(|e| {
@@ -23,15 +30,9 @@ pub fn task<'a>() -> Task<'a, CreepState> {
         Task::new(move |state| set_target(state)).with_name("Set target"),
         Task::new(move |state: &mut CreepState| sign_controller_stock_msgs(state.creep()))
             .with_name("Set target"),
-    ]
-    .into_iter()
-    .cloned()
-    .collect();
+    ];
 
-    let tree = Control::Sequence(tasks);
-    Task::from(tree)
-        .with_required_bucket(300)
-        .with_name("Conqueror")
+    sequence(state, tasks.iter())
 }
 
 fn claim_target<'a>(state: &mut CreepState) -> ExecutionResult {

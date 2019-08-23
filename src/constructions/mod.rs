@@ -7,10 +7,10 @@ mod spawns;
 mod storage;
 
 use self::construction_matrix::ConstructionMatrix;
-use crate::state::ConstructionState;
 use self::point::Point;
-use crate::state::MemorySentinel;
 use crate::prelude::*;
+use crate::state::ConstructionState;
+use crate::state::MemorySentinel;
 use crate::CONSTRUCTIONS_SEGMENT;
 use screeps::{
     constants::{find, StructureType},
@@ -19,27 +19,26 @@ use screeps::{
 };
 use stdweb::unstable::{TryFrom, TryInto};
 
-pub fn task<'a>() -> Task<'a, GameState> {
-    debug!("Init construction task");
+pub fn run<'a>(state: &mut GameState) -> ExecutionResult {
+    Task::new(_run).with_required_bucket(5000).tick(state)
+}
 
-    Task::new(move |_| {
-        let time = screeps::game::time();
-        let rooms = screeps::game::rooms::values();
-        let len = rooms.len() as u32;
+fn _run(_state: &mut GameState) -> ExecutionResult {
+    let time = screeps::game::time();
+    let rooms = screeps::game::rooms::values();
+    let len = rooms.len() as u32;
 
-        if time % (len * 3) > len {
-            Err("Skipping constructions task")?;
-        }
+    if time % (len * 3) > len {
+        Err("Skipping constructions task")?;
+    }
 
-        let mut state = ConstructionState::read_from_segment_or_default(CONSTRUCTIONS_SEGMENT);
-        let _sentinel = MemorySentinel::new(CONSTRUCTIONS_SEGMENT as u8, &state);
+    let mut state = ConstructionState::read_from_segment_or_default(CONSTRUCTIONS_SEGMENT);
+    let _sentinel = MemorySentinel::new(CONSTRUCTIONS_SEGMENT as u8, &state);
 
-        let index = time % len;
-        let room = &rooms[index as usize];
+    let index = time % len;
+    let room = &rooms[index as usize];
 
-        manage_room(room, &mut state)
-    })
-    .with_required_bucket(5000)
+    manage_room(room, &mut state)
 }
 
 fn manage_room<'a>(room: &'a Room, state: &mut ConstructionState) -> ExecutionResult {

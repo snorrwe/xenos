@@ -122,29 +122,17 @@ impl Debug for CreepState {
 }
 
 pub trait WithStateSave<'a> {
-    type State: TaskInput;
-
-    fn with_state_save<T: ToPrimitive + 'a>(self, task_id: T) -> Task<'a, Self::State>;
+    fn with_state_save<T: ToPrimitive + 'a>(self, task_id: T) -> Task<'a, CreepState>;
 }
 
 impl<'a> WithStateSave<'a> for Task<'a, CreepState> {
-    type State = CreepState;
-
     fn with_state_save<T: 'a + ToPrimitive>(self, task_id: T) -> Task<'a, CreepState> {
-        let tasks = [
-            self,
-            Task::new(move |state: &mut CreepState| {
-                state.creep_memory_set(TASK, task_id.to_u32().unwrap_or(0) as i32);
-                Ok(())
-            }),
-        ]
-        .into_iter()
-        .cloned()
-        .collect();
-
-        // Only save the state if the task succeeded
-        let selector = Control::Selector(tasks);
-        selector.into()
+        self.with_post_process(move |state: &mut CreepState, res: ExecutionResult| {
+            if let Ok(_) = res {
+                state.creep_memory_set(TASK, task_id.to_u32().unwrap_or(0));
+            }
+            res
+        })
     }
 }
 

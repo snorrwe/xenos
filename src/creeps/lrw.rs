@@ -6,7 +6,14 @@ use crate::prelude::*;
 
 const TARGET_ROOM: &'static str = "target_room";
 
-pub fn task<'a>() -> Task<'a, CreepState> {
+pub fn run<'a>(state: &mut CreepState) -> ExecutionResult {
+    Task::new(_run)
+        .with_required_bucket(300)
+        .with_name("LRW")
+        .tick(state)
+}
+
+fn _run(state: &mut CreepState) -> ExecutionResult {
     let tasks = [
         Task::new(|state| {
             update_scout_info(state).unwrap_or_else(|e| {
@@ -17,14 +24,10 @@ pub fn task<'a>() -> Task<'a, CreepState> {
         .with_name("Update scout info"),
         Task::new(|state| approach_target_room(state)).with_name("Approach target room"),
         Task::new(|state| set_target(state)).with_name("Set target"),
-        worker::task().with_name("Worker run"),
-    ]
-    .into_iter()
-    .cloned()
-    .collect();
+        Task::new(|state| worker::run(state)).with_name("Worker run"),
+    ];
 
-    let tree = Control::Sequence(tasks);
-    Task::from(tree).with_required_bucket(300).with_name("LRW")
+    sequence(state, tasks.iter())
 }
 
 fn approach_target_room<'a>(state: &mut CreepState) -> ExecutionResult {

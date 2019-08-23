@@ -41,23 +41,21 @@ pub struct CreepExecutionStats {
     total_execution_time: f32,
 }
 
-pub fn task<'a>() -> Task<'a, GameState> {
-    Task::new(move |state: &mut GameState| {
-        let start = game::cpu::get_used();
+pub fn run<'a>(state: &mut GameState) -> ExecutionResult {
+    let start = game::cpu::get_used();
 
-        screeps::game::creeps::values()
-            .into_iter()
-            .for_each(|creep| {
-                let mut state = CreepState::new(creep, state);
-                run_creep(&mut state).unwrap_or(())
-            });
+    screeps::game::creeps::values()
+        .into_iter()
+        .for_each(|creep| {
+            let mut state = CreepState::new(creep, state);
+            run_creep(&mut state).unwrap_or(())
+        });
 
-        let end = game::cpu::get_used();
+    let end = game::cpu::get_used();
 
-        state.creep_stats.total_execution_time = (end - start) as f32;
+    state.creep_stats.total_execution_time = (end - start) as f32;
 
-        Ok(())
-    })
+    Ok(())
 }
 
 fn run_creep<'a>(state: &mut CreepState) -> ExecutionResult {
@@ -122,16 +120,13 @@ fn assign_role<'a>(state: &'a mut GameState, creep: &'a Creep) -> Option<Role> {
 }
 
 fn run_role<'a>(state: &'a mut CreepState) -> ExecutionResult {
-    let task = {
-        let role = state.creep_memory_role(CREEP_ROLE).ok_or_else(|| {
-            let error = "failed to read creep role";
-            error!("{}", error);
-            error
-        })?;
+    let role = state.creep_memory_role(CREEP_ROLE).ok_or_else(|| {
+        let error = "failed to read creep role";
+        error!("{}", error);
+        error
+    })?;
 
-        roles::run_role(role)
-    };
-    task.tick(state)
+    roles::run_role(state, role)
 }
 
 pub fn move_to<'a, T>(creep: &'a Creep, target: &'a T) -> ExecutionResult
@@ -215,21 +210,25 @@ pub fn pickup_energy<'a>(state: &mut CreepState) -> ExecutionResult {
         })?;
 
     let tasks = [
-        Task::new(
-            |state: &mut CreepState| match state.creep().pickup(&target) {
+        Task::new(|state: &mut WrappedState<Resource, CreepState>| {
+            match state.state.creep().pickup(&state.item) {
                 ReturnCode::Ok => Ok(()),
                 _ => Err("Can't pick up")?,
-            },
-        ),
-        Task::new(|state: &mut CreepState| move_to(state.creep(), &target)),
-        Task::new(|state: &mut CreepState| {
-            state.creep_memory_remove(TARGET);
+            }
+        }),
+        Task::new(|state: &mut WrappedState<Resource, CreepState>| {
+            move_to(state.state.creep(), &state.item)
+        }),
+        Task::new(|state: &mut WrappedState<Resource, CreepState>| {
+            state.state.creep_memory_remove(TARGET);
             Ok(())
         }),
     ];
 
-    sequence(state, tasks.iter()).map_err(|_| {
-        state.creep_memory_remove(TARGET);
+    let mut state = WrappedState::new(target, state);
+
+    sequence(&mut state, tasks.iter()).map_err(|_| {
+        state.state.creep_memory_remove(TARGET);
         "can't pick up energy".into()
     })
 }
@@ -282,13 +281,20 @@ pub fn withdraw_energy<'a>(state: &'a mut CreepState) -> ExecutionResult {
     };
 
     let tasks = [
-        Task::new(|state| try_withdraw::<Tombstone>(state, &target)),
-        Task::new(|state| try_withdraw::<StructureStorage>(state, &target)),
-        Task::new(|state| try_withdraw::<StructureContainer>(state, &target)),
+        Task::new(|state: &mut WrappedState<RoomObject, CreepState>| {
+            try_withdraw::<Tombstone>(state.state, &state.item)
+        }),
+        Task::new(|state: &mut WrappedState<RoomObject, CreepState>| {
+            try_withdraw::<StructureStorage>(state.state, &state.item)
+        }),
+        Task::new(|state: &mut WrappedState<RoomObject, CreepState>| {
+            try_withdraw::<StructureContainer>(state.state, &state.item)
+        }),
     ];
-    sequence(state, tasks.iter()).map_err(|_| {
+    let mut state = WrappedState::new(target, state);
+    sequence(&mut state, tasks.iter()).map_err(|_| {
         warn!("Got a target that can not be withdrawn from");
-        state.creep_memory_remove(TARGET);
+        state.state.creep_memory_remove(TARGET);
         "can't withdraw".into()
     })
 }
