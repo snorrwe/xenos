@@ -105,7 +105,7 @@ fn connect(pos0: &RoomPosition, pos1: &RoomPosition, room: &Room) -> ExecutionRe
             ignoreCreeps: true,
             plainCost: 1,
             swampCost: 2,
-            range: 1,
+            range: 0,
         });
         return Object.values(path.map((step) => new RoomPosition( step.x, step.y, room.name )));
     };

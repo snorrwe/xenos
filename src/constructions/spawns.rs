@@ -19,16 +19,13 @@ pub fn find_initial_point(room: &Room) -> Result<RoomPosition, String> {
     {
         Err("The room is not mine, skipping spawn placement")?;
     }
-    let mut poi = room
+    let poi = room
         .find(find::SOURCES)
         .into_iter()
         .map(|s| s.pos())
         .collect::<Vec<_>>();
-    if let Some(controller) = room.controller() {
-        poi.push(controller.pos());
-    }
     if poi.len() < 2 {
-        Err("The room has no sources or controller, no optimal spawn point can be found")?;
+        Err("The room has no sources, no optimal spawn point can be found")?;
     }
     let mut it = poi.into_iter();
 
