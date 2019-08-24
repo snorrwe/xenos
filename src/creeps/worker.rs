@@ -46,7 +46,7 @@ pub fn run<'a>(state: &mut CreepState) -> ExecutionResult {
             .with_name("Harvest")
             .with_priority(priorities[3]),
         // If nothing can be built
-        Task::new(move |state: &mut CreepState| {
+        Task::new(|state: &mut CreepState| {
             let creep = state.creep();
             if creep
                 .room()

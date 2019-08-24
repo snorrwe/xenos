@@ -19,16 +19,16 @@ pub fn run<'a>(state: &mut CreepState) -> ExecutionResult {
 
 fn _run(state: &mut CreepState) -> ExecutionResult {
     let tasks = [
-        Task::new(move |state: &mut CreepState| {
+        Task::new(|state: &mut CreepState| {
             update_scout_info(state).unwrap_or_else(|e| {
                 error!("Failed to update scout info {:?}", e);
             });
             Err("continue")?
         })
         .with_name("Update scout info"),
-        Task::new(move |state| claim_target(state)).with_name("Claim target"),
-        Task::new(move |state| set_target(state)).with_name("Set target"),
-        Task::new(move |state: &mut CreepState| sign_controller_stock_msgs(state.creep()))
+        Task::new(|state| claim_target(state)).with_name("Claim target"),
+        Task::new(|state| set_target(state)).with_name("Set target"),
+        Task::new(|state: &mut CreepState| sign_controller_stock_msgs(state.creep()))
             .with_name("Set target"),
     ];
 
