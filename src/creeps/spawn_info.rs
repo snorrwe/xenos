@@ -20,6 +20,7 @@ pub struct SpawnConfig {
 /// The higher the more important
 pub fn role_priority<'a>(_room: &'a Room, role: Role) -> i8 {
     match role {
+        Role::Defender => 4,
         Role::Harvester => 3,
         Role::Gofer => 2,
         Role::Worker => 1,
@@ -54,6 +55,7 @@ pub fn target_number_of_role_in_room<'a>(role: Role, room: &'a Room, game_state:
     let n_constructions = (room.find(find::CONSTRUCTION_SITES).len()) as i8;
     const UPGRADER_COUNT: i8 = 1;
     match role {
+        Role::Defender => room.find(find::HOSTILE_CREEPS).len().min(1) as i8,
         Role::Upgrader => n_containers.min(UPGRADER_COUNT),
         Role::Harvester => n_sources,
         Role::Worker => {
@@ -100,6 +102,7 @@ fn basic_role_parts<'a>(_room: &Room, role: Role) -> BodyCollection {
         Role::Upgrader | Role::Worker => [Part::Move, Part::Carry, Part::Work].into_iter(),
         Role::Lrw => [Part::Move, Part::Move, Part::Carry, Part::Work].into_iter(),
         Role::Scout => [Part::Move].into_iter(),
+        Role::Defender => [Part::Move, Part::Attack].into_iter(),
         Role::Unknown => [].into_iter(),
     };
     it.map(|x| *x).collect()
@@ -112,6 +115,7 @@ fn role_part_scale<'a>(_room: &Room, role: Role) -> BodyCollection {
         Role::Scout | Role::Conqueror => [].into_iter(),
         Role::Gofer => [Part::Move, Part::Carry, Part::Carry].into_iter(),
         Role::Lrh => [Part::Move, Part::Carry, Part::Work, Part::Move].into_iter(),
+        Role::Defender => [Part::Attack, Part::Move].into_iter(),
         _ => [Part::Move, Part::Carry, Part::Work].into_iter(),
     };
     it.map(|x| *x).collect()
@@ -137,6 +141,7 @@ fn role_part_max(room: &Room, role: Role) -> Option<usize> {
         Role::Conqueror => None,
         Role::Scout => None,
         Role::Gofer => Some(worker_count * 2),
+        Role::Defender => None,
         Role::Unknown => None,
     };
     result.map(|x| x.min(50))

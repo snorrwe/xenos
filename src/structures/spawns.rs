@@ -49,7 +49,7 @@ fn run_spawn<'a>(state: &'a mut GameState, spawn: &'a StructureSpawn) -> Executi
     let next_role = next_role.unwrap();
 
     match next_role {
-        Role::Harvester | Role::Gofer => {}
+        Role::Defender | Role::Harvester | Role::Gofer => {}
         _ => {
             // If the room has enough harvesters and gofers
             let total = room.energy_capacity_available() as f32;

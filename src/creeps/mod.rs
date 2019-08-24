@@ -2,6 +2,7 @@ pub mod roles;
 pub mod spawn_info;
 
 mod conqueror;
+mod defender;
 mod gofer;
 mod harvester;
 mod lrh;

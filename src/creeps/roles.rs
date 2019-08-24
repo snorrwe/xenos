@@ -1,5 +1,5 @@
 pub use super::spawn_info::*;
-use super::{conqueror, gofer, harvester, lrh, lrw, scout, upgrader, worker};
+use super::{conqueror, defender, gofer, harvester, lrh, lrw, scout, upgrader, worker};
 use crate::prelude::*;
 use arrayvec::ArrayVec;
 use screeps::objects::Room;
@@ -17,6 +17,7 @@ pub enum Role {
     Conqueror = 6,
     Lrw = 7,
     Scout = 8,
+    Defender = 9,
 }
 
 impl From<u8> for Role {
@@ -31,6 +32,7 @@ impl From<u8> for Role {
             6 => Role::Conqueror,
             7 => Role::Lrw,
             8 => Role::Scout,
+            9 => Role::Defender,
             _ => unimplemented!("Role {} is not unimplemented!", item),
         }
     }
@@ -48,23 +50,25 @@ impl Display for Role {
             Role::Lrw => "Lrw",
             Role::Conqueror => "Conqueror",
             Role::Scout => "Scout",
+            Role::Defender => "Defender",
         };
         write!(f, "{}", name)
     }
 }
 
-type RoleArray = [Role; 8];
+type RoleArray = [Role; 9];
 impl Role {
     pub fn all_roles() -> ArrayVec<RoleArray> {
         use self::Role::*;
         const ROLES: RoleArray = [
-            Upgrader, Harvester, Worker, Gofer, Lrh, Conqueror, Lrw, Scout,
+            Upgrader, Harvester, Worker, Gofer, Lrh, Conqueror, Lrw, Scout, Defender,
         ];
         ROLES
             .into_iter()
             // Trigger compilation error on a new role if it's missing
             .filter_map(|r| match r {
-                Scout | Upgrader | Harvester | Worker | Gofer | Lrh | Conqueror | Lrw => Some(*r),
+                Scout | Upgrader | Harvester | Worker | Gofer | Lrh | Conqueror | Lrw
+                | Defender => Some(*r),
                 Unknown => None,
             })
             .collect()
@@ -107,6 +111,7 @@ pub fn run_role<'a>(state: &mut CreepState, role: Role) -> ExecutionResult {
         Role::Lrh => lrh::run(state),
         Role::Lrw => lrw::run(state),
         Role::Scout => scout::run(state),
+        Role::Defender => defender::run(state),
         _ => unimplemented!(),
     };
 
