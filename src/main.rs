@@ -37,6 +37,7 @@ pub const CONSTRUCTIONS_SEGMENT: u32 = 1;
 pub const STATISTICS_SEGMENT: u32 = 2;
 pub const VERSION: &'static str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/VERSION"));
 pub const COLLECT_STATS: bool = true;
+pub const USERNAME: &'static str = "Frenetiq";
 
 lazy_static! {
     pub static ref DEPLOYMENT_TIME: u32 = { screeps::game::time() };

@@ -46,22 +46,10 @@ pub fn run<'a>(state: &mut CreepState) -> ExecutionResult {
             .with_name("Harvest")
             .with_priority(priorities[3]),
         // If nothing can be built
-        Task::new(|state: &mut CreepState| {
-            let creep = state.creep();
-            if creep
-                .room()
-                .controller()
-                .map(|c| c.level() >= 3)
-                .unwrap_or(false)
-            {
-                repairer::attempt_repair(state)
-            } else {
-                Err("Skip repairing until the controller is level 3")?
-            }
-        })
-        .with_required_bucket(500)
-        .with_priority(priorities[4])
-        .with_name("Attempt repair"),
+        Task::new(|state: &mut CreepState| repairer::attempt_repair(state))
+            .with_required_bucket(500)
+            .with_priority(priorities[4])
+            .with_name("Attempt repair"),
         Task::new(|state: &mut CreepState| {
             state.creep_memory_remove(TARGET);
             Err("continue")?

@@ -110,9 +110,9 @@ fn find_unload_target<'a>(state: &mut CreepState) -> Option<Reference> {
     if let Some(target) = read_unload_target(state) {
         let notfull = js! {
             const target = @{&target};
-            return !target.energyCapacity || target.energy < target.energyCapacity;
+            return target.capacity < target.storeCapacity || target.energy < target.energyCapacity;
         };
-        let notfull: bool = notfull.try_into().unwrap_or(true);
+        let notfull: bool = notfull.try_into().unwrap_or(false);
         if notfull {
             return Some(target);
         }
@@ -137,10 +137,9 @@ fn find_unload_target<'a>(state: &mut CreepState) -> Option<Reference> {
 }
 
 fn read_unload_target<'a>(state: &mut CreepState) -> Option<Reference> {
-    state.creep_memory_string(TARGET).and_then(|target| {
-        trace!("Validating existing target");
-        get_object_erased(target).map(|target| target.as_ref().clone())
-    })
+    state
+        .creep_memory_string(TARGET)
+        .and_then(|target| get_object_erased(target).map(|target| target.as_ref().clone()))
 }
 
 pub fn try_transfer<'a, T>(state: &mut CreepState, target: &'a Reference) -> ExecutionResult

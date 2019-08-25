@@ -14,6 +14,7 @@ mod worker;
 
 pub use self::roles::Role;
 use crate::prelude::*;
+use crate::USERNAME;
 use screeps::{
     constants::{find, ResourceType},
     game::{self, get_object_erased, get_object_typed},
@@ -482,6 +483,12 @@ pub fn sign_controller(creep: &Creep, msg: &str) -> ExecutionResult {
         .room()
         .controller()
         .ok_or_else(|| "Room has no controller")?;
+
+    if let Some(sign) = controller.sign() {
+        if sign.username == USERNAME {
+            Err("Already signed")?;
+        }
+    }
 
     match creep.sign_controller(&controller, msg) {
         ReturnCode::Ok => Ok(()),

@@ -8,8 +8,6 @@ use screeps::{
 };
 
 pub fn attempt_repair<'a>(state: &mut CreepState) -> ExecutionResult {
-    trace!("Repairing");
-
     let loading = state.creep_memory_bool(LOADING);
     if loading.unwrap_or(false) {
         return Err("loading".into());
@@ -19,7 +17,6 @@ pub fn attempt_repair<'a>(state: &mut CreepState) -> ExecutionResult {
         state.creep_memory_set("loading".into(), true);
         Err("empty".into())
     } else {
-        trace!("Repairing");
         let target = find_repair_target(&creep.room()).ok_or_else(|| {
             let error = format!("Could not find a repair target");
             debug!("{}", error);
