@@ -3,8 +3,8 @@
 //!
 
 use super::{
-    approach_target_room, gofer, harvester, update_scout_info, CreepState, HOME_ROOM, LOADING,
-    TARGET, TASK,
+    approach_target_room, gofer, harvester, update_scout_info, upgrader, CreepState, HOME_ROOM,
+    LOADING, TARGET, TASK,
 };
 use crate::prelude::*;
 use crate::rooms::neighbours;
@@ -44,7 +44,10 @@ pub fn run<'a>(state: &mut CreepState) -> ExecutionResult {
             .with_name("Unload")
             .with_state_save(LrhState::Unloading)
             .with_priority(priorities[0]),
-        Task::new(|state| harvester::unload(state)).with_name("Harvester unload"),
+        Task::new(|state| harvester::unload(state))
+            .with_name("Harvester unload")
+            .with_priority(-1),
+        Task::new(|state| upgrader::attempt_upgrade(state)).with_priority(-2),
     ];
 
     sorted_by_priority(&mut tasks);
