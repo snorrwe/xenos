@@ -42,7 +42,7 @@ pub struct CreepExecutionStats {
     total_execution_time: f32,
 }
 
-pub fn run<'a>(state: &mut GameState) -> ExecutionResult {
+pub fn run(state: &mut GameState) -> ExecutionResult {
     let start = game::cpu::get_used();
 
     screeps::game::creeps::values()
@@ -59,7 +59,7 @@ pub fn run<'a>(state: &mut GameState) -> ExecutionResult {
     Ok(())
 }
 
-fn run_creep<'a>(state: &mut CreepState) -> ExecutionResult {
+fn run_creep(state: &mut CreepState) -> ExecutionResult {
     debug!("Running creep {}", state.creep_name().0);
 
     if state.creep().spawning() {
@@ -184,7 +184,7 @@ where
 /// # Contracts & Side effects
 /// Required the `loading` flag to be set to true
 /// If the creep is full sets the `loading` flag to false
-pub fn pickup_energy<'a>(state: &mut CreepState) -> ExecutionResult {
+pub fn pickup_energy(state: &mut CreepState) -> ExecutionResult {
     if !state.creep_memory_bool(LOADING).unwrap_or(false) {
         Err("not loading")?;
     }
@@ -349,7 +349,7 @@ fn find_available_energy<'a>(creep: &'a Creep) -> Option<RoomObject> {
 /// Fallback harvest, method for a worker to harvest energy temporary
 /// ## Contracts:
 /// - Should not interfere with the harvester::harvest functionality
-pub fn harvest<'a>(state: &mut CreepState) -> ExecutionResult {
+pub fn harvest(state: &mut CreepState) -> ExecutionResult {
     trace!("Worker harvesting");
 
     {
@@ -397,7 +397,7 @@ pub fn find_repair_target<'a>(room: &'a Room) -> Option<Structure> {
         .min_by_key(|s| s.as_attackable().map(|s| s.hits()).unwrap())
 }
 
-pub fn update_scout_info<'a>(state: &mut CreepState) -> ExecutionResult {
+pub fn update_scout_info(state: &mut CreepState) -> ExecutionResult {
     let creep = state.creep();
     let room = creep.room();
 
@@ -442,7 +442,7 @@ pub fn update_scout_info<'a>(state: &mut CreepState) -> ExecutionResult {
 }
 
 /// target_key is a memory entry key
-pub fn approach_target_room<'a>(state: &mut CreepState, target_key: &str) -> ExecutionResult {
+pub fn approach_target_room(state: &mut CreepState, target_key: &str) -> ExecutionResult {
     let target = state.creep_memory_string(target_key).ok_or("no target")?;
 
     let creep = state.creep();
@@ -472,7 +472,7 @@ pub fn approach_target_room<'a>(state: &mut CreepState, target_key: &str) -> Exe
 }
 
 pub fn sign_controller_stock_msgs(creep: &Creep) -> ExecutionResult {
-    const MESSAGES: &'static [&'static str] = &["Become as Gods", "This cannot continue"];
+    const MESSAGES: &'static [&'static str] = &["Become as gods", "This cannot continue"];
     let msg = MESSAGES[game::time() as usize % MESSAGES.len()];
     sign_controller(creep, msg)
 }
