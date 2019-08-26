@@ -23,15 +23,8 @@ const HARVEST_TARGET: &'static str = "harvest_target";
 pub fn run<'a>(state: &mut CreepState) -> ExecutionResult {
     let tasks = [
         Task::new(|state| attempt_harvest(state, None)).with_name("Attempt harvest"),
-        Task::new(|state| {
-            let tasks = [
-                Task::new(|state| unload(state)),
-                Task::new(|state| attempt_harvest(state, None)).with_name("Attempt harvest"),
-            ];
-            // On success attempt to continue harvesting right away
-            selector(state, tasks.iter())
-        }),
         Task::new(|state| unload(state)).with_name("Attempt unload"),
+        Task::new(|state| attempt_harvest(state, None)).with_name("Attempt harvest"),
     ];
 
     sequence(state, tasks.iter())

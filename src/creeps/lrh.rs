@@ -18,32 +18,27 @@ const HARVEST_TARGET_ROOM: &'static str = "harvest_target_room";
 #[repr(u8)]
 enum LrhState {
     Idle = 0,
-    Loading,
-    Unloading,
+    Loading = 1,
+    Unloading = 2,
 }
 
 pub fn run<'a>(state: &mut CreepState) -> ExecutionResult {
     let last_task = state.creep_memory_i64(TASK).unwrap_or(0);
     let last_task = LrhState::from_u32(last_task as u32).unwrap_or(LrhState::Idle);
 
-    let mut priorities = [0, 0];
-
-    match last_task {
-        LrhState::Unloading => priorities[0] += 1,
-        LrhState::Loading => priorities[1] += 1,
-        _ => {}
-    }
+    let mut priorities = [0; 3];
+    priorities[last_task as usize] += 1;
 
     let mut tasks = [
         Task::new(|state| load(state))
             .with_name("Load")
             .with_state_save(LrhState::Loading)
-            .with_priority(priorities[1])
+            .with_priority(priorities[LrhState::Loading as usize])
             .with_required_bucket(2000),
         Task::new(|state| unload(state))
             .with_name("Unload")
             .with_state_save(LrhState::Unloading)
-            .with_priority(priorities[0]),
+            .with_priority(priorities[LrhState::Unloading as usize]),
         Task::new(|state| harvester::unload(state))
             .with_name("Harvester unload")
             .with_priority(-1),
@@ -51,7 +46,6 @@ pub fn run<'a>(state: &mut CreepState) -> ExecutionResult {
     ];
 
     sorted_by_priority(&mut tasks);
-
     sequence(state, tasks.iter())
 }
 

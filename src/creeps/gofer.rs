@@ -31,32 +31,25 @@ pub fn run<'a>(state: &mut CreepState) -> ExecutionResult {
     let last_task = state.creep_memory_i64(TASK).unwrap_or(0);
     let last_task: GoferState = GoferState::from_u32(last_task as u32).unwrap_or(GoferState::Idle);
 
-    let mut priorities = [0, 0, 0];
-
-    match last_task {
-        GoferState::Unloading => priorities[0] += 1,
-        GoferState::WithdrawingEnergy => priorities[1] += 1,
-        GoferState::PickingUpEnergy => priorities[2] += 1,
-        _ => {}
-    }
+    let mut priorities = [0; 4];
+    priorities[last_task as usize] += 1;
 
     let mut tasks = [
         Task::new(|state| get_energy(state))
             .with_name("Get energy")
-            .with_priority(priorities[1])
+            .with_priority(priorities[GoferState::WithdrawingEnergy as usize])
             .with_state_save(GoferState::WithdrawingEnergy),
         Task::new(|state| pickup_energy(state))
             .with_name("Pickup energy")
-            .with_priority(priorities[2])
+            .with_priority(priorities[GoferState::PickingUpEnergy as usize])
             .with_state_save(GoferState::PickingUpEnergy),
         Task::new(|state| attempt_unload(state))
             .with_name("Attempt unload")
-            .with_priority(priorities[0])
+            .with_priority(priorities[GoferState::Unloading as usize])
             .with_state_save(GoferState::Unloading),
     ];
 
     sorted_by_priority(&mut tasks);
-
     sequence(state, tasks.iter())
 }
 

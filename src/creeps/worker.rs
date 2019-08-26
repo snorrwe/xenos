@@ -13,11 +13,11 @@ use screeps::{
 #[repr(u8)]
 enum WorkerState {
     Idle = 0,
-    Building,
-    PickingUpEnergy,
-    WithdrawingEnergy,
-    Harvesting,
-    Repairing,
+    Building = 1,
+    PickingUpEnergy = 2,
+    WithdrawingEnergy = 3,
+    Harvesting = 4,
+    Repairing = 5,
 }
 
 pub fn run<'a>(state: &mut CreepState) -> ExecutionResult {
@@ -25,30 +25,27 @@ pub fn run<'a>(state: &mut CreepState) -> ExecutionResult {
     let last_task: WorkerState =
         WorkerState::from_u32(last_task as u32).unwrap_or(WorkerState::Idle);
 
-    let mut priorities = [0; 5];
+    let mut priorities = [0; 6];
+    priorities[last_task as usize] += 1;
 
-    match last_task {
-        WorkerState::Building => priorities[0] += 1,
-        WorkerState::PickingUpEnergy => priorities[1] += 1,
-        WorkerState::WithdrawingEnergy => priorities[2] += 1,
-        WorkerState::Harvesting => priorities[3] += 1,
-        WorkerState::Repairing => priorities[4] += 1,
-        _ => {}
-    }
-    let tasks = [
+    let mut tasks = [
         Task::new(|state| attempt_build(state))
             .with_name("Attempt build")
-            .with_priority(priorities[0]),
+            .with_priority(priorities[WorkerState::Building as usize])
+            .with_state_save(WorkerState::Building),
         Task::new(|state: &mut CreepState| withdraw_energy(state))
             .with_name("Withdraw energy")
-            .with_priority(priorities[2]),
+            .with_state_save(WorkerState::WithdrawingEnergy)
+            .with_priority(priorities[WorkerState::WithdrawingEnergy as usize]),
         Task::new(|state| harvest(state))
             .with_name("Harvest")
-            .with_priority(priorities[3]),
+            .with_state_save(WorkerState::Harvesting)
+            .with_priority(priorities[WorkerState::Harvesting as usize]),
         // If nothing can be built
         Task::new(|state: &mut CreepState| repairer::attempt_repair(state))
             .with_required_bucket(500)
-            .with_priority(priorities[4])
+            .with_priority(priorities[WorkerState::Repairing as usize])
+            .with_state_save(WorkerState::Repairing)
             .with_name("Attempt repair"),
         Task::new(|state: &mut CreepState| {
             state.creep_memory_remove(TARGET);
@@ -58,6 +55,7 @@ pub fn run<'a>(state: &mut CreepState) -> ExecutionResult {
         Task::new(|state| upgrader::attempt_upgrade(state)).with_name("Attempt upgrade"),
     ];
 
+    sorted_by_priority(&mut tasks);
     sequence(state, tasks.iter())
 }
 
