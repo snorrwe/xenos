@@ -1,10 +1,10 @@
-pub mod arrayqueue;
-pub mod flaggrid;
-pub mod trait_impl;
+mod arrayqueue;
+mod flaggrid;
+mod trait_impl;
 
 pub use self::arrayqueue::*;
-pub use self::trait_impl::*;
 pub use self::flaggrid::*;
+pub use self::trait_impl::*;
 
 use std::fmt;
 use std::ops::{Add, Sub};
@@ -50,3 +50,4 @@ impl Index for u16 {
         s as u16
     }
 }
+

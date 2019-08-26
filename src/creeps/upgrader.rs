@@ -23,17 +23,16 @@ pub fn run<'a>(state: &mut CreepState) -> ExecutionResult {
 }
 
 pub fn attempt_upgrade<'a>(state: &mut CreepState) -> ExecutionResult {
-    trace!("Upgrading");
     let loading = state.creep_memory_bool(LOADING);
     if loading.unwrap_or(false) {
-        return Err("loading".into());
+        return Err("loading")?;
     }
     if state.creep().carry_total() == 0 {
         state.creep_memory_set("loading".into(), true);
-        Err("empty".to_string())?;
+        Err("empty")?;
     }
     let controller = state.creep().room().controller().ok_or_else(|| {
-        let error = format!("Creep has no access to a controller in the room!");
+        let error = "Creep has no access to a controller in the room!";
         error!("{}", error);
         error
     })?;
