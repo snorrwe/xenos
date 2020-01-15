@@ -44,7 +44,7 @@ pub fn build_containers<'a>(room: &'a Room) -> ExecutionResult {
 
     sources.into_iter().for_each(|source| {
         let source_pos = source.pos();
-        source_pos.neighbours().into_iter().any(|pos| {
+        source_pos.neighbours().iter().any(|pos| {
             is_free(room, &pos)
                 && room.create_construction_site(pos, StructureType::Container) == ReturnCode::Ok
         });

@@ -115,7 +115,7 @@ impl ConstructionMatrix {
         if n_free > 3 {
             self.open_positions.push_back(pos);
             self.open_positions.extend(
-                tile.into_iter()
+                tile.iter()
                     .enumerate()
                     .filter(|(i, _)| i % 2 == PARITY as usize)
                     .filter(|(_, p)| p.is_valid_room_position())
@@ -137,7 +137,7 @@ impl ConstructionMatrix {
             (x - 2, y - 2),
             (x - 2, y + 2),
         ]
-        .into_iter()
+        .iter()
         .filter(|(x, y)| 4 <= *x && *x < 50 - 4 && 4 <= *y && *y <= 50 - 4)
         .map(|(x, y)| Point(*x as i16, *y as i16))
         .collect()

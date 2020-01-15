@@ -64,7 +64,7 @@ impl Role {
             Upgrader, Harvester, Worker, Gofer, Lrh, Conqueror, Lrw, Scout, Defender,
         ];
         ROLES
-            .into_iter()
+            .iter()
             // Trigger compilation error on a new role if it's missing
             .filter_map(|r| match r {
                 Scout | Upgrader | Harvester | Worker | Gofer | Lrh | Conqueror | Lrw

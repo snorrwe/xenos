@@ -7,7 +7,6 @@ use super::{
     LOADING, TARGET, TASK,
 };
 use crate::prelude::*;
-use crate::rooms::neighbours;
 use crate::state::RoomIFF;
 use num::FromPrimitive;
 use screeps::prelude::*;
@@ -90,19 +89,20 @@ fn set_target_room<'a>(state: &'a mut CreepState) -> ExecutionResult {
         let creep = state.creep();
         creep.room()
     };
-    let neighbours = neighbours(&room);
+    let room = WorldPosition::from(room);
+    let neighbours = room.neighbours_in_vectors();
 
     let target = {
         let gs: &mut GameState = unsafe { &mut *state.mut_game_state() };
         let counts: &mut _ = gs
             .long_range_harvesters
-            .entry(WorldPosition::from(room))
-            .or_insert_with(|| [0; 4]);
+            .entry(room)
+            .or_insert([0; 4]);
 
         let scout_intel = &gs.scout_intel;
 
         let (i, target) = neighbours
-            .into_iter()
+            .iter()
             .enumerate()
             .filter(|(_, wp)| {
                 scout_intel
@@ -116,7 +116,7 @@ fn set_target_room<'a>(state: &'a mut CreepState) -> ExecutionResult {
             .min_by_key(|(i, _)| counts[*i])
             .ok_or_else(|| {
                 warn!(
-                    "Failed to set target room of LRH {:?} in room {:?}",
+                    "Failed to find target room of LRH {:?} in room {:?}",
                     state.creep().name(),
                     state.creep().room().name()
                 );

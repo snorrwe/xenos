@@ -87,7 +87,7 @@ impl WorldPosition {
         let prefixes = [w, n];
         let mut result = ArrayString::default();
 
-        for (num, pre) in [x, y].into_iter().zip(prefixes.into_iter()) {
+        for (num, pre) in [x, y].iter().zip(prefixes.iter()) {
             let num = num.abs() as u16;
             let len = len_of_num(num);
             result.push(*pre);
@@ -171,4 +171,3 @@ mod tests {
         assert_eq!(name.as_str(), "E1S8");
     }
 }
-

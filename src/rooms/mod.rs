@@ -9,7 +9,7 @@ pub fn neighbours(room: &Room) -> ArrayVec<[WorldPosition; 8]> {
     let coords = WorldPosition::from(room);
     let neighbours = coords
         .neighbours_in_vectors()
-        .into_iter()
+        .iter()
         .map(|coords| coords.to_string())
         .collect::<ArrayVec<[_; 8]>>();
     let names: Vec<&str> = neighbours.iter().map(|n| n.as_str()).collect();
@@ -34,7 +34,7 @@ pub fn neighbours(room: &Room) -> ArrayVec<[WorldPosition; 8]> {
         .unwrap_or_default();
 
     result_list
-        .into_iter()
+        .iter()
         .map(|x| WorldPosition::parse_name(x.as_str()).unwrap())
         .collect()
 }

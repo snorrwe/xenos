@@ -42,8 +42,7 @@ pub fn unload<'a>(state: &mut CreepState) -> ExecutionResult {
         Task::new(|state: &mut CreepState| {
             let target = find_unload_target(state).ok_or_else(|| {
                 state.creep_memory_remove(TARGET);
-                let error = String::from("could not find unload target");
-                error
+                "could not find unload target"
             })?;
             try_transfer::<StructureContainer>(state, &target)
         })
@@ -75,8 +74,7 @@ pub fn unload<'a>(state: &mut CreepState) -> ExecutionResult {
 
 fn find_unload_target<'a>(state: &mut CreepState) -> Option<Reference> {
     read_unload_target(state).or_else(|| {
-        let tasks = [Task::new(|state| find_container(state)).with_name("Find container")];
-        sequence(state, tasks.iter()).unwrap_or_else(|e| {
+        find_container(state).unwrap_or_else(|e| {
             debug!("Failed to find unload target {:?}", e);
         });
         read_unload_target(state)
@@ -210,7 +208,7 @@ fn harvester_count<'a>(state: &mut CreepState) -> HashMap<String, i32> {
             .get_game_state()
             .creep_memory_string(CreepName(&creep.name()), HARVEST_TARGET);
         if let Some(target) = target {
-            *result.entry(target.to_string()).or_insert(0) += 1;
+            *result.entry(target.to_owned()).or_insert(0) += 1;
         }
     });
     result
